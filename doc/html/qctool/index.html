@@ -2,10 +2,9 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
-		<script type="text/javascript" src="js/jquery.ba-hashchange.min.js"></script>
-		<script type="text/javascript" src="js/local.js"></script>
 
+		<script type="text/javascript" src="js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="js/local.js"></script>
 		<!-- Google Analytics tracking code-->
 		<script type="text/javascript">
 			var _gaq = _gaq || [];
@@ -18,16 +17,8 @@
 				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
 			})();
 		</script>
-
-		<script type="text/javascript">
-			$(document).ready(
-				function() {
-					setFirstPage( "overview" ) ;
-				}
-			) ;
-		</script>
 		<link href="style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -39,1096 +30,126 @@
 				A tool for quality control and analysis of gwas datasets.
 			</div>
 		</div>
-		<div class="button_bar">
-			<div class="nav_button" name="overview">
-				<span class = "nav_button_content" >
-					overview
-				</span>
-			</div>
-			<div class="nav_button" name="documentation">
-				<span class = "nav_button_content" >
-					documentation
-				</span>
-			</div>
-			<div class="nav_button" name="tutorial">
-				<span class = "nav_button_content" >
-					examples
-				</span>
-			</div>
-			<div class="nav_button" name="file_formats">
-				<span class = "nav_button_content" >
-					file formats
-				</span>
-			</div>
-			<div class="nav_button" name="download">
-				<span class = "nav_button_content" >
-					download
-				</span>
-			</div>
-		</div>
-		<div class="main_text">
-			<div id="overview" style="display:none">
+
+		<section class="main_text">
+			<div id="overview">
 				<p>
-					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which is current in <b>release candidate</b> status.
-					Go <a href="http://www.well.ox.ac.uk/~gav/qctool/">here</a> if you want the stable QCTOOL version 1.
+					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which differs in several important ways from the 
+					original <a href="http://www.well.ox.ac.uk/~gav/qctool">QCTOOL v1</a>.  Version 1 is now unsupported.
 				</p>
 				<p>
-					QCTOOL is a command-line utility program for manipulation and quality control of gwas datasets and other
-					genome-wide data.  QCTOOL can be used
+					QCTOOL is a command-line utility program for manipulation and quality control of gwas datasets and other genome-wide data. QCTOOL can be used
 				</p>
 				<ul>
-					<li>To compute per-variant and per-sample QC metrics.</li>
-					<li>To filter out samples or variants.</li>
-					<li>To merge datasets in various ways.</li>
-					<li>To convert dataset between file formats.  (In particular QCTOOL can read and write
-						<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files, including full support for BGEN v1.2).</li>
-					<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence based on
-						information in a strand file.</li>
-					<li>To annotate variants with information from BED files, sequence from FASTA files, or with genetic map positions.</li>
-					<li>To compute LD metrics between variants.</li>
-					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.</li>
-					<li>To compute between-sample relatedness and principal components.</li>
-					<li>To compute 'genetic risk predictor' scores.</li>
+					<li>To compute per-variant and per-sample QC metrics.
+					</li>
+					<li>To filter out samples or variants.
+					</li>
+					<li>To merge datasets in various ways.
+					</li>
+					<li>To convert dataset between file formats. (In particular QCTOOL can read and write <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files, including full support for BGEN v1.2).
+					</li>
+					<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence based on information in a strand file.
+					</li>
+					<li>To annotate variants with information from BED files, sequence from FASTA files, or with genetic map positions.
+					</li>
+					<li>To compute LD metrics between variants.
+					</li>
+					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.
+					</li>
+					<li>To compute between-sample relatedness and principal components.
+					</li>
+					<li>To compute 'genetic risk predictor' scores.
+					</li>
 				</ul>
 				<p>
-					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so.
-					See the <a href='#documentation'>documentation page</a> for a description of how QCTOOL works.
+					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so. See the <a href='#documentation'>documentation page</a> for a description of how QCTOOL works.
 				</p>
 				<p>
-					<strong>A note on performance</strong>
-					The large sizes of modern datasets mean performance is often a critical factor.
-					QCTOOL is currently not always the fastest tool in the box, and this 
-					.  In particular for more
-					efficient manipulation of BGEN files, see <a href="http://www.bitbucket.org/gavinband/bgen">the bgen library</a>.
+					<strong>A note on performance</strong> The large sizes of modern datasets mean performance is often a critical factor. QCTOOL is currently not always the fastest tool in the box.
+					For more efficient manipulation of BGEN files, see <a href="http://www.bitbucket.org/gavinband/bgen">the bgen library</a>.
 				</p>
 				<p>
-					<strong>Change history.</strong>
-					This page documents version 2 of QCTOOL which is currently in release candidate state.  However, some features may not work, or
-					not to work well, or to work wrongly, or to destroy your computer, or your sanity.	Caveat utilitor.
-				</p>
-				</p>QCTOOL v2 also differs in several important ways from the v1 release series.  Some important changes in QCTOOL v2 relative to v1 are:
-				</p>
+					<strong>Change history.</strong> This page documents version 2 of QCTOOL which is currently in release candidate state. However, some features may not work, or not to work well, or to work wrongly, or to destroy your computer, or your sanity. Caveat utilitor.
+				</p>QCTOOL v2 also differs in several important ways from the v1 release series. Some important changes in QCTOOL v2 relative to v1 are:
 				<ul>
 					<li>
-						<b>Support for more file formats</b>: QCTOOL v2 supports a diverse array of common file formats - see the
-						<a href="#file_formats">file formats page</a> for more information.
+						<b>Support for more file formats</b>: QCTOOL v2 supports a diverse array of common file formats - see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.
 					</li>
 					<li>
-						<b>Removal of on-the-fly filtering options</b>: The options for direct filtering based on summary statistics (<code>-maf</code>,
-						<code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed.
-						Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for
-						removal, using the <code>-incl-</code> and <code>-excl-</code> options to exclude them in a seperate QCTOOL run.
-						(That's often what you want anyway, since it's useful to have a record of what you've removed.)
+						<b>Removal of on-the-fly filtering options</b>: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options to exclude them in a seperate QCTOOL run. (That's often what you want anyway, since it's useful to have a record of what you've removed.)
 					</li>
 					<li>
-						<b>Treatment of chromosomes</b>: QCTOOL v1 always converted chromosomes to
-						a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing
-						if they were not of specific forms pertinent to human datasets.  QCTOOL v2 instead allows arbitrary
-						strings to be used as chromosomes.  This change brings QCTOOL into line with other tools,
-						e.g. those that use contig identifiers from a reference genome build.  However, this also
-						breaks some workflows that would previously have worked, namely when matching between datasets
-						that have differently encoded chromosome names.  A possible workaround is to use the
-						<code>-map-id-data</code> option to replace chromosome identifiers on the fly during analysis
-						- see the <a href="#tutorial">examples page</a> for details.
+						<b>Treatment of chromosomes</b>: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to use the <code>-map-id-data</code> option to replace chromosome identifiers on the fly during analysis - see the <a href="examples.html">examples page</a> for details.
 					</li>
 					<li>
-						<b>Changes to output of summary stats</b>: QCTOOL performs several types of per-variant summary computation, that are
-						specified using options like <code>-snp-stats</code>, <code>-intensity-stats</code>, <code>-fit-clusters</code>, and
-						the <code>-annotate-</code> options.  When outputting results, all output is sent to a single output file that is specified
-						using the <code>-osnp</code> option.  This file will automatically inherit columns from each requested computation.
-						Similarly, per-sample summary computations are output the file specified by <code>-osample</code>.
+						<b>Changes to output of summary stats</b>: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code>, <code>-intensity-stats</code>, <code>-fit-clusters</code>, and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, per-sample summary computations are output the file specified by <code>-osample</code>.
 					</li>
 				</ul>
 				<p>
 					<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
 				</p>
-				<p>
-					<ul>
-						<li>
-							<a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
-						</li>
-						<li>
-							<a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
-						</li>
-					</ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a>
-					code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium",
-					Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
-				</p>
+				<ul>
+					<li>
+						<a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+					</li>
+					<li>
+						<a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
+					</li>
+				</ul>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a> code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium", Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
 				<p>
 					<strong>Contact.</strong> For more information or questions, please contact the oxstatgen mailing list at
-					<pre class="monospace">
+				</p>
+				<pre class="monospace">
 						oxstatgen (at) jiscmail.ac.uk
-					</pre>
-				</p>
+				</pre>
 			</div>
-			<div id="documentation" style="display:none">
-				<div class="display_diagram_right">
-					<object data="style/images/qctool_cheatsheet.svg" width="328" height="800" type="image/svg+xml" align="center">
-						</object>
-				</div>
-<h3>Introduction</h3>
-				<p>
-					Data flows through QCTOOL in a fixed pipeline that is shown in the schematic on the right.
-					In brief, data for one or more cohorts
-					is read into QCTOOL one variant at a time, merged into one combined dataset, and undergoes further processing.
-					This combined dataset is then passed to output modules and various analyses.
-					Command-line options (small grey text in the diagram on the right) affect how QCTOOL reads, filters, processes,
-					and outputs data.
-				</p>
-				<p>
-					A full description for all options is always available via the command
-				</p>
-				<pre>
-$ qctool -help
-</pre>
-<p>
-	which produces <a href="qctool_help.txt">this output</a>.
-</p>
-<p>
-	Some basic functions that QCTOOL can be used for are: to convert files between formats, and to
-	compute per-SNP or per-sample summary statistics.  The rest of this page documents these functions, for further
-	examples see the <a href='#tutorial'>examples page</a>.
-</p>
-<h3>Converting between file formats</h3>
-<p>
-	A basic command to convert between file formats is:
-</p>
-<div>
-<code>
-	qctool -g &lt;input file&gt; -og &lt;output file&gt;
-</code>
-</div>
-<p>
-This command reads genotypes and/or other data from the input file(s) and outputs them to the output file.
-A considerable number of file formats are now supported by this tool - see the <a href='#file_formats'>file formats page</a> for a full list.
-For the most common formats, the filename extension is used to determine the file format.  Where this doesn't happen automatically
-the <code>-filetype</code> (for input files) and <code>-ofiletype</code> (for output files) options can be used to specify the filetype.
-</p>
-<p>
-	The option <code>-og -</code> means "output to standard output".
-</p>
-<p>
-	Note that although it's not required to supply a sample file (<code>-s</code> option), for some combinations of input/output file
-	formats (such as GEN to VCF) supplying a sample file is preferable to ensure that the output files have appropriate sample labels.
-</p>
-<div>
-<code>
-	qctool \<br/>
-	-g &lt;input file&gt; \<br/>
-	-s &lt;sample file 1&gt; \<br/>
-	-og &lt;output file&gt;
-</code>
-</div>
-<p>
-	As shown on the right, a number of options affect the format of the genotype output file.
-</p>
-<ul>
-	<li><code>-ofiletype</code>: this determines the output file format; if not suplied a guess is made based on the filename as described <a href='#file_formats'>here<a>.</li>
-	<li><code>-omit-chromosome</code>: (for GEN and SHAPEIT files) this tells QCTOOL to write files without an initial chromosome column.</li>
-	<li><code>-vcf-output-fields</code>: (for VCF file output) this tells QCTOOL to restrict the set of FORMAT fields written to the output file to the specified list.</li>
-	<li><code>-bgen-bits</code>: (for BGEN file output) this tells QCTOOL to use the specified number of bits when encoding probabilities in BGENv1.2 format.</li>
-</ul>
-<h3>Sorting data</h3>
-<p>
-	The <code>-sort</code> option tells QCTOOL to sort the variants in the output file.  QCTOOL does this by first writing the
-	output file unsorted, but internally keeping a record of the file locations of the data for each variant.
-	Then the file is renamed to a temporary file and copied back to the destination in the sorted order.
-</p>
-<p>
-	The sort command uses the <code>-snp-match-fields</code> option to determine what to sort by.  This defaults to '<code>position,rsid,SNPID,alleles</code>'
-	which means variants are sorted by genomic position, ID fields, and alleles.
-	(The <code>-snp-match-fields</code> option is used by several parts of QCTOOL - whenever variants need to be compared or ordered.)
-</p>
-<p>
-	Sorting is only supported for those output file types that support efficient seeking - in particular sorting will not work
-	with gzipped output formats. (The BGEN format does support sorting.)
-</p>
-<h3>Merging data</h3>
-<p>
-	QCTOOL accepts multiple occurences of the <code>-g</code> option specifying multiple cohorts worth of data.
-	QCTOOL merges these datasets internally, forming a combined dataset
-	with <em>&Sum;<sub>i</sub> N<sub>i</sub></em> samples, where <em>N<sub>i</sub></em> is the number of samples in
-	cohort <em>i</em>.
-</p>
-<p>
-	<b>Important.</b>
-		QCTOOL does not do an exhaustive search to try to match variants between cohorts (in fact it traverses each input file
-		exactly once from start to finish).  Instead, it uses the following algorithm to merge variants:
-</p>
-<ol>
-	<li>For each variant in cohort 1;</li>
-	<li>Look for the next matching variant in cohorts 2, ..., n; but stop searching when a variant with greater position is found;</li>
-	<li>If a match is found, merge the data and process it;</li>
-	<li>Otherwise, omit this variant and move to the next.</li>
-</ol>
-<p>
-	Variants are matched using the fields specified by the <code>-snp-match-fields</code> option (and in the order they're specified).
-	(The genomic position must always be the first field sorted on.)
-</p>
-<p>
-	The implication of the above is that the merge will work best when either
-</p>
-<ul>
-	<li>Data in each cohort is sorted (by the same fields specified in <code>-snp-match-fields</code>); or</li>
-	<li>Data in each cohort has exactly the same set of SNPs in exactly the same order.</li>
-</ul>
-<p>
-	In other situations the result of QCTOOL may not be a full join,
-	i.e. it may omit variants that could in principle be merged.
-</p>
+		</section>
 
-<h3>Computing summary statistics</h3>
-<p>
-	QCTOOL will compute per-variant and per-sample summary statistics of several different types.
-	In this version of QCTOOL, all per-variant quantities are output to the output file
-	specified by <code>-osnp</code>, and all per-sample quantities are output to the output
-	file specified by <code>-osample</code>.  These options will choose a file type based on format of their
-	argument according to the following table:
-</p>
-<table>
-	<tr><th>Option</th><th>File format</th></tr>
-	<tr><td><code>&lt;filename&gt;.csv</code></td><td>CSV file.</td></tr>
-	<tr><td><code>&lt;filename&gt;.tsv</code></td><td>Tab-separated file.</td></tr>
-	<tr><td><code>sqlite://&lt;filename&gt;:&lt;table name&gt;</code></td>
-		<td>A specified table in a <a href="http://www.sqlite.org">sqlite3<a> file.</td></tr>
-	<tr><td><code>&lt;filename&gt;.txt</code> (or anything else)</td><td>Space-separated file</td>
-	<tr><td><code>-</code></td><td>Write to standard output</td></tr>
-</table>
-<p>
-	A number of options produce data that is output to the file specified by <code>-osnp</code>.  They are
-	tabulated in the following table.
-</p>
-<table>
-	<tr><th>Option</th><th>Summary</th></tr>
-	<tr><td><code>-snp-stats</code></td><td>Basic per-variant summary statistics - frequency, missing proportion, P-value for Hardy-Weinberg, etc.</td></tr>
-	<tr><td><code>-intensity-stats</code></td><td>Mean per-variant X and Y channel intensities.</td></tr>
-	<tr><td><code>-fit-clusters</code></td><td>Fit multivariate T distribution clusters to genotype calls and intensities, output parameters.</td></tr>
-	<tr><td><code>-annotate-sequence</code></td><td>Annotation of reference base(s) and flanking sequence from a reference FASTA file.</td></tr>
-	<tr><td><code>-annotate-genetic-map</code></td><td>Annotation of interpolated genetic map positions from genetic map file(s).</td></tr>
-	<tr><td><code>-annotate-bed3</code>,<code>-annotate-bed4</code></td><td>Annotation of occupancy of regions defined in one or more BED files.</td></tr>
-</table>
-<h3>Details of summary statistics</h3>
-	<p>
-	The following table lists columns output by QCTOOL when using each option.
-	Note that QCTOOL was originally designed for human data; summary statistic computation currently only supports
-	diploid samples (and haploids on the sex chromosomes, as determined by sex information in the sample file).
-	Summary statistics currently only support biallelic variants.
-</p>
-	<p>Computed by <code>-snp-stats</code>:</p>
-	<dl class="column_definition">
-
-		<dt><code>[A|B|AA|AB|BB|NULL]</code></dt>
-		<dd>
-			Counts of each haploid or diploid genotype.
-			For hard-called genotype data, or when using <code>-threshhold</code>, these will be
-			integers.  Otherwise they reflect expected counts and may have nonzero fractional part.</dd>
-		<dt><code>incorrect_ploidy</code></dt>
-		<dd>
-			<em>(Only computed on sex chromosomes)</em>.The count of incorrectly coded genotypes for haploid samples.
-			Currently,	ploidy is assumed to be diploid on the autosomal chromosomes,
-			diploid/haploid for females/males on the X chromosome, and 0-ploid / haploid for females and males
-			on the Y chromosome.
-			The coding of haploid genotypes is detemined by the <code>-haploid-genotype-coding</code>
-			option.  The default is to assume haploid samples are coded as homozygous genotypes.
-		</dd>
-
-		<dt><code>unknown_ploidy</code></dt>
-		<dd>
-			<em>(Only computed on sex chromosomes)</em>:
-			The count of samples whose ploidy could not be determined.  On the X and Y chromosomes,
-			this occurs for any sample with missing sex information (as determined by the column of
-			the sample file specified by <code>-sex-column</code>).	 
-		</dd>
-
-		<dt><code>alleleA_frequency</code>, <code>alleleB_frequency</code>, <code>minor_allele_frequency</code></dt>
-		<dd>The frequency of the A and B alleles, and of the minor (less frequent) allele</dd>
-
-		<dt><code>missing_call_proportion</code></dt>
-		<dd>The proportion of missing calls (defined as genotypes with highest genotype probability less than 0.9).</dd>
-
-		<dt><code>missing_proportion</code></dt>
-		<dd>The proportion of missing data (defined as the sum of NULL genotype probabilities,
-			divided by the total number of samples).  An imputed variant will usually have a value of close to zero
-			here.  A directly-typed SNP may have nonzero NULL call probability e.g. if called using a clustering
-			algorithm.</dd>
-
-		<dt><code>impute_info</code></dt>
-		<dd>The IMPUTE info metric.  This is defined as one minus the expected variance of a genotype,
-			divided by the variance of a genotype with the estimated allele frequency under Hardy-Weinberg.
-			This is the traditional metric which is always computed as though for diploid samples
-			and does not take into account missing data.
-			It has the property that
-			<em>info &leq; 1</em> with equality iff all the genotype calls are completely certain.</dd>
-		<dt><code>info</code></dt>
-		<dd>The (modified) info metric, taking account non-diploid samples (e.g. males on
-			the X chromosome) and missing data.  This info measure has the property that
-			<em>info &leq; 1 - missingness</em> with equality iff all the genotype calls are completely certain.</dd>
-		
-		<dt><code>HW_exact_p_value</code>, <code>HW_lrt_p_value</code></dt>
-		<dd>P-values for Hardy-Weinberg equilibrium.  The first is computed using the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">exact test</a>
-			of Wigginton et al, "<em>A Note on Exact Tests of Hardy-Weinberg Equilibrium</em>",
-			Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93. 
-			The second is computed using an asymptotically chi-squared distributed likelihood ratio statistic.
-			(Note the latter may become invalid when counts are small.)
-		<dt><code>HW_females_exact_pvalue</code>, <code>HW_females_lrt_pvalue</code><dt>
-			<dd><em>(Only computed on X chromosome)</em>: P-values for Hardy-Weinberg equilibrium in females.</dd>
-			
-		<dt><code>male_female_exact_pvalue</code></dt>
-			<dd><em>(Only computed on the X chromosome)</em>
-				A P-value for equal allele frequency in males and females.
-
-		<dt><code>male_female_and_HW_lrt_pvalue</code></dt>
-			<dd><em>(Only computed on the X chromosome)</em>
-				A P-value for Hardy-Weinberg in females and equal allele frequency in males and females,
-				computed using asymptotically chi-squared distributed likelihood ratio statistic.
-				(Note this P-value may be invalid when counts are small.)
-			</dd>
-	</dl>
-		<p>Computed by <code>-intensity-stats</code>:</p>
-	<dl class="column_definition">
-		<dt>
-			<dt><code>mean_X</code>, <code>mean_Y</code></dt>  
-				<dd>Mean X channel and Y channel intensities</dd>
-			<dt><code>var_X</code>, <code>var_Y</code>   <code>cov_XY</code></dt>
-				<dd>Variance and covariance in X and Y channel intensities</dd>
-			<dt><code>g=&lt;x&gt;:mean_X</code>, <code>g=&lt;x&gt;:mean_Y</code><dt>
-				<dd>Mean X channel and Y channel intensities for calls having the given genotype</dd>
-			<dt><code>g=&lt;x&gt;:var_X</code>, <code>g=&lt;x&gt;:var_Y</code>, <code>g=&lt;x&gt;:cov_XY</code><dt>
-				<dd>Variance and covariance in X and Y channel intensities for calls having the given genotype</dd>
-	</dl>
-		<p>Computed by <code>-compare-to &lt;auxiliary genotype file&gt; &lt;auxiliary sample file&gt;</code>:</p>
-	<dl class="column_definition">
-		<dt><code>compared_variant_rsid</code>, <code>compared_variant_alleleA</code>, <code>compared_variant_alleleB</code></dt>
-			<dd>RSID and first and second alleles of the variant in the auxiliary data this variant was compared to.
-				(Matching of variants is controlled by the <code>-snp-match-fields</code> option.)</dd>
-		<dt><code>&lt;sample ID&gt;(&lt;ID in primary data&gt;~&lt;ID in compared data&gt;):genotype</code></dd>
-			<dd>Dosage for the given sample in the primary data and in the compared data.
-				(Matching of samples is controlled by the <code>-match-samples-by</code> column.)
-			</dd>
-		<dt><code>pairwise_non_missing_calls</code></dt>
-		<dd>The number of genotypes that were non-missing in primary and compared datasets</dd>
-		<dt><code>pairwise_concordant_calls</code>, <code>concordance</code></dt>
-		<dd>The number and proportion of pairwise non-missing genotypes that were concordant in primary and compared datasets</dd>
-		<dt><code>concordance</code></dt>
-		<dd>The number of pairwise non-missing genotypes that were concordant in primary and compared datasets</dd>
-		<dt><code>correlation</code></dt>
-		<dd>The correlation between genotype dosages in the primary and compared datasets</dd>
-</dl>
-<p>
-	Computed by <code>-annotate-bed[3|4] &lt;name of file in <a href="https://genome.ucsc.edu/FAQ/FAQformat.html#format1">BED</a> format&gt;</code>:
-</p>
-<dl>
-			<dt><code>&lt;filename&gt;</code> (minus the extension)</dt>
-			<dd>For <code>-annotate-bed3</code>, a 0/1 indicator of whether the variant lies in an interval in the given BED file;
-				for <code>-annotate-bed4</code>, a list of values from the fourth column of the BED file for intervals which the
-				variant lies in.  Note positions in BED files are in 0-based coordinates; QCTOOL
-				assumes 1 based coordinates for the positions of variants and will translate BED coordinates accordingly.
-			</dd>
-	</dl>
-<p>
-<p>
-	Computed by <code>-annotate-sequence &lt;name of fasta file&gt; &lt;name&gt;</code>:
-</p>
-<dl>
-			<dt><code>&lt;name&gt;_alleleA</code></dt>
-			<dd>The content of the given FASTA file for the bases covered by the first allele at each variant</dd>
-			<dt><code>&lt;name&gt;_alleleA_left_flanking</code>, <code>&lt;name&gt;_alleleA_right_flanking</code></dt>
-			<dd>The left and right flanking sequence from the given FASTA file.  The length of flanking sequence output
-				is controlled by the <code>-flanking</code> option.</dd>
-			<dt><code>&lt;name&gt;_alleleB_if_indel</code></dt>
-			<dd>The content of the given FASTA file for the bases covered by the second allele.  This is only output if the length
-				of the two alleles is different (i.e. variant is an insertion or deletion).</dd>
-	</dl>
-<p>
-</div>
-			<div id="tutorial" style="display:none">
-				<div class="tutorial_header">
-					This page shows command lines used to carry out common tasks with QCTOOL.
-					We assume the program is being run from a directory containing a sample file <span class="monospace">example.sample</span> and 22 GEN files named <span class="monospace">example_01.gen, example_02.gen</span>, etc.
-				As one of the first examples, we convert these files to BGEN format and use this in subsequent examples.
-				 See also the <a href="qctool_help.txt">list of options</a>.
-				</div>
-				<div class="tutorial_separator">
-				</div>
-				<div class="task">
-					<div class="task_name">
-						View the program usage page
-					</div>
-					<div class="task_command_line">
-						$ qctool -help | less
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Convert between file formats:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og example.vcf
-					</div>
-					<div class="task_notes">
-						QCTOOL deduces file types from the file extension as described on the <a href="#file_formats">file formats page</a>.
-						For filetypes not automatically recognised, the <code>-filetype</code> and <code>-ofiletype</code> options can be used to specify, as in:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file&gt; -filetype &lt;input file type&gt; -og &lt;output file&gt; -ofiletype &lt;output file type&gt;
-					</div>
-					<div class="task_notes">
-						If the input filename contains a # character, e.g. <code>example_#.gen</code> this is treated as a
-						chromosomal wildcard and will match all (human) chromosomes.
-						All files obtained by substituting in valid chromosome names in place of # will be included in the output.
-						This will also be used to infer the chromosome, if chromosome information is not present in the files themselves.
-					</div>
-					<div class="task_notes">
-						Although specifying a sample file is optional, it's sometimes preferable to include one so that output files have
-						the correct sample identifiers (e.g. when converting GEN format to BGEN or VCF), e.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_#.gen -s example.sample -og example.bgen
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Convert from VCF format
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -og converted.bgen
-					</div>
-					<div class="task_notes">
-						By default QCTOOL reads genotype calls from the <span class="monospace">GT</span> field in the VCF file.
-						The <code>-vcf-genotype-field</code> can be used to alter this, e.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -vcf-genotype-field GP -og converted.bgen
-					</div>
-					<div class="task_notes">
-						QCTOOL assumes that the VCF file contains correct metadata (as per the VCFv4.2 specification) - and
-						it will fail with an error if that's not the case.  To work around this, the <code>-metadata</code> option
-						can be used to tell QCTOOL to load metadata from an external file:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.vcf -og converted.bgen -metadata metadata.txt
-					</div>
-					<div class="task_notes">
-						(The specified file should contain complete VCF metadata, starting
-						with the <code>##fileformat=VCFv4.2</code> line, up to but not
-						including the <code>#CHROM...</code> line.)
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Sort data
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og sorted.bgen -sort
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og sorted.bgen -sort -snp-match-fields &lt;fields&gt;
-					</div>
-					<div class="task_notes">
-						The sort operation works for BGEN, unzipped GEN, and unzipped VCF output formats.
-						The default is to sort by chromosome, position, alleles, rsid, and SNPID.
-						The <code>-snp-match-fields</code> option can be used to restrict to sorting on a subset of fields.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Combine two datasets into one large one
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample
-					</div>
-					<div class="task_notes">
-						Note: It is assumed that SNPs are in increasing order of genomic position in each cohort.  This command matches SNPs by genomic position,
-						SNPID and rsid, and alleles.
-					</div>
-					<div class="task_notes">
-						The output file will have <em>N<sub>1</sub>+N<sub>2</sub></em> samples, where <em>N<sub>1</sub></em> and <em>N<sub>2</sub></em> are the numbers of samples in the two input cohorts.
-						QCTOOL attempts to merge the columns of the sample files based on name and type.  Columns are dropped if they
-						have the same name but different types.	 Otherwise, each column in the input sample files appears in the output
-						sample file, possibly with missing values for those cohorts for which that column is not present.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles
-					</div>
-					<div class="task_notes">
-						Note: This matches variants by position and alleles only.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample -og joined.gen -os joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1
-					</div>
-					<div class="task_notes">
-						Note: This again matches by position and alleles.  However, if the variant is biallelic and the alleles in the second
-						cohort are the same as those in the first cohort, but coded the other way round (e.g. cohort1 = A G,
-						cohort2 = G A), then the alleles and genotypes are flipped accordingly.
-					</div>
-				</div>			
-				<div class="task">
-					<div class="task_name">
-						Merge variants from one dataset into another
-					</div>
-					<div class="task_command_line">
-						$ qctool -g first.bgen -s first.sample -merge-in second.bgen -s second.sample -og merged.bgen
-					</div>
-					<div class="task_notes">
-						This command produces a dataset that contains a record for each variant from <code>first.bgen</code> and a record for
-						each variant from <code>second.bgen</code>.  Data is output for the set of samples in the first dataset. To acheive this, samples are matched
-						between cohorts identified using the first sample identifier by default.
-						Where a sample is not present in the merged dataset, missing data will be output.
-					</div>
-					<div class="task_notes">
-						For best results, variants in each dataset must be sorted by position (and, where multiple variants at
-						the same position exist in each dataset, ideally also uniquely ordered by the other fields
-						specified by <code>-snp-match-fields</code>).
-					</div>
-					<div class="task_notes">
-						This command never merges variants into single records - if the same variant is present in both datasets, it will occur twice in the output.
-						(The <code>-merge-strategy</code> and <code>-merge-prefix</code> options can be used to control how variants appear in the merged dataset.)
-					</div>
-					<div class="task_notes">
-						Sometimes datasets have different primary identifiers for the same samples.   To match samples by a different column of the
-						sample files, use the <code>-match-sample-ids</code> option - for example:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g first.bgen -s first.sample -merge-in second.bgen -s second.sample -og merged.bgen -match-sample-ids &lt;id in first dataset&gt;~&lt;id in second dataset&gt;
-					</div>
-					<div class="task_notes">
-						(We recommend that sample file columns used to match samples should be unique sample identifiers.)
-					</div>
-				</div>			
-				<div class="task">
-					<div class="task_name">
-						Manipulate SNP metadata
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file&gt; -assume-chromosome &lt;chromosome&gt; ...
-					</div>
-					<div class="task_notes">
-						The <code>-assume-chromosome</code> option tells QCTOOL to assume the given chromosome for any variant
-						where the chromosome is missing or not present in the input file.  (Note that chromosome information can also
-						be inferred from the chromosomal wildcard character # in input files.)
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file(s)&gt; -map-id-data &lt;map file&gt; ...
-					</div>
-					<div class="task_notes">
-						The <code>-map-id-data</code> tells QCTOOL to replace the chromosome, position, allele and ID information
-						of the input data with a new set of information specified in the given file.  For example, a potential use is 
-						updating files when remapping data to a new genome build.  The file given to <code>-map-id-data</code> must
-						have twelve named columns, in the following order: the current SNPID, rsid, chromosome, position, first and second alleles,
-						followed by the desired updated SNPID, rsid, chromosome, position and alleles.  The first line is treated as column names
-						(currently it doesn't matter what these are called.)  Variants not in this file are not affected by the mapping, and will
-						be output unchanged. Matching of variants to this file is controlled by the <code>-snp-match-fields</code>
-						option.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g &lt;input file(s)&gt; -strand &lt;strand file&gt; [-flip-to-match-allele &lt;column name&gt;] ...
-					</div>
-					<div class="task_notes">
-						The <code>-strand</code> option tells QCTOOL to read strand information from the specified file and apply strand alignment
-						to the data.  Alleles at variants where the strand is '+' will be processed unchanged; alleles
-						at variants where the strand is '-' will be complemented (i.e. A&lt;-&gt;T, G&lt;-&gt;C);
-						alleles at variants which have missing strand information will be output in a way which records the ambiguous strand
-						(and consequently are probably not useful for downstream analyses).
-						Strand files should have six named columns,
-						<code>SNPID</code>,
-						<code>rsid</code>,
-						<code>chromosome</code>,
-						<code>position</code>,
-						<code>alleleA</code>,
-						<code>alleleB</code>,
-						<code>strand</code>; plus any additional columns.
-					</div>
-					<div class="task_notes">
-						If the <code>-flip-to-match-allele</code> option is given, the strand file must contain a column with the given name.
-						Alleles and genotypes are then also recoded so that the allele in the specified
-						column is the first allele and the other allele the second allele.
-					</div>
-				</div>
-		
-				<div class="task">
-					<div class="task_name">
-						Threshhold genotype probabilities (e.g. GP to GT)
-					</div>
-					<div class="task_command_line">
-						$ qctool -g input.gen -og example.vcf -threshhold 0.9
-					</div>
-					<div class="task_notes">
-						Threshholding takes genotype probabilities (specified in a GEN or BGEN file, or GP field of a VCF file)
-						and produces hard calls (e.g. GT field in a VCF file).  Thus, the output file from the above command will have a <code>FORMAT</code>
-						of <code>GT:GP</code> for each SNP.
-					</div>
-					<div class="task_notes">
-						In general <code>-threshhold</code> makes the threshholded call the primary genotype field for analysis; thus it
-						changes the output of <code>-snp-stats</code> and other computations below.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Manipulate chromosome information
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_01.gen -og example_01.bgen -assume-chromosome 01
-					</div>
-					<div class="task_notes">
-						This converts a genotypes file, filling in the chromosome information if it is not present in the input data.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_01.bgen -og example_01.gen -omit-chromosome
-					</div>
-					<div class="task_notes">
-						This writes GEN-format files without a chromosome column.	These are suitable for use with other programs such as GTOOL and IMPUTE.
-						(See the <a href="#file_formats">file formats page</a> for a description of file formats understood by QCTOOL.)
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Use qctool in a pipeline
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og - | less -S
-					</div>
-					<div class="task_notes">
-						Note: by default this outputs genotypes in GEN format, use <code>-ofiletype</code> to alter this.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -snp-stats -osnp - | less -S
-					</div>
-					<div class="task_notes">
-						Note: currently this outputs genotypes in GEN format.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Filter samples
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen 
-						-s example.sample 
-						-og filtered.bgen
-						-excl-samples samples.txt
-					</div>
-					<div class="task_notes">
-						These commands filters out / filter in all samples with identifier in the file <code>samples.txt</code>, which should contain a whitespace-separated list of
-						sample identifiers to exclude.  Samples are identified by the first identifier field (often <code>ID_1</code>) in the sample file, or if not
-						sample file is specified, by sample identifiers specified in genotype data source (e.g. by the header in vcf or bgen formats).
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen 
-						-s example.sample 
-						-og filtered.bgen
-						-incl-samples samples.txt
-					</div>
-					<div class="task_notes">
-						Ditto, but this filters out all samples <em>not</em> in the file <code>samples.txt</code>.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen 
-						-s example.sample 
-						-og filtered.bgen
-						-excl-samples-where &lt;column&gt;=&lt;value&gt;
-					</div>
-					<div class="task_notes">
-						This command excludes all samples which have the specified value in the named column
-						of the sample file.  For example, to exclude males, <code>-incl-samples-where &lt;sex=M&gt;</code>
-						might be used.  To instead exclude samples with all but a specified value use:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen 
-						-s example.sample 
-						-og filtered.bgen
-						-excl-samples-where &lt;column&gt;!=&lt;value&gt;
-					</div>
-					<div class="task_notes">
-						Examples of the use of this might be: excluding males from a sex chromosome analysis (e.g. <code>-excl-samples-where sex=M</code>);
-						excluding specific individuals (e.g. <code>-excl-samples-where ID_1=&lt;something&gt;</code>); excluding
-						individuals for which principal components are not computed (e.g. <code>-excl-samples-where PC1=NA</code>.)
-					</div>
-					<div class="task_notes">
-						It's also possible to specify an inclusion criterion:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen 
-						-s example.sample 
-						-og filtered.bgen
-						-incl-samples-where &lt;column&gt;=&lt;value&gt;
-					</div>
-					<div class="task_notes">
-						In general inclusion and exclusion options come in pairs of the form <code>-incl-&lt;option&gt;</code>, <code>-excl-&lt;option&gt;</code>.
-						If multiple overlapping conditions are specified, the logic is that samples that satisfy any of the specified exclusion criteria will
-						be excluded, and likewise samples that do not satisfy any of the specified inclusion criteria will be excluded.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Filter variants
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-rsids rsids_to_exclude.txt
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-snpids snpids_to_exclude.txt
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-positions positions_to_exclude.txt
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-range 06:25000000-40000000
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-snps snps_to_exclude.txt
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og subsetted.bgen -excl-snps-matching rsid~rs1%
-					</div>
-					<div class="task_notes">
-						Note: inclusion/exclusion options come in pairs named <code>-excl-&lt;option&gt;</code> / <code>-incl-&lt;option&gt;</code>.
-						A variant will be excluded if it matches any exclusion criterion.  If inclusion criteria are specified, variants are also excluded
-						if they do not match any inclusion criterion.
-					</div>
-					<div class="task_notes">
-						The file passed to <span class="monospace">-[in|ex]cl-positions</span> should contain a whitespace-separated list of positions in the form <span class="monospace">&lt;chromosome&gt;:&lt;position&gt;</span>.
-					</div>
-					<div class="task_notes">
-						The file passed to <span class="monospace">-[in|ex]cl-snps</span> should have
-						six (named) columns: SNPID, rsid, chromosome, position, first and second alleles.
-					</div>
-					<div class="task_notes">
-						The argument to <span class="monospace">-[in|ex]cl-snps-matching</span> specifies a
-						pattern to use to match SNPs.  A limited wildcard functionality is implemented:
-						if the last character of the argument is %, this stands for a wildcard and will match
-						any string. Thus e.g. <code>-excl-snps-matching rsid~rs1%</code>
-						will exclude any SNP whose primary identifier begins with <code>rs1</code>.  It's also
-						possible to match by alternate identifiers (<code>-excl-snps-matching SNPID~rs1%</code>)
-						or by any of the identifiers (<code>-excl-snps-matching rs1%</code>).
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Compute per-sample summary statistics:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -sample-stats -osample example.sample-stats
-					</div>
-				</div>
-
-				<div class="task">
-					<div class="task_name">
-						Compute per-SNP summary statistics
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -snp-stats -osnp example.snp-stats
-					</div>
-					<div class="task_notes">
-						Note: this computes snp summary statistics using all samples.  To use a subset of samples use the sample subsetting options, e.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -snp-stats -osnp example.snp-stats -incl-samples-where sex=MALE
-					</div>
-					<div class="task_notes">
-						where <code>sex</code> is a column in the sample file.
-					</div>
-				</div>
-
-				<div class="task">
-					<div class="task_name">
-						Add genotype dosages for a given SNP or SNPs to the sample file
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on rs1234
-					</div>
-					<div class="task_notes">
-						This adds a column with name <span class="monospace">rs1234:additive_dosage</span>, containing the additive dosage from the SNP, to the sample file.
-						You can also select SNPs by position:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on pos~03:10001
-					</div>
-					<div class="task_notes">
-						It is also possible to select dominant, recessive, or heterozygote dosages from the SNP:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example_#.gen 
-						-s example.sample 
-						-os example.sample 
-						-condition-on "pos~03:10001(add|dom|het|rec)"
-					</div>
-					<div class="task_notes">
-						Note: these options behave in the same way as SNPTEST's -condition_on option.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Quantile-normalise columns of the sample file
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1
-					</div>
-					<div class="task_notes">
-						This adds a column with name <span class="monospace">column1:quantile-normalised</span> to the sample file.
-						The specified columns must be continuous, i.e. of type 'P' or 'C'.
-						Note that even though the SNPs are not used here, currently you must still specify the -g option.
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1,column2
-					</div>
-					<div class="task_notes">
-						Note: this option behaves in the same way as SNPTEST's -normalise option.
-					</div>
-				</div>
+		<nav class="button_bar">
+			<div class="nav_button" name="overview">
+				<a href="index.html">overview</a>
 			</div>
-			<div id="file_formats" style="display:none">
-				<div>
-					QCTOOL supports the following file formats for genotype data:
-					<table class="file_formats">
-						<tr>
-							<th>
-								format
-							</th>
-							<th>
-								recognised extension(s)
-							</th>
-							<th>
-								notes
-							</th>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN format</a>
-							</td>
-							<td>
-								<span class="monospace">.gen[.gz]</span>
-							</td>
-							<td>
-								Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this
-								in input files by counting the columns in the file.
-								To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN format</a>
-							</td>
-							<td>
-								<code>.bgen</code>
-							</td>
-							<td>
-								Output files are in BGEN v1.3 with 16 bits per probability and compressed
-								using <a href="http://www.zstd.net">zstandard</a> by default. 
-								The <code>-bgen-bits</code> option can be used to adjust the number of bits used.
-								The <code>-bgen-compression</code> option can be used to choose the method of compression
-								(zlib or zstandard).  Use <code>-ofiletype bgen_v1.1</code> to specify
-								files compatible with the BGEN v1.1 spec (these always use 16 bits per probability and zlib compression).
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">Variant call format</a>
-							</td>
-							<td>
-								<span class="monospace">.vcf[.gz]</span>
-							</td>
-							<td>
-								QCTOOL is strict about metadata in input files for the fields it reads;
-								since this is not always correct a <span class="monospace">-metadata</span> option is provided to override
-								the input file metadata. Currently, only genotypes are output when outputting VCF files.
-								Note that QCTOOL does not apply PHRED scaling to probabilities in the GP field.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="">PLINK binary (bed) format</a>
-							</td>
-							<td>
-								<span class="monospace">.bed</span>
-							</td>
-							<td>
-								Use <code>-[o]filetype binary_ped</code> to read/write this format.  Note that QCTOOL currently does only the most basic processing of
-								FAM files: when reading, it uses them to count the number of samples in the BED file, when writing it writes a FAM file
-								with missing data in all fields except the ID field.  You will therefore need to create fuller FAM files seperately for use with
-								other tools.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://www.shapeit.fr/">SHAPEIT</a> haplotype format
-							</td>
-							<td>
-								
-							</td>
-							<td>
-								Use <span class="monospace">-[o]filetype shapeit_haplotypes</span> to specify reading or writing this file type.
-								For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
-								are consecutive columns in the file. (This format is
-								described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> allele probabilities format
-							</td>
-							<td>
-
-							</td>
-							<td>
-								Use <span class="monospace">-[o]filetype impute_allele_probs</span>
-								to specify reading or writing this filetype.  This file format is like the
-								shapeit haplotype format but contains a probability for
-								each haplotype (i.e. two probabilities per individual),
-								specifying the probability that the haplotype carries the second allele.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format
-							</td>
-							<td>
-								
-							</td>
-							<td>
-								<b>Input only</b>. To specify this filetype, use <span class="monospace">-filetype impute_haplotypes</span>.
-								It is assumed the legend file name is the same as the haplotypes file name, minus extension,
-								with <span class="monospace">.legend</span> appended; QCTOOL will also remove/add the
-								<code>.gz</code> extension as appropriate.
-								For genotypic computations, genotypes are formed from pairs of haplotypes;
-								it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> probability format
-							</td>
-							<td>
-								
-							</td>
-							<td>
-								<b>Input only</b>.	 Use <span class="monospace">-filetype hlaimp</span> to specify reading this file type.
-								Currently, this input format implicitly splits each HLA locus as a series of bi-allelic variants.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>/<a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format
-							</td>
-							<td>
-								
-							</td>
-							<td>
-								<b>Output only</b>; use <span class="monospace">-ofiletype penncnv</span> to specify writing this file type.
-								PennCNV uses a single sample per input file, this can be acheived using the sample filtering options,
-								e.g. <code>-incl-samples-where ID_1=&lt;identifier&gt;</code>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								QCTOOL 'long' format
-							</td>
-							<td>
-								
-							</td>
-							<td>
-								<b>Input only</b>; use <span class="monospace">-filetype long</span> to specify reading this file type.
-								Input must be a file with columns <code>SNPID, rsid, chromosome, position, number_of_alleles,
-									allele1, other_alleles, sample_id, ploidy, genotype</code>.
-								Further columns may also be included (but QCTOOL ignores these).
-								Allelesin the other_alleles column must be comma-separated (as with <a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a> ALT alleles).
-								When outputting to vcf format, both genotype (GT) and a field 'typed' indicating whether a row for each
-								sample and variant was present will be output.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<a href="http://stephenslab.uchicago.edu/software.html#bimbam">BIMBAM</a> dosage format; QCTOOL dosage format
-							</td>
-							<td>
-								<code>.dosage[.gz]</code>,
-							</td>
-							<td>
-								<b>Output only</b>; use <code>-ofiletype bimbam_dosage</code>
-								or <code>-ofiletype dosage</code> to specify writing this file type.
-								This file outputs a single column per sample (named by the sample identifier) containing the
-								expected second allele dosage for the sample at each variant.
-								The formats differ in that BIMBAM format has no chromosome/position information.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								QCTOOL intensity text format
-							</td>
-							<td>
-								<code>.intensity[.gz]</code>
-							</td>
-							<td>
-								<b>Output only</b>; use <code>-ofiletype intensity</code> to specify writing this file type.
-								The output file has two columns per sample, representing X and Y channel intensities for the
-								sample at each variant.  Currently data must be read from a VCF file; the field is specified
-								using the <code>-vcf-intensity-field</code> option.
-							</td>
-						</tr>
-					</table>
-				</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="documentation/diagram_of_options.html">Diagram of options</a></li>
+					<li><a href="documentation/alphabetical_options.html">List of options</a></li>
+					<li><a href="documentation/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="documentation/conversions.html">Converting between formats</a></li>
+					<li><a href="documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
+					<li><a href="documentation/annotations.html">Annotating data</a></li>
+				</ul>
 			</div>
-			<div id="download" style="display:none">
-				<div>
-					<p>
-						QCTOOL is available either as binaries or as source code.
-					</p>
-					
-					<h3>
-						Binaries
-					</h3>
-					<p>
-						Pre-compiled binaries of the QCTOOL v2 release candidate can be found <a href="http://www.well.ox.ac.uk/~gav/resources/">here</a>.
-						These are currently provided as-is.  If a version suitable for your platform is not available please
-						download QCTOOL and compile instead.
-					</p>
-					<h3>
-						Installing from source
-					</h3>
-					</details>
-					<p>
-						The source code to qctool is available as a mercurial repository hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>.
-						Assuming you have <a href="">mercurial</a> installed, the source for the qctool v2 beta branch
-						can be downloaded using the command
-					</p>
-					<div class="terminal">
-						<code>$ hg clone --rev beta https://gavinband@bitbucket.org/gavinband/qctool</code>
-					</div>
-<p>
-	Alternatively, a tarball of the latest qctool v2 beta source code can be downloaded
-	from <a href="https://bitbucket.org/gavinband/qctool/downloads?tab=branches">the download page on bitbucket</a>.
-	Make sure to select the 'beta' branch for qctool v2.  You will need to extract the tarball using a command like
-	<code>tar -xzf &lt;filename&gt;.tgz</code>.
-</p>
-<p>
-	Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
-	<pre>
-	$ cd qctool
-	$ ./waf-1.5.18 configure
-	$ ./waf-1.5.18
-</pre>
-</p>
-					</div>
-					<p>
-						This produces an executable
-					<code>./build/release/qctool-v2.0-&lt;version&rt;</code>
-				</p>
-				<p>
-					(Note that QCTOOL relies on <a href="http://www.zlib.net">zlib</a> which must be installed (with headers) 
-					on the system before compilation; the configure step will fail if this is not found.)
-				</p>
-				<p>
-					You can check qctool is working by running it:
-				</p>
-				<pre>
-				$ ./build/release/qctool-v2.0-&lt;version&rt; -help
-</pre>
-<p>This should print out a list of options.</p>
-					<p>
-					<b>Note:</b> a debug build is also created in <code>./build/default/qctool_v2.0-&lt;version&rt;</code>, use this if you want
-					to run qctool in a debugger.
-				</p>
-				</div>
+			<div class="nav_button" name="tutorial">
+				examples
+				<ul class="menu">
+					<li><a href="documentation/examples/basic.html">Basic usage</a></li>
+					<li><a href="documentation/examples/converting.html">Converting file formats</a></li>
+					<li><a href="documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="documentation/examples/merginging.html">Merging in variants</a></li>
+					<li><a href="documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+					<li><a href="documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+					<li><a href="documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+					<li><a href="documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="documentation/examples/computing_pcs.html">Computing principal components</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="file_formats">
+				file formats
+				<ul class="menu">
+					<a href="documentation/genotype_file_formats.html">Genotype file formats</a>
+					<a href="documentation/sample_file_formats.html">Sample file formats</a>
+					<a href="documentation/summary_file_formats.html">Summary statistic file formats</a>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="documentation/download.html">download</a>
 			</div>
 		</div>
+
 	</body>
 </html>

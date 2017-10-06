@@ -30,7 +30,8 @@ def configure( conf ):
 	conf.check_tool( 'compiler_cxx')
 	conf.check_tool( 'compiler_cc')
 
-	cxxflags = []
+	cxxflags = conf.env[ 'CXXFLAGS' ] 
+	linkflags = conf.env[ 'LINKFLAGS' ]
 	if conf.check( cxxflags = '-std=c++11' ):
 		cxxflags.append( '-std=c++11' )
 		cxxflags.append( '-Wno-deprecated-declarations' )
@@ -46,8 +47,8 @@ def configure( conf ):
 	if Options.options.static and platform.system() != "Darwin":
 		conf.env.SHLIB_MARKER='-Wl,-Bstatic'
 	create_variant( conf, 'release' )
-	configure_variant( conf, 'default', cxxflags )
-	configure_variant( conf, 'release', cxxflags )
+	configure_variant( conf, 'default', cxxflags, linkflags )
+	configure_variant( conf, 'release', cxxflags, linkflags )
 
 def check_for_3rd_party_components( conf ):
 	check_for_zlib( conf )
@@ -155,14 +156,14 @@ def create_variant( conf, variant_name ):
 	conf.set_env_name( variant_name, variant )
 	variant.set_variant( variant_name )
 
-def configure_variant( conf, variant_name, cxxflags = [], ldflags = [] ):
+def configure_variant( conf, variant_name, cxxflags = [], linkflags = [] ):
 	cxxflags.extend( get_cxxflags( variant_name ))
 	cxxflags.extend( [ '-I', variant_name ] )
-	ldflags.extend( get_ldflags( variant_name ))
+	linkflags.extend( get_ldflags( variant_name ))
 	
 	conf.setenv( variant_name )
 	conf.env[ 'CXXFLAGS' ] = cxxflags
-	conf.env[ 'LINKFLAGS' ] = ldflags
+	conf.env[ 'LINKFLAGS' ] = linkflags
 	conf.write_config_header( 'config/config.hpp' )
 #	conf.write_config_header( 'config.hpp' )
 #	conf.write_config_header( 'genfile/config.hpp' )
@@ -290,14 +291,16 @@ def test(context):
 
 def release( bld ):
 	import sys
+	import Options
 	sys.path.append( "release" )
 	import Release.TestHarness
 	import Release.ReleaseBuilder
-
-	inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
-	builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
-	release = builder.build()
-	print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
+	
+	if Options.options.all_targets:
+		inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
+		builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
+		release = builder.build()
+		print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
 
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )

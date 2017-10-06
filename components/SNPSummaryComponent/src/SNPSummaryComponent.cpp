@@ -20,7 +20,6 @@
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "components/SNPSummaryComponent/AssociationTest.hpp"
 #include "components/SNPSummaryComponent/SequenceAnnotation.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
@@ -118,13 +117,15 @@ void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options 
 	options.option_implies_option( "-intensity-stats", "-g" ) ;
 	options.option_implies_option( "-fit-clusters", "-g" ) ;
 	options.option_implies_option( "-annotate-sequence", "-g" ) ;
+	options.option_implies_option( "-annotate-genetic-map", "-g" ) ;
 	options.option_implies_option( "-stratify", "-s" ) ;
-	
-	CallComparerComponent::declare_options( options ) ;
+	options.option_implies_option( "-differential", "-s" ) ;
+	options.option_implies_option( "-differential", "-osnp" ) ;
 }
 
 bool SNPSummaryComponent::is_needed( appcontext::OptionProcessor const& options ) {
 	return options.check( "-snp-stats" )
+		|| options.check( "-differential" )
 		|| options.check( "-intensity-stats" )
 		|| options.check( "-fit-clusters" )
 		|| options.check( "-compare-to" )
@@ -306,7 +307,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		computation->set_comparer(
 			genfile::VariantIdentifyingData::CompareFields(
-				m_options.get_value< std::string >( "-snp-match-fields" ),
+				m_options.get_value< std::string >( "-compare-variants-by" ),
 				m_options.check( "-match-alleles-to-cohort1" )
 			)
 		) ; 
@@ -485,6 +486,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		) ;
 	}
 
+#if 0
 	if( m_options.check_if_option_was_supplied_in_group( "Call comparison options" ) ) {
 		CallComparerComponent::UniquePtr cc = CallComparerComponent::create(
 			m_samples,
@@ -494,6 +496,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		cc->setup( manager, storage ) ;
 	}
+#endif
 }
 
 namespace {

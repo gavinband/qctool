@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../../js/local.js"></script>
+		<!-- Google Analytics tracking code-->
+		<script type="text/javascript">
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-16521993-1']);
+			_gaq.push(['_trackPageview']);
+
+			(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+		</script>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title></title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				qctool v2
+			</div>
+			<div class="header_subtext">
+				A tool for quality control and analysis of gwas datasets.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<h2>Merging variants from one dataset into another</h2>
+				<div class="task">
+					<div class="task_name">
+						Merging data
+					</div>
+					<div class="task_notes">
+						The <code>-merge-in</code> option can be used to merge variants in one dataset into another.  For example:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g first.bgen -s first.sample -merge-in second.bgen second.sample -og merged.bgen
+					</div>
+					<div class="task_notes">
+						<p>
+						This command produces a dataset that contains a record for each variant
+						from <code>first.bgen</code> and a record for each variant from <code>second.bgen</code>
+						- i.e. it has <em>L<sub>1</sub>+L<sub>2</sub></em> variants,
+						where <em>L<sub>1</sub></em> and <em>L<sub>2</sub></em> are the
+						number of variants in the two datsets.
+					</p>
+					<p>
+						Data is output for the set of samples in the first dataset; any other samples in the merged-in dataset are ignored.
+					</p>
+				</div>
+			</div>
+
+			<div class="task">
+					<div class="task_name">
+						Controlling how samples are matched between datasets
+					</div>
+					<div class="task_notes">
+					<p>
+						By default, samples are matched by the first ID column in each dataset.
+						The <code>-match-sample-ids</code> option can be used to change this.  For example:
+					</p>
+					</div>
+					<div class="task_command_line">
+						$ qctool -g first.bgen -s first.sample -merge-in second.bgen second.sample -og merged.bgen -match-sample-ids column1~column2
+					</div>
+					<div class="task_notes">
+						Where <code>column1</code> and <code>column2</code> are columns in <code>first.sample</code> and <code>second.sample</code> respectively,
+							containing the fields to match on.
+							We recommend that sample file columns used to match samples should contain unique sample identifiers.
+					</div>
+				</div>
+				
+			<div class="task">
+					<div class="task_name">
+						Controlling what variants appear in the output
+					</div>
+					<div class="task_notes">
+						<p>
+							The <code>-merge-strategy</code> option controls what happens when the same variant appears in both
+							datasets.  Possible values are <code>-keep-all</code> (the default) or <code>-drop-duplicates</code>.
+							For example:
+						</p>
+					</div>
+						<div class="task_command_line">
+							$ qctool -g first.bgen -s first.sample -merge-in second.bgen second.sample -og merged.bgen -merge-strategy drop-duplicates
+						</div>
+					<div class="task_notes">
+						<p>
+							In this command, if the same variant appears in <code>first.bgen</code> and in <code>second.bgen</code>,
+							only the first will be output.  As when  <a href="combining.html">combining datasets</a>,
+							the <code>-compare-variants-by</code> option is used to control how variants are compared, and it is assumed
+							that variants are sorted by these fields in each input dataset.
+					</p>
+					<p>
+						To further help disambiguate the source of data in the output file,
+						the <code>-merge-prefix</code> option can also be used to add a prefix to the identifier of each merged-in -variant, e.g.:
+					</p>
+				</div>
+					<div class="task_command_line">
+						$ qctool -g first.bgen -s first.sample -merge-in second.bgen -s second.sample -og merged.bgen -merge-prefix "merged:"
+					</div>
+					<div class="task_notes">
+					<p>
+						Currently this only affects the 'alternate' identifier fields (e.g. the SNPID field of GEN or BGEN files).
+					</p>
+				</div>
+			</div>
+		</section>
+
+		<nav class="button_bar">
+			<div class="nav_button" name="overview">
+				<a href="../../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
+					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
+					<li><a href="../../documentation/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/conversions.html">Converting between formats</a></li>
+					<li><a href="../../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
+					<li><a href="../../documentation/annotations.html">Annotating data</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="tutorial">
+				examples
+				<ul class="menu">
+					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
+					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
+<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="file_formats">
+				file formats
+				<ul class="menu">
+					<a href="../../documentation/genotype_file_formats.html">Genotype file formats</a>
+					<a href="../../documentation/sample_file_formats.html">Sample file formats</a>
+					<a href="../../documentation/summary_file_formats.html">Summary statistic file formats</a>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../../documentation/download.html">download</a>
+			</div>
+		</nav>
+		
+	</body>
+</html>

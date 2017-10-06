@@ -14,16 +14,23 @@ def build( bld ):
 		features = 'cxx cstaticlib',
 		name = 'boost',
 		target = 'boost',
-		source = bld.glob( 'libs/iostreams/src/*.cpp' ) +
+		source = [
+			'libs/iostreams/src/file_descriptor.cpp',
+			'libs/iostreams/src/gzip.cpp',
+			'libs/iostreams/src/mapped_file.cpp',
+			'libs/iostreams/src/zlib.cpp'
+			] +
 			bld.glob( 'libs/system/src/*.cpp' ) +
 			bld.glob( 'libs/regex/src/*.cpp' ) +
 			bld.glob( 'libs/thread/src/*.cpp' ) +
 			bld.glob( 'libs/thread/src/pthread/*.cpp' ) +
 			bld.glob( 'libs/filesystem/src/*.cpp' ) +
-			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ),
+			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ) +
+			bld.glob( 'libs/timer/src/*.cpp' ) +
+			bld.glob( 'libs/chrono/src/*.cpp' ),
 		includes = './',
 		export_incdirs = './', 
-		uselib = 'ZLIB BZIP2 RT',
+		uselib = 'ZLIB RT',
 		cxxflags = [ '-Wno-unused-function', '-Wno-keyword-macro', '-Wno-unused-const-variable' ]
 	)
 

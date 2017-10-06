@@ -76,7 +76,7 @@ void SampleSummaryComponent::setup(
 		sample_stats::RiskScoreComputation::UniquePtr computation(
 			new sample_stats::RiskScoreComputation(
 				m_samples,
-				genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-snp-match-fields" ) )
+				genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
 			)
 		) ;
 
@@ -95,7 +95,7 @@ void SampleSummaryComponent::setup(
 		) ;
 	}
 
-	manager->send_output_to( sample_stats::SampleStorage::SharedPtr( storage )) ;
+	manager->send_output_to( storage ) ;
 
 	m_ui_context.logger() << "SampleSummaryComponent: the following components are in place:\n" << manager->get_summary( "  " ) << "\n" ;
 	processor.add_callback( genfile::SNPDataSourceProcessor::Callback::UniquePtr( manager.release() ) ) ;

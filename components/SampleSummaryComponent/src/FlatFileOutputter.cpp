@@ -29,24 +29,20 @@ namespace sample_stats {
 	FlatFileOutputter::FlatFileOutputter( genfile::CohortIndividualSource const& samples, std::string const& filename, std::string const& analysis_name, Metadata const& metadata ):
 		m_filename( filename ),
 		m_analysis_name( analysis_name ),
-		m_metadata( metadata ),
-		m_max_samples_per_block( 1000 )
+		m_metadata( metadata )
 	{
-		m_sample_indices.reserve( 1000 ) ;
 		void(std::vector<genfile::VariantEntry>::*push_back)(genfile::VariantEntry const&) = &std::vector<genfile::VariantEntry>::push_back ;
 		samples.get_column_values( "ID_1", boost::bind( push_back, &m_samples, _2 )) ;
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		store_block() ;
-		m_sample_indices.clear() ;
-		m_values.clear() ;
 	}
 	
 	void FlatFileOutputter::finalise( long ) {
-		store_block() ;
-		m_sample_indices.clear() ;
-		m_values.clear() ;
+		if( !m_values.empty() ) {
+			store_block() ;
+			m_values.clear() ;
+		}
 		m_sink->write_comment( "Completed successfully at " + appcontext::get_current_time_as_string() ) ;
 	}
 
@@ -78,31 +74,20 @@ namespace sample_stats {
 		std::string const& description,
 		genfile::VariantEntry const& value
 	) {
-		bool const new_sample = m_sample_indices.empty() || sample != m_sample_indices.back() ;
-		if( new_sample ) {
-			// If we have a whole block's worth of data, store it now.
-			if( m_sample_indices.size() == m_max_samples_per_block ) {
-				store_block() ;
-				m_sample_indices.clear() ;
-				m_values.clear() ;
-			}
-			m_sample_indices.push_back( sample ) ;
-		}
-
-		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
-		if( where == m_variables.left.end() ) {
+		VariableMap::left_const_iterator wVariable = m_variables.left.find( variable ) ;
+		if( wVariable == m_variables.left.end() ) {
 			if( m_sink.get() ) {
 				// Uh-oh, have already written a header.
 				throw genfile::BadArgumentError( "sample_stats::FlatFileOutputter::store_per_variant_data()", "variable=\"" + variable + "\"" ) ;
 			}
 			else {
 				// Still have time to add the variable to our list of variables, retaining the order of addition.
-				where = m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
+				wVariable = m_variables.left.insert( VariableMap::left_value_type( variable, m_variables.size() ) ).first ;
 			}
 		}
 
 		// Store the value of this variable.
-		m_values[ std::make_pair( m_sample_indices.size() - 1, where->second ) ] = value ;
+		m_values[ std::make_pair( sample, wVariable->second ) ] = value ;
 	}
 
 	void FlatFileOutputter::store_block() {
@@ -119,10 +104,9 @@ namespace sample_stats {
 			}
 			(*m_sink) << statfile::begin_data() ;
 		}
-		for( std::size_t i = 0; i < m_sample_indices.size(); ++i ) {
-			std::size_t const sample_index = m_sample_indices[ i ] ;
-			genfile::VariantEntry const& sample = m_samples[ sample_index ] ;
-			(*m_sink) << sample << uint64_t( sample_index ) ;
+		for( std::size_t i = 0; i < m_samples.size(); ++i ) {
+			genfile::VariantEntry const& sample = m_samples[ i ] ;
+			(*m_sink) << sample << uint64_t( i ) ;
 			VariableMap::right_const_iterator
 				var_i = m_variables.right.begin(),
 				end_var_i = m_variables.right.end() ;

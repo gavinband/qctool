@@ -64,7 +64,7 @@ void Bed3Annotation::add_annotation( std::string const& name, std::string const&
 void Bed3Annotation::operator()(
 	VariantIdentifyingData const& variant,
 	Genotypes const&,
-	SampleSexes const&,
+	Ploidy const&,
 	genfile::VariantDataReader&,
 	ResultCallback callback
 ) {

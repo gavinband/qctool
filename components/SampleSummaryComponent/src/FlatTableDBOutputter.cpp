@@ -65,8 +65,6 @@ namespace sample_stats {
 
 		construct_statements() ;
 		
-		m_variable_id = m_outputter.get_or_create_entity( "per-sample variable", "per-sample variable values" ) ;
-		
 		store_samples( samples ) ;
 	}
 	
@@ -205,27 +203,14 @@ namespace sample_stats {
 		m_insert_data_sql = m_outputter.connection().get_statement(
 			insert_data_sql.str()
 		) ;
-
-#if DEBUG_FLATTABLEDBOUTPUTTER
-		std::cerr << "Getting \"table\" entry...\n"  ;
-		db::Connection::RowId table_id = m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ) ;
-		std::cerr << "ok.\n" ;
-#endif
-
-		m_outputter.get_or_create_entity_data(
-			m_outputter.analysis_id(),
-			m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ),
-			table_name + "View"
-		) ;
 	}
 
 	void FlatTableDBOutputter::create_variables() {
-		db::Connection::RowId const variable_class_id = m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) ;
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		for( ; var_i != end_var_i; ++var_i ) {
-			m_outputter.get_or_create_entity( var_i->second, var_i->second, variable_class_id ) ;
+			m_outputter.create_variable( m_table_name, var_i->second ) ;
 		}
 	}
 	
@@ -244,6 +229,7 @@ namespace sample_stats {
 		}
 		if( options & qcdb::eCreateIndices ) {
 			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS SampleIndex ON Sample( id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( sample_id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index2 ON " + m_table_name + "( analysis_id, sample_id )" ) ;
 		}

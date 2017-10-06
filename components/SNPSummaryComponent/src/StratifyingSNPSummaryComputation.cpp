@@ -52,23 +52,23 @@ namespace impl {
 void StratifyingSNPSummaryComputation::operator()(
 	VariantIdentifyingData const& snp,
 	Genotypes const& genotypes,
-	SampleSexes const& sexes,
+	Ploidy const& ploidy,
 	genfile::VariantDataReader& data_reader,
 	ResultCallback callback
 ) {
 	for( StrataMembers::const_iterator strata_i = m_strata_members.begin(); strata_i != m_strata_members.end(); ++strata_i ) {
 		std::vector< int > const& members = strata_i->second ;
 		Genotypes strata_genotypes = Genotypes::Constant( members.size(), genotypes.cols(), 0 ) ;
-		SampleSexes strata_sexes( members.size(), '.' ) ;
+		Ploidy strata_ploidy = Ploidy::Zero( members.size() ) ;
 		for( std::size_t i = 0; i < members.size(); ++i ) {
 			strata_genotypes.row( i ) = genotypes.row( members[i] ) ;
-			strata_sexes[ i ] = sexes[ members[i] ] ;
+			strata_ploidy(i) = ploidy( members[i] ) ;
 		}
 		
 		m_computation->operator()(
 			snp,
 			strata_genotypes,
-			strata_sexes,
+			strata_ploidy,
 			data_reader,
 			impl::NameMungingSNPComputationCallback( callback, "", "[" + m_stratification_name + "=" + genfile::string_utils::to_string( strata_i->first ) + "]" )
 		) ;

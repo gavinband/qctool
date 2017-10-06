@@ -90,10 +90,16 @@ namespace genfile {
 
 	namespace impl {
 		struct LongFormatVariantDataReader: public genfile::VariantDataReader {
-			LongFormatVariantDataReader( LongFormatSNPDataSource const& source, std::vector< std::string > const& samples, int snp_index ) :
+			LongFormatVariantDataReader(
+				LongFormatSNPDataSource const& source,
+				std::vector< std::string > const& samples,
+				int snp_index,
+				genfile::VariantIdentifyingData const& variant
+			) :
 				m_source( source ),
 				m_samples( samples ),
-				m_snp_index( snp_index )
+				m_snp_index( snp_index ),
+				m_variant( variant )
 			{}
 			
 			LongFormatVariantDataReader& get( std::string const& spec, PerSampleSetter& setter ) {
@@ -104,9 +110,18 @@ namespace genfile {
 						std::pair< int, int > snpsample = std::make_pair( m_snp_index, m_source.m_sample_map.at( m_samples[ sample_i ] )) ;
 						LongFormatSNPDataSource::BufferMap::const_iterator where = m_source.m_buffer_map.find( snpsample ) ;
 						if( where != m_source.m_buffer_map.end() ) {
-							m_entry_parser.parse( genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ), 2, 2, setter ) ;
+							m_entry_parser.parse(
+								genfile::string_utils::slice( m_source.buffer(), where->second.first, where->second.second ),
+								m_variant.number_of_alleles(),
+								2, // assume diploid
+								setter
+							) ;
 						} else {
-							m_entry_parser.get_missing_value( 2, 2, setter ) ;
+							m_entry_parser.get_missing_value(
+								m_variant.number_of_alleles(),
+								2,  // assume diploid
+								setter
+							) ;
 						}
 					} 
 				}
@@ -148,15 +163,18 @@ namespace genfile {
 			LongFormatSNPDataSource const& m_source ;
 			std::vector< std::string > const m_samples ;
 			int const m_snp_index ;
+			genfile::VariantIdentifyingData const& m_variant ;
 		} ;
 	}
 
 	VariantDataReader::UniquePtr LongFormatSNPDataSource::read_variant_data_impl() {
+		std::size_t snp_index = m_snp_index++ ;
 		return VariantDataReader::UniquePtr(
 			new impl::LongFormatVariantDataReader(
 				*this,
 				m_samples,
-				int( m_snp_index++ )
+				int( snp_index ),
+				m_variants[ snp_index ]
 			)
 		) ;
 	}
@@ -183,7 +201,7 @@ namespace genfile {
 		expectedColumns.push_back( "position" ) ;
 		expectedColumns.push_back( "numberOfAlleles" ) ;
 		expectedColumns.push_back( "allele1" ) ;
-		expectedColumns.push_back( "allele2" ) ;
+		expectedColumns.push_back( "other_alleles" ) ;
 		expectedColumns.push_back( MissingValue() ) ;
 		expectedColumns.push_back( "ploidy" ) ;
 		expectedColumns.push_back( "genotype" ) ;
@@ -237,11 +255,11 @@ namespace genfile {
 					) ;
 				}
 			
-				if( elts[4] != "2" ) {
+				if( to_repr< int >( elts[4] ) < 2 ) {
 					throw genfile::MalformedInputError(
 						m_filename,
-						"Only biallelic variants are currently supported.",
-						lineNumber, 4
+						"Expected at least two alleles.",
+						lineNumber, 3
 					) ;
 				}
 
@@ -249,7 +267,17 @@ namespace genfile {
 					throw genfile::MalformedInputError(
 						m_filename,
 						"Only diploid samples are currently supported.",
-						lineNumber, 4
+						lineNumber, 7
+					) ;
+				}
+				
+				// parse alternate alleles
+				std::vector< slice > alternate_alleles = elts[6].split( "/" ) ;
+				if( alternate_alleles.size() + 1 != to_repr< int >( elts[4] )) {
+					throw genfile::MalformedInputError(
+						m_filename,
+						"Wrong number of alleles found (" + to_string( alternate_alleles.size() + 1 ) + ", expected " + elts[4],
+						lineNumber, 5
 					) ;
 				}
 
@@ -258,9 +286,12 @@ namespace genfile {
 					GenomePosition(
 						Chromosome( elts[2] ), to_repr< Position >( elts[3] )
 					),
-					elts[5], elts[6]
+					elts[5], alternate_alleles[0]
 				) ;
-
+				for( std::size_t ai = 1; ai < alternate_alleles.size(); ++ ai ) {
+					snp.add_allele( alternate_alleles[ai] ) ;
+				}
+				
 				int snpIndex = -1 ;
 				{
 					VariantMap::const_iterator where = m_variant_map.find( snp ) ;

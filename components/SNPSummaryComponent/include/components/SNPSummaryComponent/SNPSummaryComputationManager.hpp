@@ -77,8 +77,14 @@ private:
 
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const ;
-	std::map< char, std::vector< int > > get_samples_by_sex( std::vector< char > const& sexes ) const ;
-	void fix_sex_chromosome_genotypes( genfile::VariantIdentifyingData const& snp, SNPSummaryComputation::Genotypes* genotypes, boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback ) ;
+	std::map< char, std::vector< int > > get_samples_by_sex( std::vector< char > const& sex ) const ;
+
+	void fix_sex_chromosome_genotypes(
+		genfile::VariantIdentifyingData const& snp,
+		SNPSummaryComputation::Genotypes* genotypes,
+		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
+	) ;
+
 	int determine_male_coding_column(
 		genfile::VariantIdentifyingData const& snp,
 		SNPSummaryComputation::Genotypes const& genotypes,

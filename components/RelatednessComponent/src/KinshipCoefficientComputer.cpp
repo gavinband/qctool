@@ -556,7 +556,10 @@ namespace impl {
 			genfile::vcf::get_threshholded_calls( genotypes, nonmissingness, m_call_threshhold, 0, 0, 1, 2 )
 		) ;
 
-		double allele_frequency = genotypes.sum() / ( 2.0 * nonmissingness.sum() ) ;
+		// estimate allele frequency using data augmentation:
+		// add two haplotypes, one with each allele.
+		// This prevents the estimate becoming one or zero.
+		double allele_frequency = (1 + genotypes.sum()) / ( 2 + (2.0 * nonmissingness.sum()) ) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			pca::mean_centre_genotypes( &genotypes, nonmissingness, allele_frequency ) ;
 			// Could compute actual SNP sd:
@@ -743,16 +746,20 @@ namespace impl {
 		) ;
 
 		// compute allele frequency
-		double allele_frequency = 0.0 ;
+		double allele2_count = 0.0 ;
 		double nonmissing_count = 0.0 ;
 		for( std::size_t i = 0; i < m_combined_genotypes.size(); ++i ) {
 			bool const missing = ( m_per_snp_genotypes[i] == 0 ) ;
 			if( !missing ) {
-				allele_frequency += m_per_snp_genotypes[i] - 1.0 ;
+				allele2_count += m_per_snp_genotypes[i] - 1.0 ;
 				nonmissing_count += 1 ;
 			}
 		}
-		allele_frequency /= ( nonmissing_count * 2.0 ) ;
+		// Data estimate:
+		// double const allele_frequency = allele2_count / ( nonmissing_count * 2.0 ) ;
+		// Regularised estimate based on adding one of each allele,
+		// this matches Price et al Nature Genetics 2006
+		double const allele_frequency = (1 + allele2_count) / ( 2 + ( 2 * nonmissing_count)) ;
 		if( nonmissing_count > 0 && std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			// Ok we will process this SNP.
 			// We batch SNPs together to form a total of m_number_of_snps_per_computation SNPs.

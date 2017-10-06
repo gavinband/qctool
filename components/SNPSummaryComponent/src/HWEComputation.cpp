@@ -26,11 +26,17 @@ namespace snp_summary_component {
 		m_chi_squared_2df( 2.0 )
 	{}
 	
-	void HWEComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, genfile::VariantDataReader&, ResultCallback callback ) {
+	void HWEComputation::operator()(
+		VariantIdentifyingData const& snp,
+		Genotypes const& genotypes,
+		Ploidy const& ploidy,
+		genfile::VariantDataReader&,
+		ResultCallback callback
+	) {
 		genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 		if( snp.number_of_alleles() == 2 ) {
 			if( chromosome.is_sex_determining() ) {
-				X_chromosome_test( snp, genotypes, sexes, callback ) ;
+				X_chromosome_test( snp, genotypes, ploidy, callback ) ;
 			} else {
 				autosomal_test( snp, genotypes, callback ) ;
 			}
@@ -99,7 +105,7 @@ namespace snp_summary_component {
 		callback( "HW_lrt_p_value", p_value ) ;
 	}
 
-	void HWEComputation::X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const& sexes, ResultCallback callback ) {
+	void HWEComputation::X_chromosome_test( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const& ploidy, ResultCallback callback ) {
 		// We look at three models and perform two LR tests.
 		// model1: full model, males and females may have different frequencies and no assumption of HW in females.  (3 parameters)
 		// model2: HWE holds in females, but males and females may have different frequencies. (2 parameters)
@@ -118,8 +124,8 @@ namespace snp_summary_component {
 		int const DIPLOID = 1 ;
 
 		for( int i = 0; i < genotypes.rows(); ++i ) {
-			if( sexes[ i ] == 'm' || sexes[ i ] == 'f' ) {
-				int const index = ( sexes[ i ] == 'm' && ( snp.get_position().chromosome().is_sex_determining() ) ) ? HAPLOID : DIPLOID ;
+			if( ploidy(i) == 1 || ploidy(i) == 2 ) {
+				int const index = ploidy(i) - 1 ;
 				for( int g = 0; g < 3; ++g ) {
 					if( genotypes( i, g ) > m_threshhold ) {
 						++genotype_counts( index, g ) ;

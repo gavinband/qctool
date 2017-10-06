@@ -84,12 +84,12 @@ tar -czf ../89cd8cb1946efb9ec1aff5ca3ab29c2b.tgz ./*
 
 
 rm -f *
-qctool-1.1 -g ../setup/example.bgen -s ../setup/example.sample -g ../setup/second_cohort.bgen -s ../setup/second_cohort.sample -og ./joined.gen -os ./joined.sample -snp-match-fields position,alleles 
+qctool-1.1 -g ../setup/example.bgen -s ../setup/example.sample -g ../setup/second_cohort.bgen -s ../setup/second_cohort.sample -og ./joined.gen -os ./joined.sample -compare-variants-by position,alleles 
 tar -czf ../8ef03f6764face5b96053304632369f1.tgz ./*
 
 
 rm -f *
-qctool-1.1 -g ../setup/example.bgen -s ../setup/example.sample -g ../setup/second_cohort.bgen -s ../setup/second_cohort.sample -og ./joined.gen -os ./joined.sample -snp-match-fields position,alleles -match-alleles-to-cohort1 
+qctool-1.1 -g ../setup/example.bgen -s ../setup/example.sample -g ../setup/second_cohort.bgen -s ../setup/second_cohort.sample -og ./joined.gen -os ./joined.sample -compare-variants-by position,alleles -match-alleles-to-cohort1 
 tar -czf ../a24a80ab653d479d7320588b713572ee.tgz ./*
 
 

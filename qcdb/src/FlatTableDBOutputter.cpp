@@ -224,27 +224,14 @@ namespace qcdb {
 		m_insert_data_sql = m_outputter.connection().get_statement(
 			insert_data_sql.str()
 		) ;
-
-#if DEBUG_FLATTABLEDBOUTPUTTER
-		std::cerr << "Getting \"table\" entry...\n"  ;
-		db::Connection::RowId table_id = m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ) ;
-		std::cerr << "ok.\n" ;
-#endif
-
-		m_outputter.get_or_create_entity_data(
-			m_outputter.analysis_id(),
-			m_outputter.get_or_create_entity( "table", "Table holding results of an analysis" ),
-			table_name + "View"
-		) ;
 	}
 
 	void FlatTableDBOutputter::create_variables() {
-		db::Connection::RowId const variable_class_id = m_outputter.get_or_create_entity( "per-variant variable", "per-variant variable values" ) ;
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 		for( ; var_i != end_var_i; ++var_i ) {
-			m_outputter.get_or_create_entity( var_i->second, var_i->second, variable_class_id ) ;
+			m_outputter.create_variable( m_table_name, var_i->second ) ;
 		}
 	}
 	

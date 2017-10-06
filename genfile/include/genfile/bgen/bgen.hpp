@@ -109,6 +109,7 @@ namespace genfile {
 
 		// Read a header block from the supplied stream,
 		// filling the fields of the supplied context object.
+		// Return the number of bytes read.
 		std::size_t read_header_block(
 			std::istream& aStream,
 			Context* context
@@ -477,6 +478,10 @@ namespace genfile {
 				set_allele( i, allele ) ;
 			}
 			if( !aStream ) {
+#if DEBUG_BGEN_FORMAT
+				std::cerr << "bgen: layout = " << layout << ", alleles = " << numberOfAlleles << ".\n" << std::flush ;
+				std::cerr << *SNPID << ", " << *RSID << ", " << *chromosome << ", " << *SNP_position << ".\n" << std::flush ;
+#endif
 				throw BGenError() ;
 			}
 			return true ;
@@ -788,6 +793,88 @@ namespace genfile {
 				) ;
 			}
 
+			struct GenotypeDataBlock {
+			public:
+				GenotypeDataBlock() ;
+					
+				GenotypeDataBlock(
+					Context const& context,
+					byte_t const* buffer,
+					byte_t const* const end
+				) ;
+					
+				void initialise(
+					Context const& context,
+					byte_t const* buffer,
+					byte_t const* const end
+				) ;
+
+			public:
+				uint32_t numberOfSamples ;
+				uint16_t numberOfAlleles ;
+				byte_t ploidyExtent[2] ;
+				byte_t const* ploidy ; // Must contain at least N bytes.
+				bool phased ;
+				byte_t bits ;
+				byte_t const* buffer ;
+				byte_t const* end ;
+				
+			private:
+				// forbid copying.
+				GenotypeDataBlock( GenotypeDataBlock const& other ) ;
+				GenotypeDataBlock& operator=( GenotypeDataBlock const& other ) ;
+			} ;
+			
+			inline GenotypeDataBlock::GenotypeDataBlock():
+				numberOfSamples(0),
+				numberOfAlleles(0),
+				ploidy(0),
+				phased(false),
+				bits(0),
+				buffer(0),
+				end(0)
+			{}
+
+			inline GenotypeDataBlock::GenotypeDataBlock(
+				Context const& context,
+				byte_t const* buffer,
+				byte_t const* const end
+			) {
+				initialise( context, buffer, end ) ;
+			}
+
+			inline void GenotypeDataBlock::initialise(
+				Context const& context,
+				byte_t const* buffer,
+				byte_t const* const end
+			) {
+				if( end < buffer + 8 ) {
+					throw BGenError() ;
+				}
+				uint32_t N = 0 ;
+				buffer = read_little_endian_integer( buffer, end, &N ) ;
+				if( N != context.number_of_samples ) {
+					throw BGenError() ;
+				}
+				if( end < buffer + N + 2 ) {
+					throw BGenError() ;
+				}
+
+				numberOfSamples = N ;
+				buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
+				buffer = read_little_endian_integer( buffer, end, &ploidyExtent[0] ) ;
+				buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
+
+				// Keep a pointer to the ploidy and move buffer past the ploidy information
+				ploidy = buffer ;
+				buffer += N ;
+				// Get the phased flag and number of bits
+				phased = ((*buffer++) & 0x1 ) ;
+				bits = *reinterpret_cast< byte_t const *>( buffer++ ) ;
+				this->buffer = buffer ;
+				this->end = end ;
+			}
+			
 			template< typename Setter >
 			void parse_probability_data(
 				byte_t const* buffer,
@@ -795,32 +882,12 @@ namespace genfile {
 				Context const& context,
 				Setter& setter
 			) {
-				uint32_t numberOfSamples ;
-				uint16_t numberOfAlleles ;
-				byte_t ploidyExtent[2] ;
-				enum { ePhased = 1, eUnphased = 0 } ;
-				
-				if( end < buffer + 8 ) {
-					throw BGenError() ;
-				}
-				buffer = read_little_endian_integer( buffer, end, &numberOfSamples ) ;
-				buffer = read_little_endian_integer( buffer, end, &numberOfAlleles ) ;
-				buffer = read_little_endian_integer( buffer, end, &ploidyExtent[0] ) ;
-				buffer = read_little_endian_integer( buffer, end, &ploidyExtent[1] ) ;
+				GenotypeDataBlock pack( context, buffer, end ) ;
 
-				if( numberOfSamples != context.number_of_samples ) {
-					throw BGenError() ;
-				}
-				if( end < buffer + numberOfSamples + 2 ) {
-					throw BGenError() ;
-				}
-				
-				// Keep a pointer to the ploidy and move buffer past the ploidy information
-				byte_t const* ploidy_p = buffer ;
-				buffer += numberOfSamples ;
-				// Get the phased flag and number of bits
-				bool const phased = ((*buffer++) & 0x1 ) ;
-				int const bits = int( *reinterpret_cast< byte_t const *>( buffer++ ) ) ;
+				int const bits = int( pack.bits ) ;
+				byte_t const* ploidy_p = pack.ploidy ;
+				buffer = pack.buffer ;
+				assert( end == pack.end ) ;
 				
 	#if DEBUG_BGEN_FORMAT
 				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
@@ -829,21 +896,21 @@ namespace genfile {
 					<< bgen::impl::to_hex( buffer, end ) << ".\n" ;
 	#endif
 
-				setter.initialise( numberOfSamples, uint32_t( numberOfAlleles ) ) ;
-				call_set_min_max_ploidy( setter, uint32_t( ploidyExtent[0] ), uint32_t( ploidyExtent[1] ), numberOfAlleles, phased ) ;
+				setter.initialise( pack.numberOfSamples, uint32_t( pack.numberOfAlleles ) ) ;
+				call_set_min_max_ploidy( setter, uint32_t( pack.ploidyExtent[0] ), uint32_t( pack.ploidyExtent[1] ), pack.numberOfAlleles, pack.phased ) ;
 				
 				{
 					uint64_t data = 0 ;
 					int size = 0 ;
-					for( uint32_t i = 0; i < numberOfSamples; ++i, ++ploidy_p ) {
+					for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
 						uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
 						bool const missing = (*ploidy_p & 0x80) ;
 						uint32_t const valueCount
-							= phased
-							? (ploidy * numberOfAlleles)
-							: genfile::bgen::impl::n_choose_k( uint32_t( ploidy + numberOfAlleles - 1 ), uint32_t( numberOfAlleles - 1 )) ;
+							= pack.phased
+							? (ploidy * pack.numberOfAlleles)
+							: genfile::bgen::impl::n_choose_k( uint32_t( ploidy + pack.numberOfAlleles - 1 ), uint32_t( pack.numberOfAlleles - 1 )) ;
 
-						uint32_t const storedValueCount = valueCount - ( phased ? ploidy : 1 ) ;
+						uint32_t const storedValueCount = valueCount - ( pack.phased ? ploidy : 1 ) ;
 					
 	#if DEBUG_BGEN_FORMAT > 1
 						std::cerr << "parse_probability_data_v12(): sample " << i
@@ -858,7 +925,7 @@ namespace genfile {
 							setter.set_number_of_entries(
 								ploidy,
 								valueCount,
-								phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
+								pack.phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
 								eProbability
 							) ;
 							if( missing ) {
@@ -885,8 +952,8 @@ namespace genfile {
 	#endif
 								
 									if(
-										( phased && ((h+1) % (numberOfAlleles-1) ) == 0 )
-										|| ((!phased) && (h+1) == storedValueCount )
+										( pack.phased && ((h+1) % (pack.numberOfAlleles-1) ) == 0 )
+										|| ((!pack.phased) && (h+1) == storedValueCount )
 									) {
 										assert( sum <= 1.00000001 ) ;
 										setter.set_value( reportedValueCount++, 1.0 - sum ) ;
@@ -1335,14 +1402,14 @@ namespace genfile {
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
 							m_buffer2,
 							offset,
-							6
+							9 // highest compression setting.
 						) ;
 					} else if( compressionType == e_ZstdCompression ) {
 						zstd_compress(
 							&(*m_buffer1)[0], &(*m_buffer1)[0] + uncompressed_data_size,
 							m_buffer2,
 							offset,
-							14 // reasonable balance between speed and compression.
+							17 // reasonable balance between speed and compression.
 						) ;
 					} else {
 						assert(0) ;

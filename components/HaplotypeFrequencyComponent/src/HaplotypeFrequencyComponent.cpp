@@ -297,22 +297,24 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantIdentifyingData const& target_snp,
 	genfile::VariantDataReader& target_data_reader
 ) {
-	std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-	ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
-	ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
-	source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
-	target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
-//	source_data_reader.get( ":genotypes:", setter1 ) ;
-//	target_data_reader.get( ":genotypes:", setter2 ) ;
-	assert( genotypes[0].size() == m_source->number_of_samples() ) ;
-	assert( genotypes[0].size() == genotypes[1].size() ) ;
+	if( source_snp.number_of_alleles() == 2 && target_snp.number_of_alleles() == 2 ) {
+		std::vector< Eigen::VectorXd > genotypes( 2 ) ;
+		ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
+		ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
+		source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
+		target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
+	//	source_data_reader.get( ":genotypes:", setter1 ) ;
+	//	target_data_reader.get( ":genotypes:", setter2 ) ;
+		assert( genotypes[0].size() == m_source->number_of_samples() ) ;
+		assert( genotypes[0].size() == genotypes[1].size() ) ;
 
-	compute_ld_measures(
-		source_snp,
-		genotypes[0],
-		target_snp,
-		genotypes[1]
-	) ;
+		compute_ld_measures(
+			source_snp,
+			genotypes[0],
+			target_snp,
+			genotypes[1]
+		) ;
+	}
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
@@ -386,8 +388,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	// 2: there is at least some recombination (or difference) between them.
 	Eigen::Matrix2d prior ;
 	prior
-		<< 0, 0,
-		   0, 0
+		<< 1, 1,
+		   1, 1
 	;
 	
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
@@ -395,7 +397,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
 #endif
-	
+
 	genfile::VariantEntry::Integer const N = table.sum() ;
 	bool includeInOutput = (m_min_r2 == 0.0 ) ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;

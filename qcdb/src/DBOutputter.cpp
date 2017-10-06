@@ -100,59 +100,6 @@ namespace qcdb {
 			"CREATE INDEX IF NOT EXISTS VariantIdentifierIdentifierIndex ON VariantIdentifier( identifier )"
 		) ;
 		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS Entity ( "
-				"id INTEGER PRIMARY KEY, name TEXT, description TEXT, "
-				"UNIQUE( name, description ) "
-			")"
-		) ;
-		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS EntityData ( "
-			"entity_id INTEGER NOT NULL, "
-			"variable_id INTEGER NOT NULL, "
-			"value TEXT, "
-			"FOREIGN KEY (entity_id) REFERENCES Entity( id ), "
-			"FOREIGN KEY (variable_id) REFERENCES Entity( id ) "
-			")"
-		) ;
-		m_connection->run_statement(
-			"CREATE TABLE IF NOT EXISTS EntityRelationship ( "
-				"entity1_id INTEGER NOT NULL, "
-				"relationship_id INTEGER NOT NULL, "
-				"entity2_id INTEGER NOT NULL, "
-				"FOREIGN KEY( entity1_id ) REFERENCES Entity( id ), "
-				"FOREIGN KEY( relationship_id ) REFERENCES Entity( id ), "
-				"FOREIGN KEY( entity2_id ) REFERENCES Entity( id ), "
-				"UNIQUE( entity1_id, relationship_id, entity2_id ) "
-			")"
-		) ;
-
-		m_connection->run_statement(
-			"CREATE INDEX IF NOT EXISTS EntityDataIndex ON EntityData( entity_id, variable_id )"
-		) ;
-
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS EntityDataView AS "
-			"SELECT ED.entity_id, E.name, ED.variable_id, V.name AS variable, ED.value "
-			"FROM EntityData ED "
-			"INNER JOIN Entity E "
-			"ON E.id = ED.entity_id "
-			"INNER JOIN Entity V "
-			"ON V.id = ED.variable_id"
-		) ;
-
-		m_connection->run_statement(
-			"CREATE VIEW IF NOT EXISTS EntityRelationshipView AS "
-			"SELECT ER.entity1_id AS entity1_id, E1.name AS entity1, ER.relationship_id, R.name AS relationship, ER.entity2_id AS entity2_id, E2.name AS entity2 "
-			"FROM EntityRelationship ER "
-			"INNER JOIN Entity E1 "
-			"  ON E1.id = ER.entity1_id " 
-			"INNER JOIN Entity R "
-			"  ON R.id = ER.relationship_id " 
-			"INNER JOIN Entity E2 "
-			"  ON E2.id = ER.entity2_id" 
-		) ;
-
-		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Analysis ( "
 				"id INTEGER PRIMARY KEY, "
 				"name TEXT, "
@@ -189,6 +136,16 @@ namespace qcdb {
 			"INNER JOIN Analysis A "
 			"ON A.id == AST.analysis_id"
 		) ;
+
+		m_connection->run_statement(
+			"CREATE TABLE IF NOT EXISTS Variable ( "
+				"`analysis_id` INTEGER NOT NULL REFERENCES Analysis( id ), "
+				"`table` TEXT NOT NULL, "
+				"`name` TEXT NOT NULL, "
+				"`description` TEXT"
+			")"
+		) ;
+
 		m_connection->run_statement(
 			"CREATE VIEW IF NOT EXISTS VariantView AS "
 			"SELECT          V.id AS id, V.rsid AS rsid, V.chromosome AS chromosome, V.position AS position, V.alleleA AS alleleA, V.alleleB AS alleleB, "
@@ -217,16 +174,10 @@ namespace qcdb {
 	}
 
 	void DBOutputter::construct_statements() {
-		m_insert_entity_statement = m_connection->get_statement( "INSERT INTO Entity ( name, description ) VALUES ( ?1, ?2 )" ) ;
-		m_find_entity_data_statement = m_connection->get_statement( "SELECT * FROM EntityData WHERE entity_id == ?1 AND variable_id == ?2" ) ;
-		m_find_entity_statement = m_connection->get_statement( "SELECT id FROM Entity E WHERE name == ?1 AND description == ?2" ) ;
-		m_insert_entity_data_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityData ( entity_id, variable_id, value ) VALUES ( ?1, ?2, ?3 )" ) ;
-
+		m_insert_variable_statement = m_connection->get_statement( "INSERT INTO Variable ( analysis_id, `table`, `name`, `description` ) VALUES( ?, ?, ?, ? )" ) ;
 		m_find_analysis_statement = m_connection->get_statement( "SELECT id FROM Analysis WHERE name == ?1 AND chunk == ?2" ) ;
 		m_insert_analysis_statement = m_connection->get_statement( "INSERT INTO Analysis( name, chunk ) VALUES ( ?1, ?2 )" ) ;
 		m_insert_analysis_property_statement = m_connection->get_statement( "INSERT OR REPLACE INTO AnalysisProperty ( analysis_id, property, value, source ) VALUES ( ?1, ?2, ?3, ?4 )" ) ;
-
-		m_insert_entity_relationship_statement = m_connection->get_statement( "INSERT OR REPLACE INTO EntityRelationship( entity1_id, relationship_id, entity2_id ) VALUES( ?1, ?2, ?3 )") ;
 
 		{
 			std::string find_variant_statement_sql = "SELECT id, rsid FROM Variant WHERE IFNULL( chromosome, '.' ) == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4" ;
@@ -245,10 +196,6 @@ namespace qcdb {
 	}
 
 	void DBOutputter::store_metadata() {
-		load_entities() ;
-		m_is_a = get_or_create_entity_internal( "is_a", "is_a relationship" ) ;
-		m_used_by = get_or_create_entity_internal( "used_by", "used_by relationship" ) ;
-
 		try {
 			if( m_analysis_id ) {
 				m_find_analysis_statement
@@ -293,6 +240,15 @@ namespace qcdb {
 		}
 	}
 	
+	void DBOutputter::create_variable( std::string const& table, std::string const& name ) const {
+		m_insert_variable_statement
+			->bind( 1, m_analysis_id.get() )
+			.bind( 2, table )
+			.bind( 3, name )
+			.step() ;
+		m_insert_variable_statement->reset() ;
+	}
+	
 	void DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
 		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
 		stmnt->bind( 1, analysis_id ) ;
@@ -308,24 +264,17 @@ namespace qcdb {
 		stmnt->bind( 3, analysis_id ) ;
 		stmnt->step() ;
 	}
-	
-	void DBOutputter::load_entities() {
-		db::Connection::StatementPtr stmnt = m_connection->get_statement( "SELECT id, name, description FROM Entity" ) ;
-		stmnt->step() ;
-		while( !stmnt->empty() ) {
-			m_entity_map.insert( std::make_pair( std::make_pair( stmnt->get< std::string >( 1 ), stmnt->get< std::string >( 2 )), stmnt->get< db::Connection::RowId >( 0 ))) ;
-			stmnt->step() ;
-		}
-		stmnt->reset() ;
-	}
 
+#if 0	
 	db::Connection::RowId DBOutputter::get_or_create_entity_internal( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
 		db::Connection::RowId result ;
+		// Look in our variable cache first
 		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
 		if( where != m_entity_map.end() ) {
 			result = where->second ;
 		}
 		else {
+			// try the db nex
 			m_find_entity_statement
 				->bind( 1, name )
 				.bind( 2, description )
@@ -357,6 +306,7 @@ namespace qcdb {
 		return result ;
 	}
 
+#endif
 	db::Connection::RowId DBOutputter::create_analysis( std::string const& name, std::string const& description ) const {
 		db::Connection::RowId result ;
 		m_insert_analysis_statement
@@ -370,6 +320,7 @@ namespace qcdb {
 		return result ;
 	}
 
+#if 0
 	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
 		db::Connection::RowId result ;
 		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
@@ -423,6 +374,7 @@ namespace qcdb {
 		m_find_entity_data_statement->reset() ;
 		return result ;
 	}
+#endif
 
 	db::Connection::RowId DBOutputter::set_analysis_property(
 		db::Connection::RowId const analysis_id,

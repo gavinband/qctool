@@ -27,8 +27,8 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	typedef boost::function< void ( std::string const& value_name ) > NameCallback ;
 	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
 	typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > PerSampleResultCallback ;
-	typedef std::vector< char > SampleSexes ;
-
+	typedef Eigen::VectorXi Ploidy ;
+	
 	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 
 	virtual void list_variables( NameCallback ) const {}
@@ -36,7 +36,7 @@ struct SNPSummaryComputation: public boost::noncopyable {
 	virtual void operator()(
 		VariantIdentifyingData const&,
 		Genotypes const&,
-		SampleSexes const&,
+		Ploidy const&,
 		genfile::VariantDataReader&,
 		ResultCallback
 	) = 0 ;

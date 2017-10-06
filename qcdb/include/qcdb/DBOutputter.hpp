@@ -55,6 +55,9 @@ namespace qcdb {
 		) ;
 		~DBOutputter() ;
 
+		// Create a new variable associated with the current analysis
+		void create_variable( std::string const& table, std::string const& name ) const ;
+#if 0
 		// Create an entity.  Optionally supply a class (which must be the id of another entity.)
 		db::Connection::RowId get_or_create_entity(
 			std::string const& name,
@@ -65,6 +68,7 @@ namespace qcdb {
 		// Associate some data with an entity.
 		db::Connection::RowId get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const ;
 		// Create a variant
+#endif
 		db::Connection::RowId get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const ;
 		// Store some data for a variant.
 		void insert_summary_data( db::Connection::RowId snp_id, db::Connection::RowId variable_id, genfile::VariantEntry const& value ) const ;
@@ -81,6 +85,9 @@ namespace qcdb {
 		Metadata const m_metadata ;
 		bool const m_create_indices ;
 		bool const m_match_rsid ;
+
+
+		db::Connection::StatementPtr m_insert_variable_statement ;
 
 		db::Connection::StatementPtr m_find_entity_statement ;
 		db::Connection::StatementPtr m_find_entity_data_statement ;
@@ -107,8 +114,11 @@ namespace qcdb {
 	private:
 		void construct_statements() ;
 		void store_metadata() ;
+
+#if 0
 		void load_entities() ;
 		void create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const ;
+#endif
 		db::Connection::RowId create_analysis(
 			std::string const& name,
 			std::string const& description
@@ -119,6 +129,8 @@ namespace qcdb {
 			genfile::VariantEntry const& value,
 			std::string const& aux
 		) const ;
+
+#if 0
 		db::Connection::RowId get_or_create_entity_internal(
 			std::string const& name,
 			std::string const& description,
@@ -129,6 +141,7 @@ namespace qcdb {
 			std::string const& description,
 			boost::optional< db::Connection::RowId > class_id = boost::optional< db::Connection::RowId >()
 		) const ;
+#endif
 		void start_analysis( db::Connection::RowId const ) const ;
 		void end_analysis( db::Connection::RowId const ) const ;
 		void add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const ;

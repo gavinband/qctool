@@ -1956,6 +1956,8 @@ private:
 				progress_context
 			) ;
 		}
+		
+		storage->finalise() ;
 	}
 
 	void write_output(

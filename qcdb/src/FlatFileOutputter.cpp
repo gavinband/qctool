@@ -42,9 +42,6 @@ namespace qcdb {
 	}
 	
 	FlatFileOutputter::~FlatFileOutputter() {
-		store_block() ;
-		m_snps.clear() ;
-		m_values.clear() ;
 	}
 	
 	void FlatFileOutputter::finalise( long ) {

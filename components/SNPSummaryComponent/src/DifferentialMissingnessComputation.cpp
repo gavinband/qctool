@@ -2,6 +2,7 @@
 #include <boost/math/distributions/chi_squared.hpp>
 #include <Eigen/Core>
 #include "genfile/Error.hpp"
+#include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/DifferentialMissingnessComputation.hpp"
 #include "metro/FishersExactTest.hpp"
 #include "metro/likelihood/Multinomial.hpp"
@@ -19,9 +20,11 @@ DifferentialMissingnessComputation::DifferentialMissingnessComputation( std::str
 	m_strata_levels( compute_strata_levels( m_strata_members ) ),
 	m_threshhold( threshhold )
 {
+#if 0
 	if( strata_members.size() != 2 ) {
 		throw genfile::BadArgumentError( "DifferentialMissingnessComputation::DifferentialMissingnessComputation()", "strata_members( size " + genfile::string_utils::to_string( strata_members.size() ) + ")" ) ;
 	}
+#endif
 }
 
 std::vector< int > DifferentialMissingnessComputation::compute_strata_levels( StrataMembers const& strata_members ) const {
@@ -37,7 +40,7 @@ std::vector< int > DifferentialMissingnessComputation::compute_strata_levels( St
 	return result ;
 }
 
-void DifferentialMissingnessComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, SampleSexes const&, genfile::VariantDataReader&, ResultCallback callback ) {
+void DifferentialMissingnessComputation::operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const&, genfile::VariantDataReader&, ResultCallback callback ) {
 	// construct a table
 	// 
 	//                 missing     not missing
@@ -65,21 +68,26 @@ void DifferentialMissingnessComputation::operator()( VariantIdentifyingData cons
 		StrataMembers::const_iterator const end_i = m_strata_members.end() ;
 		for( int level = 0; i != end_i; ++level, ++i ) {
 			std::string tag = "[" + m_stratification_name + "=" + genfile::string_utils::to_string( i->first ) + "]" ;
-			callback( "missing samples " + tag, table( level, 0 ) ) ;
-			callback( "non-missing samples " + tag, table( level, 1 ) ) ;
+			callback( "missing" + tag, table( level, 0 ) ) ;
+			callback( "non_missing" + tag, table( level, 1 ) ) ;
 		}
 	}
 
 	std::string const stub = "missingness_by_" + m_stratification_name ;
-	callback( stub + "_sample_odds_ratio", table(0,0) * table(1,1) / ( table(0,1) * table(1,0) ) ) ;
+//	callback( stub + "_sample_odds_ratio", table(0,0) * table(1,1) / ( table(0,1) * table(1,0) ) ) ;
 	
 	if( table.row(0).sum() > 0 && table.row(1).sum() > 0 ) {
 		// perform the exact test.  For speed reasons this is only done if the chi-square approximation may be inaccurate.
-		try {
-			metro::FishersExactTest test( table ) ;
-			callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
-		}
-		catch( std::exception const& e ) {
+		if( table.rows() == 2 ) {
+			try {
+				metro::FishersExactTest test( table ) ;
+				callback( stub + "_exact_pvalue", test.get_pvalue( metro::FishersExactTest::eTwoSided ) )  ;
+			}
+			catch( std::exception const& e ) {
+				callback( stub + "_exact_pvalue", genfile::MissingValue() ) ;
+			}
+		} else {
+			callback( stub + "_exact_pvalue", genfile::MissingValue() ) ;
 		}
 		{
 			metro::likelihood::Multinomial< double, Eigen::VectorXd, Eigen::MatrixXd > null_model( table.colwise().sum() ) ;
@@ -102,8 +110,8 @@ void DifferentialMissingnessComputation::operator()( VariantIdentifyingData cons
 				) ;
 				
 				
-				callback( stub + "_lr_pvalue", p_value ) ;
-				callback( stub + "_lr_statistic", likelihood_ratio_statistic ) ;
+				callback( stub + "_lrt_pvalue", p_value ) ;
+				callback( stub + "_lrt_df", genfile::VariantEntry::Integer( table.rows() - 1 )) ;
 			}
 		}
 	}

@@ -174,28 +174,28 @@ namespace genfile {
 
 				if( where->second.find( "add" ) != where->second.end() ) {
 					add_column(
-						key + ":additive_dosage",
+						key + ":add",
 						( probabilities.col(1) + 2.0 * probabilities.col(2) )
 					) ;
 				}
 
 				if( where->second.find( "dom" ) != where->second.end() ) {
 					add_column(
-						key + ":dominant_dosage",
+						key + ":dom",
 						( probabilities.col(1) + probabilities.col(2) )
 					) ;
 				}
 
 				if( where->second.find( "het" ) != where->second.end() ) {
 					add_column(
-						key + ":heterozygote_dosage",
+						key + ":het",
 						( probabilities.col(1) )
 					) ;
 				}
 
 				if( where->second.find( "rec" ) != where->second.end() ) {
 					add_column(
-						key + ":recessive_dosage",
+						key + ":rec",
 						( probabilities.col(2) )
 					) ;
 				}

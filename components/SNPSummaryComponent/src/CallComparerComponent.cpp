@@ -29,7 +29,6 @@
 #include "components/SNPSummaryComponent/CallComparerComponent.hpp"
 #include "components/SNPSummaryComponent/FrequentistTestCallMerger.hpp"
 #include "components/SNPSummaryComponent/LeastMissingConsensusCaller.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 
 
 CallComparerProcessor::UniquePtr CallComparerProcessor::create( PairwiseCallComparerManager::UniquePtr comparer, std::vector< std::string > const& call_fields ) {
@@ -48,7 +47,7 @@ CallComparerProcessor::CallComparerProcessor( PairwiseCallComparerManager::Uniqu
 void CallComparerProcessor::operator()(
 	VariantIdentifyingData const& snp,
 	Genotypes const& genotypes,
-	SampleSexes const&,
+	Ploidy const&,
 	genfile::VariantDataReader& data_reader,
 	ResultCallback callback
 ) {

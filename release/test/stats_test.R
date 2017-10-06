@@ -128,6 +128,7 @@ cmd = sprintf(
     vcf.filename, sample.filename, snp.stats.filename
 )
 
+print( cmd )
 system( sprintf( "%s 2>/dev/null", cmd ))
 
 cat( "I simulated variants on these chromosomes:\n" )

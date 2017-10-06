@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../../js/local.js"></script>
+		<!-- Google Analytics tracking code-->
+		<script type="text/javascript">
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-16521993-1']);
+			_gaq.push(['_trackPageview']);
+
+			(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+		</script>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title></title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				qctool v2
+			</div>
+			<div class="header_subtext">
+				A tool for quality control and analysis of gwas datasets.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<h2>Filtering samples</h2>
+				<div class="task">
+					<div class="task_name">
+						Filtering samples by identifier
+					</div>
+					<div class="task_notes">
+						The <code>-incl-samples</code> and <code>-excl-samples</code> options can be used to select a subset of
+						samples to process.  E.g.:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen 
+						-s example.sample 
+						-og filtered.bgen
+						-excl-samples samples.txt
+					</div>
+					<div class="task_notes">
+						This command excludes all samples whose identifier is in the file <code>samples.txt</code>
+						(which should contain a whitespace-separated list of identifiers).
+						Samples are identified by the first identifier field (often <code>ID_1</code>) in the sample file, or if no
+						sample file is specified, by sample identifiers specified in genotype data
+						source (e.g. by the header in vcf or bgen formats).  The option <code>-incl-samples</code>
+						behaves similarly but includes only samples with identifier in the given file.
+					</div>
+				</div>
+				<div class="task">
+					<div class="task_name">
+						Filtering samples by sample file column
+					</div>
+					<div class="task_notes">
+						It's also possible to filter samples based on the value of a column in the sample file.  The general command is:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g &lt;genotype file&gt; -s &lt;sample file&gt;
+						-[in|ex]cl-samples-where &lt;column&gt;[=|==|!=]&lt;value&gt; [+other options]
+					</div>
+					<div class="task_notes">
+						For example, the following command will write a new filtered genotype file excluding
+						all samples listed as "male" in the "sex" column of the sample file:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen
+						-s example.sample
+						-og filtered.bgen
+						-excl-samples-where 'sex = male'
+					</div>
+					<div class="task_notes">
+						<p>
+							You can currently filter sample file column values
+							for equality (using <code>=</code> or <code>==</code>) or inequality (<code>!=</code>).
+							<b>Note</b>: depending on the column names and expression used, it may be necessary
+							to place quotation marks around the expression to stop it being expanded by the shell.
+							As in the example above this also allows you to use whitespace to format the condition.
+						</p>
+						<p>
+							The <code>-incl-samples-where</code> behaves similarly, but includes only samples matching the condition.
+						</p>
+					</div>
+				</div>
+				<div class="task">
+					<div class="task_name">
+						Combining filters
+					</div>
+					<div class="task_notes">
+						In general inclusion and exclusion options come in pairs of the form <code>-incl-&lt;option&gt;</code>, <code>-excl-&lt;option&gt;</code>.
+						If multiple overlapping conditions are specified, the logic is that samples that satisfy any of the specified exclusion criteria will
+						be excluded, and likewise samples that do not satisfy any of the specified inclusion criteria will be excluded.  This in the following command:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen
+						-s example.sample
+						-og filtered.bgen
+						-excl-samples-where 'sex = male'
+						-incl-samples samples.txt
+					</div>
+					<div class="task_notes">
+						The output will contain only male samples that are also listed in the file <code>samples.txt</code>.
+					</div>
+				</div>
+		</section>
+
+		<nav class="button_bar">
+			<div class="nav_button" name="overview">
+				<a href="../../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
+					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
+					<li><a href="../../documentation/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/conversions.html">Converting between formats</a></li>
+					<li><a href="../../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
+					<li><a href="../../documentation/annotations.html">Annotating data</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="tutorial">
+				examples
+				<ul class="menu">
+					<li><a href="../../documentation/examples/basic.html">Basic usage</a></li>
+					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
+					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/altering_id_data.html">Manipulating variant metadata</a></li>
+					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="file_formats">
+				file formats
+				<ul class="menu">
+					<a href="../../documentation/genotype_file_formats.html">Genotype file formats</a>
+					<a href="../../documentation/sample_file_formats.html">Sample file formats</a>
+					<a href="../../documentation/summary_file_formats.html">Summary statistic file formats</a>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../../documentation/download.html">download</a>
+			</div>
+		</nav>
+		
+	</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../js/jquery.ba-hashchange.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<!-- Google Analytics tracking code-->
+		<script type="text/javascript">
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-16521993-1']);
+			_gaq.push(['_trackPageview']);
+
+			(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+		</script>
+
+		<script type="text/javascript">
+			$(document).ready(
+				function() {
+					setFirstPage( "overview" ) ;
+				}
+			) ;
+		</script>
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title></title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				qctool v2
+			</div>
+			<div class="header_subtext">
+				A tool for quality control and analysis of gwas datasets.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<h2>Sample file formats</h2>
+			<p>(This page is under construction.)</p>
+		</section>
+
+		<nav class="button_bar">
+			<div class="nav_button" name="overview">
+				<a href="../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../documentation/diagram_of_options.html">Diagram of options</a></li>
+					<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+					<li><a href="../documentation/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../documentation/conversions.html">Converting between formats</a></li>
+					<li><a href="../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
+					<li><a href="../documentation/annotations.html">Annotating data</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="tutorial">
+				examples
+				<ul class="menu">
+					<li><a href="../documentation/examples/conversions.html">Converting file formats</a></li>
+					<li><a href="../documentation/examples/sorting.html">Sorting data</a></li>
+					<li><a href="../documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+					<li><a href="../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+					<li><a href="../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+					<li><a href="../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="file_formats">
+				file formats
+				<ul class="menu">
+					<a href="../documentation/genotype_file_formats.html">Genotype file formats</a>
+					<a href="../documentation/sample_file_formats.html">Sample file formats</a>
+					<a href="../documentation/summary_file_formats.html">Summary statistic file formats</a>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../documentation/download.html">download</a>
+			</div>
+		</section>
+	</body>
+</html>

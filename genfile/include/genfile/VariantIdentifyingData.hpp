@@ -86,7 +86,7 @@ namespace genfile {
 	public:
 		struct CompareFields {
 			CompareFields(
-				std::string const& fields_to_compare = "position,rsid,IDs,alleles",
+				std::string const& fields_to_compare = "position,rsid,ids,alleles",
 				bool flip_alleleles_if_necessary = false
 			) ;
 			CompareFields( CompareFields const& other ) ;
@@ -94,7 +94,7 @@ namespace genfile {
 
 			bool get_flip_alleles_if_necessary() const { return m_flip_alleles_if_necessary ; }
 
-			enum { eIDs = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eMask = 0xF } ;
+			enum { eIDs = 0x1, eRSID = 0x2, ePosition = 0x4, eAlleles = 0x8, eAlternateIDs = 0x10, eMask = 0x1F } ;
 			bool operator()( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool are_equal( VariantIdentifyingData const& left, VariantIdentifyingData const& right ) const ;
 			bool check_if_comparable_fields_are_known( VariantIdentifyingData const& value ) const ;
