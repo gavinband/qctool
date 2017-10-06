@@ -314,8 +314,6 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			target_snp,
 			genotypes[1]
 		) ;
-	} else {
-		// can't compute LD for multiallelics right now
 	}
 }
 
@@ -390,8 +388,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	// 2: there is at least some recombination (or difference) between them.
 	Eigen::Matrix2d prior ;
 	prior
-		<< 0, 0,
-		   0, 0
+		<< 1, 1,
+		   1, 1
 	;
 	
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
@@ -399,7 +397,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "table: " << table << ".\n" ;
 #endif
-	
+
 	genfile::VariantEntry::Integer const N = table.sum() ;
 	bool includeInOutput = (m_min_r2 == 0.0 ) ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;
