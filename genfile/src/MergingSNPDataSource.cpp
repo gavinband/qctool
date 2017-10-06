@@ -167,7 +167,7 @@ namespace genfile {
 		VariantIdentifyingData* result
 	) {
 		if( m_current_snps.size() > 0 ) {
-			std::cerr << m_current_snps.begin()->first << "\n" ;
+			//std::cerr << m_current_snps.begin()->first << "\n" ;
 			VariantIdentifyingData const& snp = m_current_snps.begin()->first ;
 			std::size_t source_index = m_current_snps.begin()->second ;
 			*result = VariantIdentifyingData(
