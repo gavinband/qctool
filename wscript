@@ -25,7 +25,7 @@ def set_options( opt ):
 #-----------------------------------
 
 def configure( conf ):
-	print "Using prefix\t\t\t\t :", conf.env[ 'PREFIX' ]
+	print( "Using prefix\t\t\t\t :", conf.env[ 'PREFIX' ] )
 
 	conf.check_tool( 'compiler_cxx')
 	conf.check_tool( 'compiler_cc')
@@ -38,12 +38,15 @@ def configure( conf ):
 	else:
 		cxxflags.append( '-std=c++98' )
 
-	import platform
+	for flag in [ '-msse2', '-mavx', '-mssse3']:
+		if conf.check( cxxflags = flag ):
+			cxxflags.append( flag )
 	
 	platform_specific_configure( conf )
 	check_for_3rd_party_components( conf )
 	misc_configure( conf )
 
+	import platform
 	if Options.options.static and platform.system() != "Darwin":
 		conf.env.SHLIB_MARKER='-Wl,-Bstatic'
 	create_variant( conf, 'release' )
@@ -271,7 +274,7 @@ def create_benchmark( bld, name, uselib = '' ):
 #-----------------------------------
 
 def test(context):
-	print "Performing functional tests..."
+	print( "Performing functional tests..." )
 	import json
 	working_dir = "release/test_data"
 	qctool_executable = "build/release/qctool-%s" % VERSION
@@ -300,11 +303,11 @@ def release( bld ):
 		inthinnerator_executable = "build/release/inthinnerator_v%s" % VERSION
 		builder = Release.ReleaseBuilder.ReleaseBuilder( "inthinnerator", VERSION, inthinnerator_executable )
 		release = builder.build()
-		print "++ inthinnerator release tarball created in", release[ "release_tarball" ]
+		print( "++ inthinnerator release tarball created in", release[ "release_tarball" ] )
 
 	qctool_executable = "build/release/qctool_v%s" % VERSION
 	builder = Release.ReleaseBuilder.ReleaseBuilder( APPNAME, VERSION, qctool_executable )
 	release = builder.build()
-	print "++ qctool release tarball created in", release[ "release_tarball" ]
+	print( "++ qctool release tarball created in", release[ "release_tarball" ] )
 
-	print "++ Release tarball created in", release[ "release_tarball" ]
+	print( "++ Release tarball created in", release[ "release_tarball" ] )
