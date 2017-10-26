@@ -54,7 +54,7 @@ Threshholds Genotypes
 
 Infers Ploidy
 	RunsCommandWithExactOutput	{ "g": [ "data/diploid.gen" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "threshhold": "0.9", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
-	RunsCommandWithExactOutput	{ "g": [ "data/diploid.vcf" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "threshhold": "0.9", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/diploid.vcf" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
 
 Reorders Samples
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "vcf" }	data/complex.reordered.vcf
