@@ -180,7 +180,7 @@ namespace qcdb {
 		m_insert_analysis_property_statement = m_connection->get_statement( "INSERT OR REPLACE INTO AnalysisProperty ( analysis_id, property, value, source ) VALUES ( ?1, ?2, ?3, ?4 )" ) ;
 
 		{
-			std::string find_variant_statement_sql = "SELECT id, rsid FROM Variant WHERE IFNULL( chromosome, '.' ) == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4" ;
+			std::string find_variant_statement_sql = "SELECT id, rsid FROM Variant WHERE chromosome == ?1 AND position == ?2 AND alleleA = ?3 AND alleleB = ?4" ;
 			if( m_match_rsid ) {
 				find_variant_statement_sql += " AND rsid == ?5" ;
 			}
@@ -419,8 +419,7 @@ namespace qcdb {
 	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
 		db::Connection::RowId result ;
 		if( snp.get_position().chromosome().is_missing() ) {
-			// Find variant statement uses IFNULL to replace NULLs with a . for comparison.
-			m_find_variant_statement->bind( 1, "." ) ;
+			m_find_variant_statement->bind_NULL( 1 ) ;
 		} else {
 			m_find_variant_statement
 				->bind( 1, std::string( snp.get_position().chromosome() ) ) ;

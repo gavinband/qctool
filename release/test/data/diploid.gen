@@ -1,0 +1,8 @@
+1 SNP1 rs1 1 A G 0 0 0 0 0 0
+X SNP1 rs1 1 A G 0 0 0 0 0 0
+1 SNP1 rs1 1 A G 1 0 0 1 0 0
+X SNP1 rs1 1 A G 1 0 0 1 0 0
+1 SNP1 rs1 1 A G 0 1 0 0 1 0
+X SNP1 rs1 1 A G 0 1 0 0 0 1
+1 SNP1 rs1 1 A G 0 0 1 0 0 1
+X SNP1 rs1 1 A G 0 0 1 0 0 1

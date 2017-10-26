@@ -1,0 +1,12 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=GT,Type=String,Number=1,Description="Consensus genotype call">
+##FORMAT=<ID=GP,Type=Float,Number=.,Description="Genotype probabilities">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample_0	sample_1
+1	1	rs1,SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	./.:0,0,0
+X	1	rs1,SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	./.:0,0,0
+1	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0/0:1,0,0
+X	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0/0:1,0,0
+1	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	0/1:0,1,0
+X	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	1/1:0,0,1
+1	1	rs1,SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1/1:0,0,1
+X	1	rs1,SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1/1:0,0,1

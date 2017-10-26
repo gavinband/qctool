@@ -57,6 +57,7 @@
 #include "genfile/StrandAligningSNPDataSource.hpp"
 #include "genfile/ThreshholdingSNPDataSource.hpp"
 #include "genfile/VCFFormatSNPDataSource.hpp"
+#include "genfile/PloidyConvertingSNPDataSource.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/ReorderingSNPDataSource.hpp"
@@ -207,6 +208,20 @@ public:
 			.set_takes_values( 1 )
 			.set_default_value( "sex" )
 		;
+
+		options[ "-infer-ploidy-from" ]
+			.set_description(
+				"Specify that QCTOOL should infer the true ploidy of genotype calls "
+				"(and genotype call probabilities) "
+				"based on the sex of samples and the chromosome. "
+				"Specifically, this is appropriate for some human datasets; "
+				"it replaces diploid genotype calls with haploid calls for males on the X and Y chromosomes. "
+				"Genotypes are set to missing if the original diploid call is heterozygote. "
+				"For genotype call probabilities, the probabilities of homozygote calls are used to infer the haploid "
+				"genotype probabilities, while probabilities are set to missing if there is nonzero probability of a heterozygote. "
+				"Females calls on the Y chromosome are also set to missing."
+			)
+			.set_takes_single_value() ;
 
 		options[ "-haploid-genotype-coding" ]
 			.set_description( "Specify whether haploid samples (e.g. males on the non-pseudoautosomal region of the X chromosome)"
@@ -1049,13 +1064,47 @@ private:
 			m_mangled_options.gen_filenames(),
 			m_options.check( "-flip-to-match-cohort1" )
 		) ;
-		
-		if( m_options.check( "-threshhold" )) {
-			m_snp_data_source.reset( new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" )) ) ;
-		}
-		
+	
+
+
 		{
 			m_samples = open_samples( *m_snp_data_source ) ;
+		}
+
+		if( m_options.check( "-infer-ploidy-from" )) {
+			std::string const sex_column = m_options.get< std::string >( "-infer-ploidy-from" ) ;
+			std::vector< char > sexes( m_samples->size(), '.' ) ;
+			for( std::size_t i = 0; i < m_samples->size(); ++i ) {
+				genfile::VariantEntry const& entry = m_samples->get_entry( i, sex_column ) ;
+				if( !entry.is_missing() ) {
+					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
+					if( sex == "1" || sex == "m" || sex == "male" ) {
+						sexes[i] = 'm' ;
+					} else if( sex == "2" || sex == "f" || sex == "female" ) {
+						sexes[i] = 'f' ;
+					} else {
+						throw genfile::MalformedInputError(
+							m_samples->get_source_spec(),
+							"Malformed sex value \"" + sex + "\"",
+							i,
+							m_samples->get_column_spec().find_column( sex_column )
+						) ;
+					}
+				}
+			}
+		
+			m_snp_data_source.reset(
+				genfile::PloidyConvertingSNPDataSource::create(
+					m_snp_data_source,
+					boost::bind( &genfile::get_ploidy_from_sex, sexes, _1, _2 )
+				).release()
+			) ;
+		}
+
+		if( m_options.check( "-threshhold" )) {
+			m_snp_data_source.reset(
+				new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" ))
+			) ;
 		}
 
 		if( m_options.check( "-merge-in" )) {
@@ -1096,15 +1145,6 @@ private:
 			}
 		}
 
-		m_snp_data_source->set_expected_ploidy(
-			boost::bind(
-				&genfile::get_ploidy_from_sex,
-				boost::cref( *m_samples ),
-				m_options.get< std::string >( "-sex-column" ),
-				_1, _2
-			)
-		) ;
-		
 		if( m_options.check_if_option_was_supplied( "-quantile-normalise" )) {
 			assert( m_samples.get() ) ;
 			m_samples = quantile_normalise_columns(

@@ -35,7 +35,7 @@
 void SNPSummaryComponent::declare_options( appcontext::OptionProcessor& options ) {
 	options.declare_group( "SNP computation options" ) ;
 	options[ "-snp-stats" ]
-		.set_description( "Calculate and output per-SNP statistics.  This implies that no SNP filtering options are used." ) ;
+		.set_description( "Calculate and output per-SNP statistics." ) ;
 	options[ "-snp-stats-columns" ]
         .set_description( "Comma-seperated list of extra columns to output in the snp-wise statistics file." )
 		.set_takes_single_value()
