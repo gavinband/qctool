@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../../js/local.js"></script>
+		<!-- Google Analytics tracking code-->
+		<script type="text/javascript">
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-16521993-1']);
+			_gaq.push(['_trackPageview']);
+
+			(function() {
+				var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+		</script>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title></title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				qctool v2
+			</div>
+			<div class="header_subtext">
+				A tool for quality control and analysis of gwas datasets.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<h2>Computing annotations</h2>
+			<div class="task">
+				<div class="task_name">
+					Annotating with sequence bases
+				</div>
+				<div class="task_notes">
+					The <code>-annotate-sequence</code> option can be used to extract sequence bases from FASTA file(s)
+					and annotate the output file with them.  E.g.:
+				</div>
+				
+				<div class="task_command_line">
+					$ qctool -g &lt;input file&gt; -osnp output.txt -annotate-sequence chr#.fa reference
+				</div>
+				<div class="task_notes">
+					<b>Note</b> Currently, to be used with this option, FASTA files must be split into one file
+					per chromosome; the chromosome is then inferred from the file name (using the chromosomal wildcard character #) as in the command above.  Also,
+					it's assumed that the FASTA file starts at base pair 1 so that bases may be looked up in the file.
+					I have used this to annotate alleles from the human reference sequence
+					(e.g. <a href="http://hgdownload.cse.ucsc.edu/goldenPath/hg19/chromosomes/">this one</a>)
+					or ancestral sequence (e.g. <a href="http://hgdownload.cse.ucsc.edu/goldenPath/hg19/chromosomes/">this one</a>).
+				</div>
+				<div class="task_name">
+					Annotating with flanking sequence
+				</div>
+				<div class="task_notes">
+					When using <code>-annotate-sequence</code>, the <code>-flanking</code> option tells QCTOOL to additionally annotate output with flanking sequence
+					from FASTA files.  For example:
+				</div>
+				<div class="task_command_line">
+					$ qctool -g &lt;input file&gt; -osnp output.txt -annotate-sequence chr#.fa reference -flanking 200 200
+				</div>
+				<div class="task_notes">
+					This will output the 200bp from the FASTA file preceding and following each variant, and the
+					bases covered by the variant's alleles.
+				</div>
+			</div>
+			<div class="task">
+				<div class="task_name">
+					Annotating with genetic map information
+				</div>
+				<div class="task_notes">
+					The <code>-annotate-genetic-map</code> option can be used to output genetic (recombination) map coordinates
+					for each variant, e.g:
+				</div>
+				<div class="task_command_line">
+					$ qctool -g &lt;input file(s)&gt; -annotate-genetic-map genetic_map_chr#.txt -osnp output.txt
+				</div>
+				<div class="task_notes">
+					<p>The genetic map files should be in the 'hapmap' format, i.e. one file per chromosome
+						with three columns specifying position, recombination rate in centimorgans per megabase,
+						and the accumulated recombination map position.  It is expected that genetic map files
+						are split by chromosome, and the chromosome is inferred from the filename.
+						Suitable genetic map files for human build 37 can be found
+						on the <a href="https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference">IMPUTE2 website</a>.
+						The output will contain columns <Code>cM_per_Mb</code> and <code>cM_from_start_of_chromosome</code>.
+					</p>
+				</div>
+			</div>
+
+			<div class="task">
+				<div class="task_name">
+					Interval annotations
+				</div>
+				<div class="task_notes">
+					The <code>-annotate-bed3</code> and <code>-annotated-bed4</code> options can be used to compute
+					membership of the intervals 
+					in a <a href="https://genome.ucsc.edu/FAQ/FAQformat.html">BED file</a>, or
+					the value(s) assigned to intervals in a bed file, at each input variant:
+				</div>
+				<div class="task_command_line">
+					$ qctool -g &lt;input file(s)&gt; -annotate-bed3 file1.bed -annotated-bed4 file2.bed
+				</div>
+				<div class="task_notes">
+					<p>
+						Output will contain a column with the same name as the BED file (minus the
+						<code>.bed</code> or <code>.bed.gz</code> extension).
+						For <code>-annotate-bed3</code>, this column will contain a 1 if the variant was contained
+						in an interval in the file, or 0 otherwise.  For <code>-annotate-bed4</code>, the column
+						will contain a comma-separated list of values from the fourth column of the BED file,
+						for those intervals which the variant is in.
+					</p>
+					<p>
+						<b>Note:</b> BED files are assumed to contain intervals in 0-based, right-open coordinates, while
+						QCTOOL by convention assumes genotype data is expressed in 1-based coordinates.  QCTOOL handles this
+						internally by adding 1 to the start coordinate of each interval.
+					</p>
+					<p>
+						It's also possible to compute membership of intervals in a set of BED files in the same column.
+						The general syntax is
+						<code>-annotate-bed[3|4] file1.bed[,file2.bed[,...]][+&lt;N&gt;bp]</code>.  
+						This internally concatenates <code>file1.bed</code>, <code>file2.bed</code>, etc. into a single
+						list of intervals.  Further, if the <code>+&lt;N&gt;bp</code> modifier is added, where <em>N</em>
+						is an integer, then all intervals are expanded by <em>N</em> bases to the left and the right
+						before processing.  For example:
+					</p>
+				</div>
+				<div class="task_command_line">
+					$ qctool -g &lt;input file(s)&gt; -annotate-bed4 file1.bed,file2.bed+100bp
+				</div>
+				<div class="task_notes">
+					This command will annotate each variant with the values of all intervals that it lies within 100bp of.
+				</div>
+			</div>
+		</section>
+
+		<nav class="button_bar">			<div class="nav_button" name="overview">
+				<a href="../../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
+					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="tutorial">
+				examples
+				<ul class="menu">
+					<li><a href="../../documentation/examples/basic.html">Basic usage</a></li>
+					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
+					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/annotating.html">Computing annotations</a></li>
+					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+					<li><a href="../../documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/inferring_ploidy.html">Working with sex chromosomes</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="file_formats">
+				file formats
+				<ul class="menu">
+					<a href="../../documentation/genotype_file_formats.html">Genotype file formats</a>
+					<a href="../../documentation/sample_file_formats.html">Sample file formats</a>
+					<a href="../../documentation/summary_file_formats.html">Summary statistic file formats</a>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../../documentation/download.html">download</a>
+			</div>
+</nav>
+		
+	</body>
+</html>

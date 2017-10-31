@@ -31,8 +31,64 @@
 		</div>
 
 		<section class="main_text">
-			<h2>Processing intensity data</h2>
-			(under construction)
+			<h2>Working with sex chromosomes</h2>
+				<div class="task">
+					<div class="task_name">
+						Handling haploid and diploid samples
+					</div>
+					<div class="task_notes">
+						Several operations in QCTOOL, including  <code>-snp-stats</code> and <code>-compute-ld-with</code>,
+						handle haploid and diploid genotypes directly.  For example, consider the command:
+					</div>
+					
+					<div class="task_command_line">
+						$ qctool -g &lt;input file&gt; -snp-stats -osnp &lt;output file&gt;
+					</div>
+					<div class="task_notes">
+						When the input file contains X chromosome variants, the output file will contain relevant
+						information including haploid and diploid genotype counts, tests for equal frequency between
+						haploid and diploid samples, and appropriately estimated frequency and imputation certainty metrics.
+					</div>
+				</div>
+			</div
+			<div class="task">
+				<div class="task_name">
+					Inferring ploidy from sex information
+				</div>
+				<div class="task_notes">
+					In order for this to work, it is important that haploid genotypes are encoded appropriately in input files - e.g.
+					by using haploid calls in vcf GT field, or haploid data in BGEN-format files.  However, some file formats (e.g. GEN format)
+					do not support haploid calls, and some datasets (E.g. the 1000 Genomes Project genotype files) choose to encode all calls
+					as diploid even when the underlying genotype is haploid (i.e. for males on the X chromosome).  To work around this,
+					qctool can infer the ploidy from sex information supplied in a sample file.  (This functionality currently has
+					hard-coded ampping of chromosome identifiers to ploidy appropriate for humans).
+				</div>
+				<div class="task_notes">
+					This works as follows.  Suppose <code>sex</code> is the name of a column in the sample file containing sex information
+					- this must be of type 'D', and valid values are <code>male</code>, <code>M</code>, or <code>1</code> for male samples,
+					and <code>female</code>, <code>F</code>, or <code>2</code> for female.  Then, the <code>-infer-ploidy-from</code> option
+					can be used to tell QCTOOL to interpret diploid calls as haploid (or zero-ploid) as appropriate:
+				</div>
+				<div class="task_command_line">
+					$ qctool -g &lt;input file&gt; -infer-ploidy-from sex -snp-stats -osnp &lt;output file&gt;
+				</div>
+				<div class="task_notes">
+					For each genotype QCTOOL applies the following rules:
+					<ol>
+						<li> If input genotype is not diploid, raise an error and terminate program.</li>
+						<li> If the sex of the sample is missing, set the genotype to missing.</li>
+						<li> Otherwise, compute the ploidy of the sample based on the chromosome identifier and the sample sex.</li>
+						<li> If the inferred ploidy is diploid, output the input genotype unchanged.</li>
+						<li> If the inferred ploidy is haploid, check whether the input genotype is homozygous (or, for
+						genotype probabilities, has 100% of the probability mass on homozygous calls).  If so, set the
+						genotype to the corresponding haploid call.  Otherwise, set the genotype to missing.</li>
+					</ol>
+				</div>
+				<div class="task_notes">
+					These rules apply to both hard-coded genotype calls (e.g. vcf GT field) and to
+					genotype probabilities (e.g. vcf GP field / GEN format / BGEN format data).
+				</div>
+			</div>
 		</section>
 
 		<nav class="button_bar">			<div class="nav_button" name="overview">
