@@ -110,6 +110,7 @@ Processes complex bgen file
 
 Annotates BED intervals
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed" ] }	data/annotation1
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed+50bp" ] }	data/annotation1+50bp
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed", "data/annotation2.bed" ] }	data/annotation1	data/annotation2
 	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1
 	RunsCommandWithResult	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation2.bed" ] }	fail
@@ -157,7 +158,7 @@ RunsCommandWithColumns
 	${filenames}=	Run Qctool	${command}	ok
 	${filename}=	Get Variable Value	${filenames['osnp']}
 	:FOR	${elt}	IN	@{columns}
-	\	Has Column Matching	${filename}	${elt}
+	\	Has Exact Column	${filename}	${elt}
 
 ProducesWellFormedSampleStatsOutput
 	[Arguments]	${command}
