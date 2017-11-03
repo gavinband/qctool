@@ -500,7 +500,11 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 }
 
 namespace {
-	void parse_bed_annotation_spec( std::string const& spec, std::vector< genfile::string_utils::slice >* filenames, unsigned int* margin ) {
+	void parse_bed_annotation_spec(
+		std::string const& spec,
+		std::vector< genfile::string_utils::slice >* filenames,
+		unsigned int* margin
+	) {
 		using genfile::string_utils::slice ;
 		using genfile::string_utils::join ;
 		using genfile::string_utils::to_repr ;
@@ -516,7 +520,7 @@ namespace {
 			) ;
 		}
 		if( elts.size() == 2 ) {
-			if( elts[1].size() < 2 || elts[1].substr( elts[1].size() - 2, elts[1].size() ) != "bp" ) {
+			if( elts[1].size() < 3 || elts[1].substr( elts[1].size() - 2, elts[1].size() ) != "bp" ) {
 				throw genfile::BadArgumentError(
 					"SNPSummaryComponent::parse_bed_annotation_spec()",
 					"spec=\"" + spec + "\"",

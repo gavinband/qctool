@@ -160,11 +160,11 @@ namespace snp_summary_component {
 		) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( snp.number_of_alleles() == 2 ) {
-				if( chromosome.is_sex_determining() ) {
-					compute_sex_chromosome_frequency( snp, genotypes, ploidy, callback ) ;
-				}
-				else {
+				bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
+				if( allDiploid ) {
 					compute_autosomal_frequency( snp, genotypes, callback ) ;
+				} else {
+					compute_sex_chromosome_frequency( snp, genotypes, ploidy, callback ) ;
 				}
 			}
 		}
@@ -271,11 +271,11 @@ namespace snp_summary_component {
 
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const& ploidy, genfile::VariantDataReader&, ResultCallback callback ) {
 			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			if( chromosome.is_sex_determining() ) {
-				return ;
-			}
-			else {
+			bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
+			if( allDiploid ) {
 				compute_autosomal_call_mass( snp, genotypes, callback ) ;
+			} else {
+				return ;
 			}
 		}
 		
@@ -309,12 +309,13 @@ namespace snp_summary_component {
 			genfile::VariantDataReader&,
 			ResultCallback callback
 		) {
+			assert( std::size_t( genotypes.rows() ) == ploidy.size() ) ;
+
 			double missingness = double( genotypes.rows() ) - genotypes.array().sum() ;
 			callback( "missing_proportion", missingness / double( genotypes.rows() ) ) ;
 
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-
-			if( !chromosome.is_sex_determining() ) {
+			bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
+			if( allDiploid ) {
 				callback( "A", 0 ) ;
 				callback( "B", 0 ) ;
 				if( snp.number_of_alleles() == 2 ) {
@@ -323,22 +324,18 @@ namespace snp_summary_component {
 					callback( "BB", genotypes.col(2).sum() ) ;
 				}
 				callback( "NULL", genotypes.rows() - genotypes.sum() ) ;
-			} else if( snp.number_of_alleles() == 2 ) {
-				compute_sex_chromosome_counts( snp, genotypes, ploidy, callback ) ;
+			} else {
+				compute_haploid_diploid_counts( snp, genotypes, ploidy, callback ) ;
 			}
 			callback( "total", genfile::VariantEntry::Integer( genotypes.rows() )) ;
 		}
 		
-		void compute_sex_chromosome_counts(
+		void compute_haploid_diploid_counts(
 			VariantIdentifyingData const& snp,
 			Genotypes const& genotypes,
 			Ploidy const& ploidy,
 			ResultCallback callback
 		) {
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
-			assert( chromosome.is_sex_determining() ) ;
-			assert( std::size_t( genotypes.rows() ) == ploidy.size() ) ;
-
 			std::map< int, Eigen::VectorXd > counts ;
 			std::map< int, double > null_counts ;
 			counts[ -1 ] = Eigen::VectorXd::Zero( 3 ) ;
@@ -348,7 +345,6 @@ namespace snp_summary_component {
 			char countKey[5] = { '.', '.', 'm', 'f', '.' } ;
 			std::map< int, std::size_t > sample_counts ;
 
-			std::cerr << "ploidy:\n" << ploidy << "\n" ;
 			for( std::size_t i = 0; i < ploidy.size(); ++i ) {
 				counts[ ploidy(i) ] += genotypes.row( i ) ;
 				null_counts[ ploidy(i) ] += ( 1 - genotypes.row(i).sum() ) ;
@@ -383,12 +379,12 @@ namespace snp_summary_component {
 			genfile::VariantDataReader&,
 			ResultCallback callback
 		) {
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( snp.number_of_alleles() == 2 ) {
-				if( chromosome.is_sex_determining() ) {
-					compute_sex_chromosome_info( snp, genotypes, ploidy, callback ) ;
-				} else {
+				bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
+				if( allDiploid ) {
 					compute_autosomal_info( snp, genotypes, callback ) ;
+				} else {
+					compute_sex_chromosome_info( snp, genotypes, ploidy, callback ) ;
 				}
 			} else {
 				// we don't compute for multiallelics currently

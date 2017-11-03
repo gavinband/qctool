@@ -39,6 +39,10 @@ void GeneticMapAnnotation::operator()(
 ) {
 	if( m_map_chromosomes.find( snp.get_position().chromosome() ) != m_map_chromosomes.end() ) {
 		callback(
+			"cM_per_Mb",
+			m_map->find_rate_at_position( snp.get_position() )
+		) ;
+		callback(
 			"cM_from_start_of_chromosome",
 			m_map->find_cM_from_beginning_of_chromosome_at_position( snp.get_position() )
 		) ;

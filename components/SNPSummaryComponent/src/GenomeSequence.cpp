@@ -93,6 +93,13 @@ void GenomeSequence::load_sequence(
 			sequence->insert( sequence->end(), p, segment_end ) ;
 			p = segment_end ;
 			++line_count ;
+			if( (p < p_end) && (*(p+1) == '>') ) {
+				throw genfile::MalformedInputError(
+					file.filename(),
+					"Only single-sequence FASTA files are supported",
+					0
+				) ;
+			}
 		}
 	} while( *stream ) ;
 	

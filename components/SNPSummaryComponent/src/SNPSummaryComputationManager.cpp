@@ -19,7 +19,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 #include "components/SNPSummaryComponent/StratifyingSNPSummaryComputation.hpp"
 
-#define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
+// #define DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER 1
 
 SNPSummaryComputationManager::SNPSummaryComputationManager(
 	genfile::CohortIndividualSource const& samples,
@@ -101,11 +101,16 @@ void SNPSummaryComputationManager::begin_processing_snps( std::size_t number_of_
 namespace {
 	struct GPSetter: public genfile::VariantDataReader::PerSampleSetter {
 		~GPSetter() throw() {}
-		GPSetter( Eigen::MatrixXd* genotypes ):
+		GPSetter(
+			Eigen::MatrixXd* genotypes,
+			SNPSummaryComputation::Ploidy* ploidy
+		):
 			m_genotypes( genotypes ),
+			m_ploidy( ploidy ),
 			m_sample_i( 0 )
 		{
 			assert( genotypes != 0 ) ;
+			assert( ploidy != 0 ) ;
 		}
 
 		void initialise( std::size_t number_of_samples, std::size_t number_of_alleles ) {
@@ -115,8 +120,9 @@ namespace {
 			// assume at most diploidy, max entries is number of alleles choose 2.
 			m_genotypes->resize( number_of_samples, number_of_alleles * (number_of_alleles+1)/2 ) ;
 			m_genotypes->setZero() ;
+			m_ploidy->resize( number_of_samples ) ;
+			m_ploidy->setConstant( -1 ) ;
 			m_sample_i = 0 ;
-			m_ploidy = std::vector< uint32_t >( number_of_samples, 0 ) ;
 			m_max_ploidy = 0 ;
 			m_min_ploidy = std::numeric_limits< uint32_t >::max() ;
 		}
@@ -129,10 +135,7 @@ namespace {
 		void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 			assert( order_type == genfile::ePerUnorderedGenotype ) ;
 			assert( value_type == genfile::eProbability ) ;
-			m_ploidy[ m_sample_i ] = ploidy ;
-			if( ploidy <= 2 ) {
-				m_genotypes->row( m_sample_i ).setZero() ;
-			}
+			(*m_ploidy)( m_sample_i ) = ploidy ;
 			m_min_ploidy = std::min( ploidy, m_min_ploidy ) ;
 			m_max_ploidy = std::max( ploidy, m_max_ploidy ) ;
 		}
@@ -146,11 +149,8 @@ namespace {
 			std::cerr << "GPSetter::set_value( " << value_i << ", " << value << " ).\n" ;
 			std::cerr << "GPSetter: m_ploidy[" << m_sample_i << "] = " << m_ploidy[ m_sample_i ] << ".\n" ;
 #endif
-			uint32_t const& ploidy = m_ploidy[ m_sample_i ] ; 
-			if( ploidy <= 2 ) {
-				assert( value_i < m_genotypes->cols() ) ;
-				(*m_genotypes)( m_sample_i, value_i ) = value ;
-			}
+			assert( value_i < m_genotypes->cols() ) ;
+			(*m_genotypes)( m_sample_i, value_i ) = value ;
 		}
 
 		void finalise() {}
@@ -160,7 +160,7 @@ namespace {
 
 	private:
 		Eigen::MatrixXd* m_genotypes ;
-		std::vector< uint32_t > m_ploidy ;
+		SNPSummaryComputation::Ploidy* m_ploidy ;
 		int m_sample_i ;
 		uint32_t m_max_ploidy ;
 		uint32_t m_min_ploidy ;
@@ -172,63 +172,22 @@ void SNPSummaryComputationManager::processed_snp(
 	genfile::VariantDataReader& data_reader
 ) {
 	try {
-		GPSetter setter( &m_genotypes ) ;
+		GPSetter setter( &m_genotypes, &m_ploidy ) ;
 		data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter )) ;
+
+#if DEBUG_SNP_SUMMARY_COMPUTATION_MANAGER
+		std::cerr << "SNPSummaryComputationManager::processed_snp(): ploidy = " << m_ploidy.transpose() << "...\n" ;
+#endif
 
 		boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > callback
 			= boost::bind( boost::ref( m_result_signal ), snp, _1, _2 ) ;
-
-		SNPSummaryComputation::Ploidy ploidy = SNPSummaryComputation::Ploidy::Constant( m_genotypes.rows(), -1 ) ;
-		// We make m_genotypes handle the case of diploid samples,
-		// or haploids on the sex chromosome encoded like het diploids.
-		// For all others clients must handle the data themselves so we set m_genotypes to 0.
-		if( snp.get_position().chromosome().is_sex_determining() ) {
-			// For some formats, data is encoded as diploid even though it represents the sex chromosomes.
-			// For those we fix genotypes here.
-			// (ALTERNATIVE: get the GPSetter to enact this transformation above.)
-			// (ALTERNATIVE 2: get the data source to enact this transformation.)
-			std::cerr << "PLOIDY LIMS = " << setter.min_ploidy() << " - " << setter.max_ploidy() << ".\n" ;
-			if( setter.max_ploidy() > 2 ) {
-				m_genotypes.setZero() ;
-			} else if( setter.min_ploidy() == 2 && setter.max_ploidy() == 2 ) {
-				try {
-					fix_sex_chromosome_genotypes( snp, &m_genotypes, callback ) ;
-				}
-				catch( genfile::BadArgumentError const& e ) {
-					m_result_signal( snp, "comment", "Unable to determine genotype coding for males/females.  Calling may be wrong so I will treat the genotypes as missing." ) ;
-					m_genotypes.setZero() ;
-				}
-			}
-			
-			bool const isY = 
-				(snp.get_position().chromosome() == "Y")
-				|| (snp.get_position().chromosome() == "0Y")
-				|| (snp.get_position().chromosome() == "chrY") ;
-
-			int ploidies[256] ;
-			ploidies[std::size_t('m')] = 1 ;
-			ploidies[std::size_t('f')] = isY ? 0 : 2 ;
-			ploidies[std::size_t('.')] = -1 ;
-			for( std::size_t i = 0; i < m_sexes.size(); ++i ) {
-				ploidy(i) = ploidies[ m_sexes[i] ] ;
-			}
-			
-		} else if( setter.min_ploidy() != 2 || setter.max_ploidy() != 2 ) {
-			// Currently non-diploid computations are unsupported except
-			// via particular computations which handle it directly.
-			// std::cerr << "WOAH! min ploidy is " << setter.min_ploidy() << ", max is " << setter.max_ploidy() << "!!!\n" ;
-			m_genotypes.resize( m_genotypes.rows(), 3 ) ;
-			m_genotypes.setZero() ;
-		} else {
-			ploidy = SNPSummaryComputation::Ploidy::Constant( m_genotypes.rows(), 2 ) ;
-		}
 
 		Computations::iterator i = m_computations.begin(), end_i = m_computations.end() ;
 		for( ; i != end_i; ++i ) {
 			i->second->operator()(
 				snp,
 				m_genotypes,
-				ploidy,
+				m_ploidy,
 				data_reader,
 				callback
 			) ;
