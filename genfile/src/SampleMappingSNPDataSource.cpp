@@ -196,7 +196,9 @@ namespace genfile {
 				}
 			}
 			
-			void finalise() {}
+			void finalise() {
+				m_setter.finalise() ;
+			}
 
 		private:
 			VariantDataReader::PerSampleSetter& m_setter ;
