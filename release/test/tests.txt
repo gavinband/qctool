@@ -89,6 +89,38 @@ Correctly merges files
 	${filenames}=	Run Qctool	{ "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge2.sample" ], "og": "<tmp>", "ofiletype": "gen" }	ok
 	${filename}=	Get Variable Value	${filenames['og']}
 	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	data/merged.gen
+	RunsCommandWithExactOutput	 { "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge1.sample" ], "og": "<tmp>", "ofiletype": "bgen" }	data/merge1_merged_merge2.bgen	
+
+Produces well-formed sample output
+	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
+	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
+	:FOR	${commandSpec}	IN	@{commandSpecs}
+	\	${startChar}=	Get Substring	${commandSpec}	0	1
+	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSampleStatsOutput	${commandSpec}
+
+Accepts Different VCF fields
+	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GT", "osnp": "<tmp>" }
+	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GP", "osnp": "<tmp>" }
+
+Accepts Windows line endings
+	ProducesWellFormedSnpStatsOutput	{ "g": [ "data/test.gen" ], "s":["data/test.windows.sample"], "snp-stats":"", "osnp": "<tmp>" }
+
+Processes complex bgen file
+	RunsCommandWithResult	{ "g": ["data/complex.bgen"], "s": [ "data/complex.sample"], "og": "<tmp>", "ofiletype": "vcf" }	ok
+	RunsCommandWithResult	{ "g": ["data/complex.bgen"], "s": [ "data/complex.sample"], "og": "<tmp>", "ofiletype": "bgen" }	ok
+
+Annotates BED intervals
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed" ] }	data/annotation1
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed+50bp" ] }	data/annotation1+50bp
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation1.bed", "data/annotation2.bed" ] }	data/annotation1	data/annotation2
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1
+	RunsCommandWithResult	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed4": [ "data/annotation2.bed" ] }	fail
+	RunsCommandWithColumns	{ "g": ["data/imputed.bgen"], "s": [ "data/imputed.sample"], "osnp": "<tmp>", "-snp-stats": [], "annotate-bed3": [ "data/annotation2.bed" ], "annotate-bed4": [ "data/annotation1.bed" ] }	data/annotation1	data/annotation2
+
+Roundtrips gen files via bgen (v1.1)
+	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	16	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.1	--qctool	${QCTOOL}
+
+Roundtrips allele probs formats
 
 Produces well-formed sample output
 	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
