@@ -213,7 +213,7 @@ namespace genfile {
 		void set_value( std::size_t value_i, int64_t const value ) {
 			m_encoded_call += encode_call( value, m_tables[ m_ploidy ].first ) ;
 #if DEBUG_TO_GP
-			std::cerr << "Encoded value #" << value_i << "(" << value << ") encoded as:" << impl::format_call( m_encoded_call ) << "\n" ;
+			std::cerr << "Encoded value #" << value_i << "(" << value << ") encoded as:" << impl::format_call( m_encoded_call, m_tables[ m_ploidy ].first ) << "\n" ;
 #endif
 		}
 		
