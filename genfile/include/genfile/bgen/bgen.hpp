@@ -637,8 +637,13 @@ namespace genfile {
 				}
 
 				bool set_sample( std::size_t i ) {
-					assert( m_state == eInitialised || m_state == eBaked ) ;
+					assert( m_state == eInitialised || m_state == eBaked || m_state == eSampleSet ) ;
 					assert(( m_sample_i == 0 && i == 0 ) || ( i == m_sample_i + 1 )) ;
+					if( m_state == eSampleSet ) {
+						// last sample had no data, write zeroes
+						m_values[0] = m_values[1] = m_values[2] = 0.0 ;
+						bake( &m_values[0] ) ;
+					}
 					m_sample_i = i ;
 					m_state = eSampleSet ;
 					return true ;
@@ -1033,9 +1038,13 @@ namespace genfile {
 				}
 
 				bool set_sample( std::size_t i ) {
-					assert( m_state == eInitialised || m_state == eBaked ) ;
+					assert( m_state == eInitialised || m_state == eBaked || m_state == eSampleSet ) ;
 					// ensure samples are visited in order.
 					assert(( m_sample_i == 0 && i == 0 ) || ( i == m_sample_i + 1 )) ;
+					if( m_state == eSampleSet ) {
+						// Last sample was completely missing, mark as 0 ploid & missing
+						m_buffer[ePloidyBytes + m_sample_i] = 0x80 ;
+					}
 					m_sample_i = i ;
 					m_state = eSampleSet ;
 					return true ;
@@ -1048,11 +1057,11 @@ namespace genfile {
 					ValueType const value_type
 				) {
 					assert( m_state == eSampleSet ) ;
-					
+
 					assert( ploidy < 64 ) ;
 					m_ploidy = ploidy ;
 					uint8_t ploidyByte( ploidy & 0xFF ) ;
-					*(m_buffer+8+m_sample_i) = ploidyByte ;
+					m_buffer[ePloidyBytes + m_sample_i] = ploidyByte ;
 					m_ploidyExtent[0] = std::min( m_ploidyExtent[0], ploidyByte ) ;
 					m_ploidyExtent[1] = std::max( m_ploidyExtent[1], ploidyByte ) ;
 					
