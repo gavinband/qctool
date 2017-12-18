@@ -21,8 +21,10 @@ namespace genfile {
 
 	void VariableInSetSampleFilter::summarise( std::ostream& o ) const {
 		o << m_variable << " IN (" ;
-		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_levels.size() ); ++i ) {
-			o << ( i > 0 ? ", " : "" ) << m_levels[i] ;
+		Levels::const_iterator i = m_levels.begin() ;
+		Levels::const_iterator end_i = m_levels.end() ;
+		for( std::size_t count = 0; count < std::min( std::size_t( 5 ), m_levels.size() ); ++count, ++i ) {
+			o << ( count > 0 ? ", " : "" ) << *i ;
 		}
 		if( m_levels.size() > 5 ) {
 			o << ", ..." ;
@@ -41,7 +43,17 @@ namespace genfile {
 				"values must be strings or numbers."
 			) ;
 		}
-		m_levels.push_back( value ) ;
+		//m_levels.push_back( value ) ;
+		m_levels.insert( value ) ;
+		if( value.is_string() ) {
+			try {
+				value = genfile::string_utils::to_repr< double >( value.as< std::string >() ) ;
+				m_levels.insert( value ) ;
+			}
+			catch( genfile::string_utils::StringConversionError const& e ) {
+				// nothing to do
+			}
+		}
 	}
 
 	bool VariableInSetSampleFilter::test(
@@ -50,6 +62,12 @@ namespace genfile {
 		DetailBlock* detail
 	) const {
 		genfile::VariantEntry value = source.get_entry( i, m_variable ) ;
+		// integers are compared as doubles
+		if( value.is_int() ) {
+			value = double( value.as< int >() ) ;
+		}
+		return m_levels.find( value ) != m_levels.end() ;
+#if 0
 		bool in_set = false ;
 		if( !value.is_missing() ) {
 			for( std::size_t i = 0; i < m_levels.size() && !in_set; ++i ) {
@@ -67,6 +85,7 @@ namespace genfile {
 			(*detail)( 0, 0 ) = in_set ;
 		}
 		return in_set ;
+#endif
 	}
 
 	VariableNotInSetSampleFilter::VariableNotInSetSampleFilter( std::string const& variable ):
@@ -75,8 +94,10 @@ namespace genfile {
 
 	void VariableNotInSetSampleFilter::summarise( std::ostream& o ) const {
 		o << m_inverse_filter.m_variable << " NOT IN (" ;
-		for( std::size_t i = 0; i < std::min( std::size_t( 5 ), m_inverse_filter.m_levels.size() ); ++i ) {
-			o << ( i > 0 ? ", " : "" ) << m_inverse_filter.m_levels[i] ;
+		VariableInSetSampleFilter::Levels::const_iterator i = m_inverse_filter.m_levels.begin() ;
+		VariableInSetSampleFilter::Levels::const_iterator end_i = m_inverse_filter.m_levels.end() ;
+		for( std::size_t count = 0; count < std::min( std::size_t( 5 ), m_inverse_filter.m_levels.size() ); ++count, ++i ) {
+			o << ( count > 0 ? ", " : "" ) << *i ;
 		}
 		if( m_inverse_filter.m_levels.size() > 5 ) {
 			o << ", ..." ;
