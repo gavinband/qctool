@@ -23,8 +23,13 @@
 #include "genfile/VariantEntry.hpp"
 
 namespace genfile {
-	// Base class for classes which provide random-access view
-	// to a set of samples, 
+	/*
+	* Present a view of the sample information with samples reordered according to the 
+	* second argument.
+	* Argument 'order' is a mapping from target to source samples
+	* i.e. if order = (v_j), j = 1...N, then v_j is the index of target sample
+	* j in the source data.
+	*/
 	class ReorderingCohortIndividualSource: public CohortIndividualSource
 	{
 	public:
