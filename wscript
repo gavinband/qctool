@@ -38,9 +38,11 @@ def configure( conf ):
 	else:
 		cxxflags.append( '-std=c++98' )
 
-	for flag in [ '-msse2', '-mavx', '-mssse3']:
-		if conf.check( cxxflags = flag ):
-			cxxflags.append( flag )
+	# Disabling vectorisation checks as not always safe.
+	# Use CXXFLAGS environment variable to turn these on
+	# for flag in [ '-msse2', '-mavx', '-mssse3']:
+	#	if conf.check( cxxflags = flag ):
+	#		cxxflags.append( flag )
 	
 	platform_specific_configure( conf )
 	check_for_3rd_party_components( conf )

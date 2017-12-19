@@ -11,7 +11,9 @@
 #include <memory>
 #include <vector>
 #include <set>
-#include <boost/ptr_container/ptr_vector.hpp>
+//#include <boost/functional/hash.hpp>
+//#include <boost/unordered_set.hpp>
+//#include <boost/ptr_container/ptr_vector.hpp>
 #include "genfile/VariantEntry.hpp"
 #include "genfile/SampleFilter.hpp"
 #include "genfile/impl/cast_types_for_comparison.hpp"
@@ -21,6 +23,8 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< VariableInSetSampleFilter > UniquePtr ;
+		typedef std::set< genfile::VariantEntry > Levels ;
+		//typedef boost::unordered_set< genfile::VariantEntry, boost::hash< genfile::VariantEntry > > Levels ;
 		
 	public:
 		VariableInSetSampleFilter( std::string const& variable ) ;
@@ -31,7 +35,7 @@ namespace genfile {
 
 	private:
 		std::string const m_variable ;
-		std::vector< genfile::VariantEntry > m_levels ;
+		Levels m_levels ;
 		friend struct VariableNotInSetSampleFilter ;
 	} ;
 	

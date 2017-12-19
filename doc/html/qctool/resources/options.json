@@ -1,0 +1,1058 @@
+{
+  "-PCs": {
+    "group": "",
+    "description": "Compute the specified number of principal components, using a kinship matrix  that is either computed using -kinship or loaded using -load-kinship. The argument should be the number of principal components to compute.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "20" ]
+  },
+  "-UDUT": {
+    "group": "",
+    "description": "Compute the UDUT decomposition of the matrix passed to -load-kinship, and save it in the specified file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-analysis-chunk": {
+    "group": "",
+    "description": "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "NA" ]
+  },
+  "-analysis-name": {
+    "group": "",
+    "description": "Specify a name to label results from this analysis with.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "qctool analysis" ]
+  },
+  "-annotate-bed3": {
+    "group": "",
+    "description": "Annotate variants with 1 or 0 according to whether the position of the variant is within an interval in one of the given BED files.  BED files must contain 0-based, right-open intervals which will be translated to 1-based coordinates for comparison with input data. ",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-annotate-bed4": {
+    "group": "",
+    "description": "Annotate variants with the values (4th column) of a BED file according to the BED regions it lies in. BED files must contain 0-based, right-open intervals which will be translated to 1-based coordinates for comparison with input data. ",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-annotate-genetic-map": {
+    "group": "",
+    "description": "Specify a genetic map file or files.  QCTOOL will interpolate the map to produce approximate positions in centiMorgans for each SNP in the data.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-annotate-sequence": {
+    "group": "",
+    "description": "Specify a FASTA-formatted file containing reference alleles to annotate variants with. This will appear as <name>_allele where <name> is the second argument.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 2,
+    "default": []
+  },
+  "-assume-chromosome": {
+    "group": "",
+    "description": "Treat each SNP whose chromosome cannot be determined as though it lies on the specified chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-bgen-bits": {
+    "group": "",
+    "description": "For use when outputting BGEN files only.  Tell QCTOOL to use this number of bits to store each probability.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "16" ]
+  },
+  "-bgen-compression": {
+    "group": "",
+    "description": "Specify what compression to use when outputting BGEN files only. This can be \"none\", \"zlib\", or \"zstd\".",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "zlib" ]
+  },
+  "-bgen-free-data": {
+    "group": "",
+    "description": "For use when outputting BGEN files only.  Tell QCTOOL to write the specified free data segment in the BGEN header block.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-bgen-omit-sample-identifier-block": {
+    "group": "",
+    "description": "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default this is written whenever -s is specified.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-compare-to": {
+    "group": "",
+    "description": "Compute a matrix of values indicating concordance of samples between the main dataset and the dataset given as argument to this option. Values must be the genotype and sample files (in that order).  Samples are matched using the first ID column; SNPs are matched based on all the identifying information fields.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 2,
+    "default": []
+  },
+  "-compare-variants-by": {
+    "group": "",
+    "description": "By default, matching SNPs between cohorts uses all the available fields (position, rsid, snpid, and alleles.) Use this option to specify a comma-separated subset of those fields to use instead. The first entry must be \"position\". This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "position,alleles,ids" ]
+  },
+  "-compute-ld-with": {
+    "group": "",
+    "description": "Compute LD pairwise metrics between the main dataset and SNPs.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 2,
+    "default": []
+  },
+  "-condition-on": {
+    "group": "",
+    "description": "Condition on the dosages of a given SNP or set of SNPs. The argument should be a comma-separated list of values of the form:\n   [field]~[value]:[dose][,dose...]\nwhere field is \"rsid\", \"snpid\", or \"pos\", value is the value to match, and each dose is one of add,dom,het,rec,or gen. If the field is omitted, it is assumed to be rsid; if the dose is omitted it is assumed to be add.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-differential": {
+    "group": "",
+    "description": "Test for differences in SNP summary statistics between the categories of the given variable. Currently a test for differential missingness is performed.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-positions": {
+    "group": "",
+    "description": "Exclude all SNPs whose position is in the given file(s) from the analysis. Positions should be in the form [chromosome]:[position] and separated by whitespace.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-excl-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to exclude from operation. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-excl-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-excl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID lies in the given file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-samples-where": {
+    "group": "",
+    "description": "Exclude samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-snpids": {
+    "group": "",
+    "description": "Exclude all SNPs whose SNPID is in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-excl-variants": {
+    "group": "",
+    "description": "Exclude all SNPs in the given file(s) from the analysis. The format of this file is the same as that output by the -write-snp-excl-list option.  It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-variants-matching": {
+    "group": "",
+    "description": "Filter out snps whose rsid or SNPID matches the given value. The value should be a string which can contain a % wildcard character (which matches any substring). Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-filetype": {
+    "group": "",
+    "description": "Specify the filetype of the genotype files specified by -g. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\",\"bgen\",\"vcf\",\"hapmap_haplotypes\",\"impute_haplotypes\",\"impute_allele_probs\",\"shapeit_haplotypes\",\"binary_ped\",\"long\",\"hlaimp\".",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "guess" ]
+  },
+  "-fit-cluster-parameters": {
+    "group": "",
+    "description": "Specify parameters for cluster fit.  This should have three values, which are: 1. the degrees of freedom for the multivariate t.  Specify \"inf\" or ∞ to fit multivariate normal clusters. 2. the variance of a diagonal variance matrix used for regularisation. 3. the effective number of fake samples used for regularisation.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 3,
+    "default": [ "5", "0.0005", "1" ]
+  },
+  "-fit-cluster-scale": {
+    "group": "",
+    "description": "Specify scale to fit clusters in.  Either \"X:Y\" or \"contrast:logR\".",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "X:Y" ]
+  },
+  "-fit-clusters": {
+    "group": "",
+    "description": "Fit multivariate T distributions to each cluster.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-flanking": {
+    "group": "",
+    "description": "Specify that flanking sequence annotations [ pos - a, pos + b ] should be output when using -annotate-sequence and -annotate-sequence",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 2,
+    "default": []
+  },
+  "-flat-file": {
+    "group": "",
+    "description": "By default, qctool outputs summary data in an sqlite database format.  This allows for more flexibility and better memory usage compared to working with flat files.  This option forces qctool to use a flat file instead.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-flat-table": {
+    "group": "",
+    "description": "Output all results for this analysis to one table with variables in columns and variants in rows. This overrides the default db output style, which is in a normalised form with different variables on different rows.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-flip-to-match-allele": {
+    "group": "",
+    "description": "Specify that we should flip data if necessary so that the first allele is the given allele given in the specified column of the strand file (which must be supplied using the -strand option).  First the strand is applied, then the two alleles are compared to the given allele and data flipped if necessary.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-flip-to-match-cohort1": {
+    "group": "",
+    "description": "Specify that alleles (and corresponding genotypes) in all cohorts should be switched, if necessary, so as to match the alleles of the first cohort.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-force": {
+    "group": "",
+    "description": "Ignore warnings and proceed with requested action.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-g": {
+    "group": "",
+    "description": "Path of gen file(s) to input.  The given filename may contain the wildcard character '#', which expands to match aone- or two-character chromosome identifier.  (For example, \"qctool -g myfile_#.gen\" will match \"myfile_1.gen\", \"myfile_2.gen\", etc., or \"myfile_01.gen\", \"myfile_02.gen\", etc.)  Only human autosomes and sex chromosomes are matched this way.\nThis option may also be repeated, in which case each invocation is treated as a seperate cohort and cohorts are joined together to create one big dataset.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1000
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-haploid-genotype-coding": {
+    "group": "",
+    "description": "Specify whether haploid samples (e.g. males on the non-pseudoautosomal region of the X chromosome) are coded as heterozygotes (\"het\") or homozygotes (\"hom\").",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "hom" ]
+  },
+  "-haplotypic": {
+    "group": "",
+    "description": "Instruct QCTOOL to perform haplotypic computations.  Currently this affects the -compare-to option only and turns on computation of switch error for two sets of haplotypes.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-incl-positions": {
+    "group": "",
+    "description": "Exclude all SNPs whose position is not in the given file(s) from the analysis. Positions should be in the form [chromosome]:[position] and separated by whitespace.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID does not lie in the given file(s).",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-samples-where": {
+    "group": "",
+    "description": "Include samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-snpids": {
+    "group": "",
+    "description": "Exclude all SNPs whose SNPID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-variants": {
+    "group": "",
+    "description": "Exclude all SNPs not in the given file(s) from the analysis. The format of this file is the same as that output by the -write-snp-excl-list option.  It must have six columns interpreted as SNPID, rsid, chromosome, position, first and second alleles.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-variants-matching": {
+    "group": "",
+    "description": "Filter out snps whose rsid or SNPID does not match the given value. The value should be a string which can contain a % wildcard character (which matches any substring). Optionally, prefix the argument with snpid~ or rsid~ to only match against the SNPID or rsid fields.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-infer-ploidy-from-sex": {
+    "group": "",
+    "description": "Specify that QCTOOL should infer the true ploidy of genotype calls (and genotype call probabilities) based on the sex of samples and the chromosome. Specifically, this is appropriate for some human datasets; it replaces diploid genotype calls with haploid calls for males on the X and Y chromosomes. Genotypes are set to missing if the original diploid call is heterozygote. For genotype call probabilities, the probabilities of homozygote calls are used to infer the haploid genotype probabilities, while probabilities are set to missing if there is nonzero probability of a heterozygote. Females calls on the Y chromosome are also set to missing.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-intensity-stats": {
+    "group": "",
+    "description": "Compute intensity means and (co)variances for each genotype class at each SNP.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-kinship": {
+    "group": "",
+    "description": "Perform kinship computation using threshholded genotype calls.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-kinship-method": {
+    "group": "",
+    "description": "Method to use for relatedness matrix computation.The default is \"lookup-table\", which uses a lookup table to compute kinship values across several SNPs at a time.  This is usually fastest.  Alternatives are \"cblas\" or \"eigen\", which use those linear algebra libraries to compute the matrix.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "lookup-table" ]
+  },
+  "-load-UDUT": {
+    "group": "",
+    "description": "Load a previously-computed eigenvalue decomposition of a relatedness matrix.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-load-kinship": {
+    "group": "",
+    "description": "Load a previously-computed kinship matrix from the specified file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-loadings": {
+    "group": "",
+    "description": "Compute SNP loadings for each principal component, and store them in the specified file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-log": {
+    "group": "",
+    "description": "Specify that qctool should write a log file to the given file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-map-id-data": {
+    "group": "",
+    "description": "Update the chromosome, position, IDs and/or alleles of a set of SNPs with new values. The argument must be a file with six named columns giving the original SNPID, rsid, chromosome, position and alleles, followed by another six columns containing the values to replace with. SNPs not in this file will be passed to the output file unchanged.  This option only affects the identifying data, not genotypes themselves.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-match-sample-ids": {
+    "group": "",
+    "description": "Specify the columns in the main and comparison dataset sample files that will be used to match samples. The value should be of the form <main dataset column>~<comparison dataset column>.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "ID_1~ID_1" ]
+  },
+  "-max-ld-distance": {
+    "group": "",
+    "description": "Maximum physical distance between SNPs, above which LD will not be computed. A value of zero indicates LD between all SNPs will be computed. A plain number indicates distance in base pairs, or you add a Mb or kb suffix to specify the distance in megabases or kilobases if desired.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-merge-in": {
+    "group": "",
+    "description": "Specify an additional set of genotypes that should be merged in (in position order) to the dataset. This must have the same number of samples as the data set for -g. Note that filtering, strand alignment, allele matching, or other transformations are not applied to the data specified by -merge-in.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 2,
+    "default": []
+  },
+  "-merge-prefix": {
+    "group": "",
+    "description": "Specify a string to add as a prefix to ID fields of merged-in variants",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "" ]
+  },
+  "-merge-strategy": {
+    "group": "",
+    "description": "Specify a strategy to use when encountering SNPs with the same position in a merge. Options are \"keep-all\",\"drop-duplicates\".",
+    "is_required": 115,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "keep-all" ]
+  },
+  "-metadata": {
+    "group": "",
+    "description": "Specify the name of a file containing VCF metadata to be used to parse a VCF file.  Keys in this file must either not be present in the VCF file, or must have identical values.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-min-r2": {
+    "group": "",
+    "description": "Minimum squared correlation between variants.  LD results for pairs of variants with lower than this squared correlation will not be output.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-missing-code": {
+    "group": "",
+    "description": "Specify a comma-separated list of strings to be treated as missing values when encountered in the sample file(s).",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "NA" ]
+  },
+  "-no-clobber": {
+    "group": "",
+    "description": "Do not run QCTOOL if it would overwrite an existing file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-ofiletype": {
+    "group": "",
+    "description": "Specify the filetype of the output genotype files specified by -og. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\",\"bgen\",\"bgen_v1.2\",\"bgen_v1.1\",\"vcf\",\"binary_ped\",\"shapeit_haplotypes\",\"shapeit\",\"impute_allele_probs\",\"dosage\",\"bimbam_dosage\",\"intensity\",\"penncnv\",\"cnvhap\".",
+    "is_required": 112,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "guess" ]
+  },
+  "-og": {
+    "group": "",
+    "description": "Specify that qctool should write an output genotype file with the specified filename. The type of this file will be determined from the filename extension. If the first occurence of -g uses a '#' wildcard character, the '#' character can also be used here to specify numbered output files corresponding to the input files.If \"-\" is specifed here, genotypes are written to standard output in GEN format.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-old": {
+    "group": "",
+    "description": "Specify file to write LD metrics to",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-omit-chromosome": {
+    "group": "",
+    "description": "(This option is specific to output files in the GEN format.) Do not output a chromosome column.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-os": {
+    "group": "",
+    "description": "Output sample information to the file specified.  ",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-osample": {
+    "group": "",
+    "description": "Set the name of the file used to output results of per-sample computations.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-osnp": {
+    "group": "",
+    "description": "Set the name of the file used to output results of per-SNP computations.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-output-sample-format": {
+    "group": "",
+    "description": "Specify the format of sample files generated by QCTOOL.  Options are \"traditional\" for the traditional format with column types specified on the second line, or \"new\" for a new format with column types specified in metadata encoded as JSON in the header.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "traditional" ]
+  },
+  "-permissive": {
+    "group": "",
+    "description": "Specify that qctool should be permissive about problems when parsing input.Currently this applies to VCF file input.  Entries that cannot be parsed are interpreted as missing values.If this option is not supplied, qctool will fail on malformed files.",
+    "is_required": 97,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-precision": {
+    "group": "",
+    "description": "Currently used when outputting GEN files only.  Use this many bits of precision in output.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "5" ]
+  },
+  "-project-onto": {
+    "group": "",
+    "description": "Project samples onto a principal components based on the loadings in the file given as the first argument. Put the output in the file specified in the second argument.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-quantile-normalise": {
+    "group": "",
+    "description": "Quantile normalise each specified continuous phenotype or covariate by ranking its values and mapping to quantiles of the standard normal distribution N(0,1). Ties are handled by sending tied values to the average of the corresponding quantiles.The argument should be a comma-separated list of column names from the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-read-test": {
+    "group": "",
+    "description": "Don't do anything; just read the data.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-reorder": {
+    "group": "",
+    "description": "Specify that qctool should write output files with individuals re-ordered. The argument can be one of three things:\n - the name of a readable file - in this case samples IDs are read from the file and output in the order specified.\n - or the word \"randomly\" - in this case samples are randomly reordered.\n - or the word \"backwards\" - in this case the order of samples is reveresed.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-risk-score": {
+    "group": "",
+    "description": "Compute a risk score for each sample based on a specified file of additive and heterozygote effect sizes.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-s": {
+    "group": "",
+    "description": "Path of sample file to input.  If specified, this option must occur as often as the -g option to specify one sample file per cohort.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1000
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-sample-data": {
+    "group": "",
+    "description": "Path of additional sample file(s) (in the same format as accepted by -s) to read.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-sample-stats": {
+    "group": "",
+    "description": "Calculate and output sample-wise statistics.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-sex-column": {
+    "group": "",
+    "description": "Specify the name of a column (of type D) in the sample files(s) containing information on sex.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "sex" ]
+  },
+  "-snp-stats": {
+    "group": "",
+    "description": "Calculate and output per-SNP statistics.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-snp-stats-columns": {
+    "group": "",
+    "description": "Comma-seperated list of extra columns to output in the snp-wise statistics file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "allele-frequencies,HWE,missingness,info" ]
+  },
+  "-sort": {
+    "group": "",
+    "description": "Sort the genotypes in the output file.  Currently this is only supported if BGEN, unzipped GEN, unzipped VCF format is output.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-strand": {
+    "group": "",
+    "description": "Path of strand file(s) to input.  If specified, this option must occur the same number of times as the -g option, to specify one intensity file per cohort. This file can have SNPID, rsid, chromosome, position, alleleA, alleleB, strand columns. Strand should be specified as +, - or NA.  Alleles for variants with - strand will be complemented. Variants with strand=NA, or with missing strand information, will be skipped entirely.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-stratify": {
+    "group": "",
+    "description": "Compute all SNP summary statistics seperately for each level of the given variable in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-threads": {
+    "group": "",
+    "description": "Specify the number of worker threads to use in computationally intensive tasks.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-threshhold": {
+    "group": "",
+    "description": "Threshhold genotype call probabilities.  This means replace call probabilities >= threshold with 1 and those < threshhold with 0.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-vcf-genotype-field": {
+    "group": "",
+    "description": "Specify the name of the field in a VCF file to read genotypes from.  This must match the name of a FORMAT field in the VCF file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "GT" ]
+  },
+  "-vcf-intensity-field": {
+    "group": "",
+    "description": "Specify the name of the field in a VCF file to read intensities from.  This must match the name of a FORMAT field in the VCF file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "XY" ]
+  },
+  "-vcf-output-fields": {
+    "group": "",
+    "description": "Specify a subset of fields to appear in output vcf files",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-write-sample-excl-list": {
+    "group": "",
+    "description": "Write a file containing a list of the ids of individuals which are filtered out by the sample filter.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-write-snp-excl-list": {
+    "group": "",
+    "description": "Write a file (or files) containing the SNPs that are filtered out.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  }
+}

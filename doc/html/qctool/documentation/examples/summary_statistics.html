@@ -53,8 +53,8 @@
 							average intensity on the X and Y chromosomes can be used to directly determine sample gender.
 						</p>
 						<p>
-							<b>Note:</b> the output file can be formatted in various of ways -
-							see the page on <a href="../summary_file_formats.html">summary statistic file formats</a> for
+							<b>Note:</b> the output file can be formatted in various of ways, controlled by the file extension.
+							See the page on <a href="../summary_file_formats.html">summary statistic file formats</a> for
 							information on output file formatting.
 						</p>
 					</div>
@@ -65,7 +65,7 @@
 						Per-variant summary statistics
 					</div>
 					<div class="task_notes">
-						The basic option to compute summary statistics is <code>-snp-stats</code>.  E.g.:
+						The basic option to compute per-variant summary statistics is <code>-snp-stats</code>.  E.g.:
 					</div>
 					<div class="task_command_line">
 						$ qctool -g example.bgen -snp-stats -osnp snp-stats.txt
@@ -79,17 +79,16 @@
 						</p>
 						<p>
 							Analysis on the sex chromosomes is complicated by the fact that males and females have differing ploidy.
-							QCTOOL relies on their being a valid column containing sex information in the sample file - this is
-							called "sex" by default but the <code>-sex-column</code> option can be used to adjust this - and uses this
-							to infer the ploidy of individual samples.  Then, both diploid and haploid genotype counts are output,
-							as well an appropriate info metric and a test for difference in frequency between males and females.
+							To process sex chromosomes correctly, QCTOOL relies on the ploidy being correct in the input genotype files.
+							However, some data sets (and some file formats) instead encode males as diploid homozygotes.
+							The <code>-infer-ploidy-from</code> can be used to deal with such data - see the
+							page on <a href="inferring_ploidy.html">inferring ploidy</a> .
 						</p>
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -snp-stats -osnp example.snp-stats -incl-samples-where sex=MALE
-					</div>
-					<div class="task_notes">
-						where <code>sex</code> is a column in the sample file.
+						<p>
+							For sex chromosomes, QCTOOL outputs both diploid and haploid
+							genotype counts, as well an appropriate allele frequency, a sex-chromosome specific info metric,
+							and a test for difference in frequency between males and females.  
+						</p>
 					</div>
 				</div>
 
@@ -146,15 +145,14 @@
 						to denote which strata the values are computed for.
 					</p>
 						<p>
-							This feature has several possible use cases - for example, it could be used to compute allele counts across ethnic groups in a
+							This feature has several possible use cases - for example, it can be used to compute allele counts across ethnic groups in a
 							sample of mixed ancestry, or to inspect deviation from Hardy-Weinberg equilibrium seperately in disease cases and controls.
 						</p>
 					</div>
 				</div>
 		</section>
 
-		<nav class="button_bar">
-			<div class="nav_button" name="overview">
+		<nav class="button_bar">			<div class="nav_button" name="overview">
 				<a href="../../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -162,10 +160,6 @@
 				<ul class="menu">
 					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
 					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
-					<li><a href="../../documentation/summary_statistics.html">Computing summary statistics</a></li>
-					<li><a href="../../documentation/conversions.html">Converting between formats</a></li>
-					<li><a href="../../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
-					<li><a href="../../documentation/annotations.html">Annotating data</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="tutorial">
@@ -179,10 +173,13 @@
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
-<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
 					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/annotating.html">Computing annotations</a></li>
 					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
-<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/inferring_ploidy.html">Working with sex chromosomes</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="file_formats">
@@ -195,7 +192,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</nav>
+</nav>
 		
 	</body>
 </html>

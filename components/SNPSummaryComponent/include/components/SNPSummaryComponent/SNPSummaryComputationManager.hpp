@@ -74,6 +74,7 @@ private:
 
 	std::size_t m_snp_index ;
 	SNPSummaryComputation::Genotypes m_genotypes ;
+	SNPSummaryComputation::Ploidy m_ploidy ;
 
 private:
 	std::vector< char > get_sexes( genfile::CohortIndividualSource const& samples, std::string const& sex_column_name ) const ;

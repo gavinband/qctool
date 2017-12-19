@@ -124,36 +124,13 @@ namespace genfile {
 				m_bgen_context,
 				m_number_of_bits
 			) ;
-				
+			
 			data_reader.get( ":genotypes:", to_GP( writer ) ) ;
 			
 			stream_ptr()->write( reinterpret_cast< char const* >( writer.repr().first ), writer.repr().second  - writer.repr().first ) ;
 		}
 	}
-#if 0
-	void BasicBGenFileSNPDataSink::write_snp_impl(
-		uint32_t number_of_samples,
-		std::string SNPID,
-		std::string RSID,
-		Chromosome chromosome,
-		uint32_t SNP_position,
-		std::string first_allele,
-		std::string second_allele,
-		GenotypeProbabilityGetter const& get_AA_probability,
-		GenotypeProbabilityGetter const& get_AB_probability,
-		GenotypeProbabilityGetter const& get_BB_probability,
-		Info const&
-	) {
-		assert( m_have_written_header ) ;
-		bgen::write_snp_identifying_data( *stream_ptr(), m_bgen_context, SNPID, RSID, chromosome, SNP_position, first_allele, second_allele ) ;
-		bgen::write_snp_probability_data(
-			*m_stream_ptr,
-			m_bgen_context, get_AA_probability, get_AB_probability, get_BB_probability, m_number_of_bits,
-			&m_buffer,
-			&m_compression_buffer
-		) ;
-	}
-#endif
+
 	std::auto_ptr< std::ostream >& BasicBGenFileSNPDataSink::stream_ptr() { return m_stream_ptr ; }
 	std::string const& BasicBGenFileSNPDataSink::filename() const { return m_filename ; }
 	

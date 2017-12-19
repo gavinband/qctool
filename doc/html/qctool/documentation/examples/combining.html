@@ -32,86 +32,88 @@
 
 		<section class="main_text">
 			<h2>Combining datasets</h2>
-				<div class="task">
-					<div class="task_name">
-						Combining several datasets into a larger one
-					</div>
-					<div class="task_notes">
-						QCTOOL's <code>-g</code> and <code>-s</code> options can be specified several times, with the effect of combining
-						data into one larger dataset.  E.g.:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g cohort1.bgen -s cohort1.sample -g cohort2.bgen -s cohort2.sample -og joined.gen -os joined.sample
-					</div>
-					<div class="task_notes">
-						<p>
-							QCTOOL will produce both a combined genotype file and a combined sample file.
-							The output files
-							will have <em>N<sub>1</sub>+N<sub>2</sub></em> samples, where <em>N<sub>1</sub></em> and <em>N<sub>2</sub></em>
-							are the numbers of samples in the two input datasets, and it will contain all variants that can be matched between
-							the input datasets.
-						</p>
-						<p>
-							QCTOOL attempts to merge the columns of the sample files based on column name and type.
-							Columns are dropped if they have the same name but different types.	 Otherwise, each column
-							in the input sample files appears in the output sample file, possibly with missing values for those cohorts
-							for which that column is not present.
-						</p>
-						<p>
-							QCTOOL attempts to combine data at each variant that is present in all input datasets.  To do this,
-							it makes the assumption that <em>data is sorted uniquely and in the same way in all input datasets</em>.
-							If this is not the case then QCTOOL may be unable to match some variants.  Any variant that does not match
-							between datasets will be omitted from the output.
-						</p>
-					</div>
-					<div class="task_name">
-						Controlling how variants are matched
-					</div>
-					<div class="task_notes">
-						<p>
-							The <code>-compare-variants-by</code> option can be used to
-							control what fields QCTOOL compares when matching variants.  (The default behaviour is to match variants by the
-							genomic position, alleles, and ID fields).  For example, in the command:
-						</p>
-					</div>
-					<div class="task_command_line">
-						$ qctool -g cohort1.bgen -s cohort1.sample -g cohort2.bgen -s cohort2.sample -og joined.gen -os joined.sample -compare-variants-by position,alleles
-					</div>
-					<div class="task_notes">
+			<div class="task">
+				<div class="task_name">
+					Combining several datasets into a larger one
+				</div>
+				<div class="task_notes">
+					QCTOOL's <code>-g</code> and <code>-s</code> options can be specified several times, with the effect of combining
+					data into one larger dataset.  E.g.:
+				</div>
+				<div class="task_command_line">
+					$ qctool -g cohort1.bgen -s cohort1.sample -g cohort2.bgen -s cohort2.sample -og joined.gen -os joined.sample
+				</div>
+				<div class="task_notes">
 					<p>
-						QCTOOL will match variants by position and alleles (variants will match even if ID fields differ).  
-						As in the example, <code>position</code> (the genomic position) must always be the first field matched on.
+						QCTOOL will produce both a combined genotype file and a combined sample file.
+						The output files
+						will have <em>N<sub>1</sub>+N<sub>2</sub></em> samples, where <em>N<sub>1</sub></em> and <em>N<sub>2</sub></em>
+						are the numbers of samples in the two input datasets, and it will contain all variants that can be matched between
+						the input datasets.
 					</p>
-					<p><b>Note:</b> careful use of these options is especially important when datasets contain multiple variants 
-						sharing the same genomic position.  The recommendation is to ensure all datasets are encoded
-						uniformly before combining them.  (See the pages on <a href="sorting.html">sorting</a>, <a href="aligning.html">aligning alleles</a>, and
-						<a href="manipulating.html">manipulating metadata<a> for options that can help with this.)
+					<p>
+						QCTOOL attempts to merge the columns of the sample files based on column name and type.
+						Columns are dropped if they have the same name but different types.	 Otherwise, each column
+						in the input sample files appears in the output sample file, possibly with missing values for those cohorts
+						for which that column is not present.
+					</p>
+					<p>
+						QCTOOL attempts to combine data at each variant that is present in all input datasets.  To do this,
+						it makes the assumption that <em>data is sorted uniquely and in the same way in all input datasets</em>.
+						If this is not the case then QCTOOL may be unable to match some variants.  Any variant that does not match
+						between datasets will be omitted from the output.
 					</p>
 				</div>
-					<div class="task_name">
-						Allowing for allele mismatches
-					</div>
-					<div class="task_notes">
+				<div class="task_name">
+					Controlling how variants are matched
+				</div>
+				<div class="task_notes">
 					<p>
-						It is sometimes the case that data is sorted in each dataset but that alleles are mixed up.
-						The <code>-match-alleles-to-cohort1</code> option tells QCTOOL to attempt to match data allowing for this
-						type of mismatch:
+						The <code>-compare-variants-by</code> option can be used to
+						control what fields QCTOOL compares when matching variants.  (The default behaviour is to match variants by the
+						genomic position, alleles, and ID fields).  For example, in the command:
 					</p>
 				</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample
-						-og joined.gen -os joined.sample -compare-variants-by position,alleles -match-alleles-to-cohort1
-					</div>
-					<div class="task_notes">
-						<p>
-						  Here, if the variant is biallelic and the alleles in the second dataset are the same as those
-							in the first cohort, but coded the other way round (e.g. cohort1 = A/G, cohort2 = G/A), then the
-							alleles and genotypes are flipped accordingly.  No other transformation (e.g. strand flips, or matching multiallelics)
-							is performed by this operation.  Thus, although this option can be convenient, the general recommendation
-							is to arrange each dataset to be encoded and sorted unformly before combining.
-						</p>
-					</div>
-				</section>
+				<div class="task_command_line">
+					$ qctool -g cohort1.bgen -s cohort1.sample -g cohort2.bgen -s cohort2.sample -og joined.gen -os joined.sample -compare-variants-by position,alleles
+				</div>
+				<div class="task_notes">
+				<p>
+					QCTOOL will match variants by position and alleles (variants will match even if ID fields differ).  
+					As in the example, <code>position</code> (the genomic position) must always be the first field matched on.
+				</p>
+				<p><b>Note:</b> careful use of these options is especially important when datasets contain multiple variants 
+					sharing the same genomic position.  The recommendation is to ensure all datasets are encoded
+					uniformly before combining them.  (See the pages on <a href="sorting.html">sorting</a>,
+					<a href="aligning.html">aligning alleles</a>, and
+					<a href="manipulating.html">manipulating metadata</a> for options that can help with this.)
+				</p>
+			</div>
+				<div class="task_name">
+					Allowing for allele mismatches
+				</div>
+				<div class="task_notes">
+				<p>
+					It is sometimes the case that data is sorted in each dataset but that alleles are mixed up.
+					The <code>-match-alleles-to-cohort1</code> option tells QCTOOL to attempt to match data allowing for this
+					type of mismatch:
+				</p>
+			</div>
+				<div class="task_command_line">
+					$ qctool -g example.bgen -s example.sample -g second_cohort_#.gen -s second_cohort.sample
+					-og joined.gen -os joined.sample -compare-variants-by position,alleles -match-alleles-to-cohort1
+				</div>
+				<div class="task_notes">
+					<p>
+					  Here, if the variant is biallelic and the alleles in the second dataset are the same as those
+						in the first cohort, but coded the other way round (e.g. cohort1 = A/G, cohort2 = G/A), then the
+						alleles and genotypes are flipped accordingly.  No other transformation (e.g. strand flips, or matching multiallelics)
+						is performed by this operation.  Thus, although this option can be convenient, the general recommendation
+						is to arrange each dataset to be encoded and sorted unformly before combining.
+					</p>
+				</div>
+			</div>
+		</section>
 
 		<nav class="button_bar">
 			<div class="nav_button" name="overview">
@@ -122,26 +124,23 @@
 				<ul class="menu">
 					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
 					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
-					<li><a href="../../documentation/summary_statistics.html">Computing summary statistics</a></li>
-					<li><a href="../../documentation/conversions.html">Converting between formats</a></li>
-					<li><a href="../../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
-					<li><a href="../../documentation/annotations.html">Annotating data</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="tutorial">
 				examples
 				<ul class="menu">
+					<li><a href="../../documentation/examples/basic.html">Basic usage</a></li>
 					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
 					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
 					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
-<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
-<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
 					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
 					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
-<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="file_formats">
@@ -154,7 +153,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</div>
+		</nav>
 		
 	</body>
 </html>

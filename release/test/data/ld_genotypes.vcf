@@ -1,0 +1,35 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=GT,Type=String,Number=1,Description="Phased genotype call">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample_0	sample_1	sample_2
+1	100	RS1	A	G	.	.	.	GT	0/0	0/0	0/0
+1	200	RS2	A	G	.	.	.	GT	0/0	0/0	1/0
+1	300	RS3	A	G	.	.	.	GT	0/0	0/1	0/0
+1	400	RS4	A	G	.	.	.	GT	0/0	0/1	1/0
+1	500	RS5	A	G	.	.	.	GT	0/0	1/0	0/0
+1	600	RS6	A	G	.	.	.	GT	0/0	1/0	1/0
+1	700	RS7	A	G	.	.	.	GT	0/0	1/1	0/0
+1	800	RS8	A	G	.	.	.	GT	0/0	1/1	1/0
+1	900	RS9	A	G	.	.	.	GT	0/1	0/0	0/0
+1	1000	RS10	A	G	.	.	.	GT	0/1	0/0	1/0
+1	1100	RS11	A	G	.	.	.	GT	0/1	0/1	0/0
+1	1200	RS12	A	G	.	.	.	GT	0/1	0/1	1/0
+1	1300	RS13	A	G	.	.	.	GT	0/1	1/0	0/0
+1	1400	RS14	A	G	.	.	.	GT	0/1	1/0	1/0
+1	1500	RS15	A	G	.	.	.	GT	0/1	1/1	0/0
+1	1600	RS16	A	G	.	.	.	GT	0/1	1/1	1/0
+1	1700	RS17	A	G	.	.	.	GT	1/0	0/0	0/0
+1	1800	RS18	A	G	.	.	.	GT	1/0	0/0	1/0
+1	1900	RS19	A	G	.	.	.	GT	1/0	0/1	0/0
+1	2000	RS20	A	G	.	.	.	GT	1/0	0/1	1/0
+1	2100	RS21	A	G	.	.	.	GT	1/0	1/0	0/0
+1	2200	RS22	A	G	.	.	.	GT	1/0	1/0	1/0
+1	2300	RS23	A	G	.	.	.	GT	1/0	1/1	0/0
+1	2400	RS24	A	G	.	.	.	GT	1/0	1/1	1/0
+1	2500	RS25	A	G	.	.	.	GT	1/1	0/0	0/0
+1	2600	RS26	A	G	.	.	.	GT	1/1	0/0	1/0
+1	2700	RS27	A	G	.	.	.	GT	1/1	0/1	0/0
+1	2800	RS28	A	G	.	.	.	GT	1/1	0/1	1/0
+1	2900	RS29	A	G	.	.	.	GT	1/1	1/0	0/0
+1	3000	RS30	A	G	.	.	.	GT	1/1	1/0	1/0
+1	3100	RS31	A	G	.	.	.	GT	1/1	1/1	0/0
+1	3200	RS32	A	G	.	.	.	GT	1/1	1/1	1/0

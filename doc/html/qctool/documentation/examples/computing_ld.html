@@ -102,7 +102,7 @@
 				<div class="task_notes">
 				<p>
 					This command only computes LD for variants on the same chromosome and within 1Mb of each other, and
-					only outputs LD metrics when the computed r<sup>2</sub> values is at least 0.05.
+					only outputs LD metrics when the computed r<sup>2</sup> value is at least 0.05.
 				</p>
 			</div>
 
@@ -111,7 +111,7 @@
 						Stratifying LD computations across subsets
 					</div>
 					<div class="task_notes">
-						The <code>-stratify</code> option can be used to compute LD statistics stratified over
+						As for <code>-snp-stats</code>, the <code>-stratify</code> option tells QCTOOL to compute LD statistics stratified over
 						subsets of the data. E.g. suppose the sample file contains a column called <code>POP</code>
 						which reflects the population group of each sample.  Then the command:
 					</div>
@@ -128,6 +128,7 @@
 							<a href="">1000 Genomes Project</a> data into a file named <code>rs8176719.vcf</code>.  This command will
 								find all tagging SNPs in the flanking region:
 						</p>
+					</div>
 						<div class="task_command_line">
 							$ qctool -g ALL.chr9.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz
 							-s 1000G.sample
@@ -137,18 +138,22 @@
 							-min-r2 0.75
 							-max-distance 1Mb
 						</div>
+						<div class="task_notes">
 						<p>
-							(Currently it's necessary to make a sample file in the format <a href="sample_file_formats.html">described here</a>
-							for this to work - it will also take a while to run since it scans the whole of chromosome 9.)
+							Note that currently it's first necessary to make a sample file in the
+							format <a href="../sample_file_formats.html">described here</a> for this to work.
 						</p>
-						
+						<p>
+							<b>Note:</b> This will also take a while to run, since at present it scans the whole of chromosome 9.
+							A quicker way would be to use <a href="https://bitbucket.org/gavinband/bgen">bgenix</a> together with QCTOOL in 
+							 <a href="pipelining.html">in a pipeline</a>.
+						</p>
 					</div>
 				</div>
 
 		</section>
 
-		<nav class="button_bar">
-			<div class="nav_button" name="overview">
+		<nav class="button_bar">			<div class="nav_button" name="overview">
 				<a href="../../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -156,10 +161,6 @@
 				<ul class="menu">
 					<li><a href="../../documentation/diagram_of_options.html">Diagram of options</a></li>
 					<li><a href="../../documentation/alphabetical_options.html">List of options</a></li>
-					<li><a href="../../documentation/summary_statistics.html">Computing summary statistics</a></li>
-					<li><a href="../../documentation/conversions.html">Converting between formats</a></li>
-					<li><a href="../../documentation/mapping_and_aligning.html">Remapping and aligning data</a></li>
-					<li><a href="../../documentation/annotations.html">Annotating data</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="tutorial">
@@ -173,11 +174,13 @@
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
-<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
 					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+					<li><a href="../../documentation/examples/annotating.html">Computing annotations</a></li>
 					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
-<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
-					<li><a href="../../documentation/examples/computing_Ld.html">Computing LD</a></li>
+					<li><a href="../../documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/inferring_ploidy.html">Working with sex chromosomes</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="file_formats">
@@ -190,7 +193,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</nav>
+</nav>
 		
 	</body>
 </html>

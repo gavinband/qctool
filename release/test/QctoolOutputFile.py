@@ -19,7 +19,7 @@ class QctoolOutputFile:
 			raise AssertionError( "File \"%s\" has no column header", self.filename )
 		self.columns = self.lines[0]
 
-		commaCount = self.columns.count( '.' )
+		commaCount = self.columns.count( ',' )
 		tabCount = self.columns.count( '\t' )
 		spaceCount = self.columns.count( ' ' )
 		if tabCount > commaCount and tabCount > spaceCount:
@@ -28,7 +28,7 @@ class QctoolOutputFile:
 			self.splitter = '\t'
 		else:
 			self.splitter = ' '
-		self.columns = self.columns.split( self.splitter )
+		self.columns = [ elt.strip() for elt in self.columns.split( self.splitter ) ]
 
 		self.lines = self.lines[1:]
 		if len( self.lines[-1] ) > 0 and self.lines[-1][0] == '#':

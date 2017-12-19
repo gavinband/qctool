@@ -11,7 +11,7 @@
 
 namespace metro {
 	// compute mean and covariance of the columns of data.
-	// missing data is ignored for this purpose.
+	// missing data is ignored for this purpose (i.e. this is based on pairwise complete observations)
 	template< typename Data, typename RowVector, typename CovarianceMatrix >
 	void compute_mean_and_covariance( Data const& data, Data const& nonmissingness, RowVector& mean, CovarianceMatrix& covariance ) {
 		assert( data.cols() == nonmissingness.cols() ) ;

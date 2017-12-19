@@ -1059,16 +1059,36 @@ private:
 				m_options.get< std::string >( "-compare-variants-by" )
 			) ;
 		}
-		
+
+#if 1
+		open_data_sources(
+			m_mangled_options.gen_filenames(),
+			m_options.check( "-s" ) ? m_options.get_values< std::string >( "-s" ) : boost::optional< std::vector< std::string > >(),
+			m_options.check( "-merge-in" ) ? m_options.get_values< std::string >( "-merge-in" ) : boost::optional< std::vector< std::string > >(),
+			&m_snp_data_source,
+			&m_samples
+		) ;
+#else
 		m_snp_data_source = open_snp_data_sources(
 			m_mangled_options.gen_filenames(),
 			m_options.check( "-flip-to-match-cohort1" )
 		) ;
 	
+		if( !m_samples ) {
+			m_samples = create_dummy_samples( m_snp_data_source ) ;
+		}
 
+		if( m_samples->get_number_of_individuals() != m_snp_data_source->number_of_samples() ) {
+			throw genfile::MismatchError(
+				"QCToolCmdLineContext::unsafe_open_samples()",
+				m_samples->get_source_spec(),
+				"number of samples = " + genfile::string_utils::to_string( m_samples->get_number_of_individuals() ),
+				"expected number of samples = " + genfile::string_utils::to_string( m_snp_data_source->number_of_samples() )
+			) ;
+		}
 
-		{
-			m_samples = open_samples( *m_snp_data_source ) ;
+		if( m_options.check( "-merge-in" )) {
+			m_snp_data_source = open_merged_data_sources( m_options.get_values< std::string >( "-merge-in" ) ) ;
 		}
 
 		if( m_options.check( "-infer-ploidy-from" )) {
@@ -1106,10 +1126,7 @@ private:
 				new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" ))
 			) ;
 		}
-
-		if( m_options.check( "-merge-in" )) {
-			m_snp_data_source = open_merged_data_sources() ;
-		}
+#endif
 
 		if( m_options.check( "-sample-data" )) {
 			m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
@@ -1401,6 +1418,95 @@ public:
 		) ;
 	}
 
+public:
+	void open_data_sources(
+		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& gen_filenames,
+		boost::optional< std::vector< std::string > > const& sample_filenames,
+		boost::optional< std::vector< std::string > > const& merge_in_sources,
+		genfile::SNPDataSource::UniquePtr* result_snp_data_source,
+		genfile::CohortIndividualSource::UniquePtr* result_samples
+	) {
+		genfile::CohortIndividualSource::UniquePtr samples ;
+		genfile::SNPDataSource::UniquePtr snp_data_source ;
+
+		// Load sample file(s) if they are provided
+		if( sample_filenames > 0 ) {
+			// This is currently supposed to be checked elsewhere
+			assert( sample_filenames->size() == gen_filenames.size() ) ;
+			samples = open_samples( *sample_filenames ) ;
+		}
+		snp_data_source = open_snp_data_sources( gen_filenames, m_options.check( "-flip-to-match-cohort1" ) ) ;
+
+		// Create a dummy sample file if none was provided
+		if( !samples.get() ) {
+			samples = create_dummy_samples( *snp_data_source ) ;
+		}
+		
+		// Check Sample and snp data sources match.
+		if( samples->get_number_of_individuals() != snp_data_source->number_of_samples() ) {
+			throw genfile::MismatchError(
+				"QCToolCmdLineContext::open_data_sources()",
+				m_samples->get_source_spec(),
+				"number of samples = " + genfile::string_utils::to_string( samples->get_number_of_individuals() ),
+				"expected number of samples = " + genfile::string_utils::to_string( snp_data_source->number_of_samples() )
+			) ;
+		}
+
+		if( merge_in_sources ) {
+			if( merge_in_sources->size() != 2 ) {
+				throw genfile::BadArgumentError(
+					"open_data_sources()",
+					"merge_in_source",
+					"Expected two entries, a SNP data source and a sample file"
+				) ;
+			}
+			snp_data_source = open_merged_data_sources(
+				snp_data_source, *samples,
+				(*merge_in_sources)[0], (*merge_in_sources)[1]
+			) ;
+		}
+
+		if( m_options.check( "-infer-ploidy-from" )) {
+			std::string const sex_column = m_options.get< std::string >( "-infer-ploidy-from" ) ;
+			std::vector< char > sexes( samples->size(), '.' ) ;
+			for( std::size_t i = 0; i < samples->size(); ++i ) {
+				genfile::VariantEntry const& entry = samples->get_entry( i, sex_column ) ;
+				if( !entry.is_missing() ) {
+					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
+					if( sex == "1" || sex == "m" || sex == "male" ) {
+						sexes[i] = 'm' ;
+					} else if( sex == "2" || sex == "f" || sex == "female" ) {
+						sexes[i] = 'f' ;
+					} else {
+						throw genfile::MalformedInputError(
+							samples->get_source_spec(),
+							"Malformed sex value \"" + sex + "\"",
+							i,
+							samples->get_column_spec().find_column( sex_column )
+						) ;
+					}
+				}
+			}
+	
+			snp_data_source.reset(
+				genfile::PloidyConvertingSNPDataSource::create(
+					snp_data_source,
+					boost::bind( &genfile::get_ploidy_from_sex, sexes, _1, _2 )
+				).release()
+			) ;
+		}
+		
+		if( m_options.check( "-threshhold" )) {
+			snp_data_source.reset(
+				new genfile::ThreshholdingSNPDataSource( snp_data_source, m_options.get< double >( "-threshhold" ))
+			) ;
+		}
+		
+		// Put results in output variables
+		*result_samples = samples ;
+		*result_snp_data_source = snp_data_source ;
+	}
+
 private:
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources(
 		std::vector< std::vector< genfile::wildcard::FilenameMatch > > const& filenames,
@@ -1481,15 +1587,57 @@ private:
 		return source ;
 	}
 
-	genfile::SNPDataSource::UniquePtr open_merged_data_sources() {
+	// Find mapping of needle samples in haystack samples
+	std::vector< std::size_t > get_sample_id_mapping(
+		genfile::CohortIndividualSource const& needle_samples,
+		std::string const& needle_column,
+		genfile::CohortIndividualSource const& haystack_samples,
+		std::string const& haystack_column
+	) {
+		std::size_t const eNotIncluded = genfile::ReorderingSNPDataSource::eNotIncluded ;
+		std::vector< std::size_t > result( needle_samples.size() ) ;
+
+		typedef std::vector< genfile::VariantEntry > IdList ;
+		IdList haystack_ids ;
+		IdList needle_ids ;
+		void(IdList::*push_back)(genfile::VariantEntry const&) = &IdList::push_back;	
+		needle_samples.get_column_values( needle_column, boost::bind( push_back, &needle_ids, _2 ) ) ;
+		haystack_samples.get_column_values( haystack_column, boost::bind( push_back, &haystack_ids, _2 ) ) ;
+
+		assert( needle_ids.size() == needle_samples.size() ) ;
+		assert( haystack_ids.size() == haystack_samples.size() ) ;
+
+		// typedef boost::unordered_map< VariantEntry, std::size_t > HaystackMap ;
+		typedef std::map< genfile::VariantEntry, std::size_t > IdMap ;
+		IdMap haystack_map ;
+		for( std::size_t i = 0; i < haystack_ids.size(); ++i ) {
+			if( !haystack_map.insert( std::make_pair( haystack_ids[i], i )).second ) {
+				throw genfile::BadArgumentError(
+					"genfile::impl::SampleMapping::setup()",
+					"haystack_column=\"" + haystack_column + "\"",
+					"Haystack sample " + haystack_column + "=\"" + haystack_ids[i].as< std::string >() + "\" occurs more than once."
+				) ;
+			} ;
+		}
+		for( std::size_t i = 0; i < needle_ids.size(); ++i ) {
+			IdMap::const_iterator where = haystack_map.find( needle_ids[i] ) ;
+			result[i] = ( where == haystack_map.end() ) ? eNotIncluded : where->second ;
+		}
+		return result ;
+	}
+	
+	genfile::SNPDataSource::UniquePtr open_merged_data_sources(
+		genfile::SNPDataSource::UniquePtr snp_data_source,
+		genfile::CohortIndividualSource const& samples,
+		std::string const& merge_in_gen_file,
+		std::string const& merge_in_sample_file
+	) {
 		genfile::MergingSNPDataSource::UniquePtr merged_source = genfile::MergingSNPDataSource::create(
 			m_options.get< std::string >( "-merge-strategy" ),
 			genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
 		) ;
 
-		merged_source->add_source( m_snp_data_source ) ;
-		std::vector< std::string > merge_in_files = m_options.get_values< std::string >( "-merge-in" ) ;
-		assert( merge_in_files.size() == 2 ) ;
+		merged_source->add_source( snp_data_source ) ;
 		std::string id_prefix = "" ;
 		if( m_options.check( "-merge-prefix" )) {
 			id_prefix = m_options.get< std::string >( "-merge-prefix" ) ;
@@ -1500,7 +1648,7 @@ private:
 			genfile::SNPDataSource::UniquePtr merge_in_source ;
 			{
 				genfile::SNPDataSourceChain::UniquePtr source( new genfile::SNPDataSourceChain ) ;
-				std::vector< genfile::wildcard::FilenameMatch > filenames = genfile::wildcard::find_files_by_chromosome( merge_in_files[0] ) ;
+				std::vector< genfile::wildcard::FilenameMatch > filenames = genfile::wildcard::find_files_by_chromosome( merge_in_gen_file ) ;
 				for( std::size_t i = 0; i < filenames.size(); ++i ) {
 					source->add_source( open_snp_data_source( filenames[i].filename(), filenames[i].match())) ;
 				}
@@ -1508,7 +1656,7 @@ private:
 			}
 			genfile::CohortIndividualSource::UniquePtr merge_in_samples(
 				new genfile::CategoricalCohortIndividualSource(
-					merge_in_files[1],
+					merge_in_sample_file,
 					m_options.get_value< std::string >( "-missing-code" )
 				)
 			) ;
@@ -1521,7 +1669,13 @@ private:
 					"Value should be two strings separated by ~."
 				) ;
 			}
-			
+
+#if 1
+			merge_in_source = genfile::ReorderingSNPDataSource::create(
+				merge_in_source,
+				get_sample_id_mapping( samples, id_columns[0], *merge_in_samples, id_columns[1] )
+			) ;
+#else
 			merge_in_source.reset(
 				new genfile::SampleMappingSNPDataSource(
 					*m_samples,
@@ -1531,7 +1685,7 @@ private:
 					merge_in_source
 				)
 			) ;
-			
+#endif		
 			// Make the merged-in source respect the filter.
 			genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
 			if( snp_filter ) {
@@ -2107,7 +2261,7 @@ private:
 		for( std::size_t i = 0; i < filenames.size(); ++i ) {
 			std::string elt ;
 			std::ifstream is( filenames[i].c_str() ) ;
-			while( std::getline( is, elt )) {
+			while( is >> elt ) {
 				result->add_level( elt ) ;
 			}
 		}
@@ -2118,9 +2272,11 @@ private:
 		m_ignore_warnings = m_options.check_if_option_was_supplied( "-force" ) ;
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr open_samples( genfile::SNPDataSource const& snp_data_source ) {
+	genfile::CohortIndividualSource::UniquePtr open_samples(
+		std::vector< std::string > const& filenames
+	) {
 		try {
-			return unsafe_open_samples( snp_data_source ) ;
+			return unsafe_open_samples( filenames ) ;
 		}
 		catch( genfile::MalformedInputError const& e ) {
 			m_ui_context.logger() << "\n\n!! ERROR (" << e.what() << "): the sample file \"" << e.source() << "\" is malformed on line "
@@ -2131,57 +2287,41 @@ private:
 			m_ui_context.logger() << ".  Quitting.\n" ;
 			throw ;
 		}
-		catch( genfile::MismatchError const& e ) {
-			m_ui_context.logger() << "\n\n!! ERROR (" << e.what() << "): in source \""
-				<< e.source() << ": incorrect number of samples in the sample source ( "
-				<< e.key1()  << ", " << e.key2()
-				<< ").\n" ;
-			m_ui_context.logger() << ".  Quitting.\n" ;
-			throw ;
-		}
 	}
 	
-	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples( genfile::SNPDataSource const& snp_data_source ) {
-		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
-		{
-			boost::format fmt( "sample_%d" ) ;
-			for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
-				sample_ids[i] = ( fmt % i ).str() ;
-			}
-			snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
+	genfile::CohortIndividualSource::UniquePtr unsafe_open_samples(
+		std::vector< std::string > const& filenames
+	) {
+		genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
+		for( std::size_t i = 0; i < filenames.size(); ++i ) {
+			source_chain->add_source(
+				genfile::CohortIndividualSource::UniquePtr(
+					new genfile::CategoricalCohortIndividualSource(
+						filenames[i],
+						m_options.get_value< std::string >( "-missing-code" )
+					)
+				),
+				"cohort_" + genfile::string_utils::to_string( i+1 )
+			) ;
 		}
-
-		genfile::CohortIndividualSource::UniquePtr sample_source ;
-		if( m_mangled_options.input_sample_filenames().size() == 0 ) {
-			sample_source.reset( new genfile::CountingCohortIndividualSource( sample_ids ) ) ;
-		}
-		else {
-			genfile::CohortIndividualSourceChain::UniquePtr source_chain( new genfile::CohortIndividualSourceChain() ) ;
-			for( std::size_t i = 0; i < m_mangled_options.input_sample_filenames().size(); ++i ) {
-				source_chain->add_source(
-					genfile::CohortIndividualSource::UniquePtr(
-						new genfile::CategoricalCohortIndividualSource(
-							m_mangled_options.input_sample_filenames()[i],
-							m_options.get_value< std::string >( "-missing-code" )
-						)
-					),
-					"cohort_" + genfile::string_utils::to_string( i+1 )
-				) ;
-			}
-			sample_source.reset( source_chain.release() ) ;
-			
-			if( sample_source->get_number_of_individuals() != sample_ids.size() ) {
-				throw genfile::MismatchError(
-					"QCToolCmdLineContext::unsafe_open_samples()",
-					sample_source->get_source_spec(),
-					"number of samples = " + genfile::string_utils::to_string( sample_source->get_number_of_individuals() ),
-					"expected number of samples = " + genfile::string_utils::to_string( sample_ids.size() )
-				) ;
-			}
-		}
-		
-		return sample_source ;
+		genfile::CohortIndividualSource::UniquePtr result( source_chain.release() ) ;
+		return result ;
 	}
+
+	genfile::CohortIndividualSource::UniquePtr create_dummy_samples(
+		genfile::SNPDataSource const& snp_data_source
+	) {
+		genfile::CohortIndividualSource::UniquePtr result ;
+		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
+		boost::format fmt( "sample_%d" ) ;
+		for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
+			sample_ids[i] = ( fmt % i ).str() ;
+		}
+		snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
+		result.reset( new genfile::CountingCohortIndividualSource( sample_ids ) ) ;
+		return result ;
+	}
+
 	
 	genfile::CohortIndividualSource::UniquePtr open_sample_data( genfile::CohortIndividualSource::UniquePtr samples, std::vector< std::string > sample_files ) const {
 		try {
@@ -2663,6 +2803,10 @@ private:
 		HaplotypeFrequencyComponent::UniquePtr haplotype_frequency_component ;
 		if( options().check_if_option_was_supplied_in_group( "LD computation options" )) {
 			std::vector< std::string > filenames = options().get_values< std::string >( "-compute-ld-with" ) ;
+			
+			genfile::CohortIndividualSource::UniquePtr ld_samples ;
+			genfile::SNPDataSource::UniquePtr ld_variants ;
+
 			if( filenames.size() != 2 ) {
 				throw genfile::BadArgumentError(
 					"QCToolApplication::unsafe_process()",
@@ -2670,6 +2814,19 @@ private:
 					"Value should be two filenames - a genotype file and a sample file."
 				) ;
 			}
+			
+			context.open_data_sources(
+				std::vector< std::vector< genfile::wildcard::FilenameMatch > >( 1,
+						genfile::wildcard::find_files_by_chromosome(
+						filenames[0],
+						genfile::wildcard::eNON_SEX_CHROMOSOMES
+					)
+				),
+				std::vector< std::string >( 1, filenames[1] ),
+				boost::optional< std::vector< std::string > >(),
+				&ld_variants,
+				&ld_samples
+			) ;
 			
 			std::vector< std::string > id_columns
 				= genfile::string_utils::split_and_strip( options().get_value< std::string >( "-match-sample-ids" ), "~" ) ;
@@ -2681,24 +2838,12 @@ private:
 				) ;
 			}
 
-			genfile::CohortIndividualSource::UniquePtr ld_samples(
-				new genfile::CategoricalCohortIndividualSource(
-					filenames[1],
-					options().get_value< std::string >( "-missing-code" )
-				)
-			) ;
-				
 			haplotype_frequency_component = HaplotypeFrequencyComponent::create(
 				context.get_cohort_individual_source(),
 				id_columns[0],
 				ld_samples,
 				id_columns[1],
-				context.open_snp_data_sources(
-					genfile::wildcard::find_files_by_chromosome(
-						filenames[0],
-						genfile::wildcard::eNON_SEX_CHROMOSOMES
-					)
-				),
+				ld_variants,
 				options(),
 				get_ui_context()
 			) ;

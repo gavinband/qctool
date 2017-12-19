@@ -56,7 +56,14 @@ class QctoolTest:
 		for column in data.columns:
 			if re.match( columnRe, column ):
 				return
-		raise AssertionError( "No column in file \"%s\" matches the regular expression \"%s\": %s." % ( filename, columnRegexp, ' '.join( data.columns ) ) )
+		raise AssertionError( "No column in file \"%s\" matches the regular expression \"%s\": \"%s\"." % ( filename, columnRegexp, '" "'.join( data.columns ) ) )
+	
+	def has_exact_column( self, filename, column ):
+		data = QctoolOutputFile( filename )
+		for name in data.columns:
+			if column == name:
+				return
+		raise AssertionError( "No column in file \"%s\" is called \"%s\": \"%s\"" % ( filename, column, '" "'.join( data.columns ) ))
 	
 	def matches_linecount( self, filename, other_filename, other_skip ):
 		data = QctoolOutputFile( filename )

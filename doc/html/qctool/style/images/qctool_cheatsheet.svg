@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 15.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 width="1109px" height="418.333px" viewBox="23.936 -6.461 1109 418.333" enable-background="new 23.936 -6.461 1109 418.333"
+	 xml:space="preserve">
+<g>
+	<text transform="matrix(1 0 0 1 143.0947 9.5264)" font-family="'MyriadPro-Regular'" font-size="12">Input data for cohort 1....n</text>
+	<text transform="matrix(1 0 0 1 143.0947 21.5264)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-g, -s</text>
+	<text transform="matrix(1 0 0 1 164.3447 21.5264)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -metadata, -filetype,</text>
+	<text transform="matrix(1 0 0 1 143.0947 33.5264)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-vcf-genotype-field, -vcf-intensity-field </text>
+	<text transform="matrix(1 0 0 1 143.083 155.3145)" font-family="'MyriadPro-Regular'" font-size="12">Apply strand alignment / allele flips</text>
+	<text transform="matrix(1 0 0 1 143.083 167.3145)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-strand, -flip-to-match-allele</text>
+	<text transform="matrix(1 0 0 1 143.083 116.6523)" font-family="'MyriadPro-Regular'" font-size="12">Map variant ID data</text>
+	<text transform="matrix(1 0 0 1 143.083 128.6523)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-map-id-data, -assume-chromosome</text>
+	<text transform="matrix(1 0 0 1 143.083 64.0557)" font-family="'MyriadPro-Regular'" font-size="12">Filter variants</text>
+	<text transform="matrix(1 0 0 1 143.083 76.0557)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-[ex|in]cl-snps, -[ex|in]cl-range, -[ex|in]cl-positions,</text>
+	<text transform="matrix(1 0 0 1 143.083 88.0557)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-[ex|in]cl-rsids, -[ex|in]cl-snpids, -[ex|in]cl-snps-matching</text>
+	<text transform="matrix(1 0 0 1 28.4229 90.5264)" font-family="'MyriadPro-Regular'" font-size="16">Input data</text>
+	<g>
+		<g>
+			
+				<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="175.614" y1="38.265" x2="175.614" y2="48.177"/>
+			<g>
+				<path fill="#58595B" d="M175.614,54.212c-1.054-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.755-1.72
+					C178.465,47.849,176.667,51.372,175.614,54.212z"/>
+			</g>
+		</g>
+	</g>
+	<g>
+		<g>
+			
+				<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="175.614" y1="91.526" x2="175.614" y2="101.437"/>
+			<g>
+				<path fill="#58595B" d="M175.614,107.473c-1.054-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.755-1.72
+					C178.465,101.109,176.667,104.633,175.614,107.473z"/>
+			</g>
+		</g>
+	</g>
+	<g>
+		<g>
+			
+				<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="175.614" y1="131.026" x2="175.614" y2="140.937"/>
+			<g>
+				<path fill="#58595B" d="M175.614,146.973c-1.054-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.755-1.72
+					C178.465,140.609,176.667,144.133,175.614,146.973z"/>
+			</g>
+		</g>
+	</g>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="127.6,-2.442 119.871,-2.442 119.871,175.558 
+			127.6,175.558 		"/>
+		<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="112.033" y1="86.558" x2="119.871" y2="86.558"/>
+	</g>
+</g>
+<g>
+	<text transform="matrix(1 0 0 1 577.2285 38.3779)" font-family="'MyriadPro-Regular'" font-size="12">Merge data between cohorts</text>
+	<text transform="matrix(1 0 0 1 577.2285 50.3779)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-compare-variants-by, -flip-to-match-cohort1</text>
+	<text transform="matrix(1 0 0 1 577.2285 83.3652)" font-family="'MyriadPro-Regular'" font-size="12">Merge in extra data sources</text>
+	<text transform="matrix(1 0 0 1 577.2285 95.3652)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-merge-in, -merge-strategy, -merge-prefix</text>
+	<text transform="matrix(1 0 0 1 577.2285 127.4668)" font-family="'MyriadPro-Regular'" font-size="12">Filter samples</text>
+	<text transform="matrix(1 0 0 1 577.2285 139.4668)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-[ex|in]cl-samples, -[ex|in]cl-samples-where</text>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="565.664,24.696 557.936,24.696 557.936,148.421 
+			565.664,148.421 		"/>
+		<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="550.098" y1="86.558" x2="557.936" y2="86.558"/>
+	</g>
+	<g>
+		<g>
+			<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="609.76" y1="55.519" x2="609.76" y2="65.431"/>
+			<g>
+				<path fill="#58595B" d="M609.76,71.467c-1.055-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.755-1.72
+					C612.61,65.103,610.812,68.626,609.76,71.467z"/>
+			</g>
+		</g>
+	</g>
+	<g>
+		<g>
+			<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="609.76" y1="100.52" x2="609.76" y2="110.432"/>
+			<g>
+				<path fill="#58595B" d="M609.76,116.467c-1.055-2.84-2.852-6.363-4.756-8.548l4.756,1.72l4.755-1.72
+					C612.61,110.104,610.812,113.627,609.76,116.467z"/>
+			</g>
+		</g>
+	</g>
+	<text transform="matrix(1 0 0 1 451.5684 77.7725)" font-family="'MyriadPro-Regular'" font-size="16">Merge and</text>
+	<text transform="matrix(1 0 0 1 451.5684 96.9727)" font-family="'MyriadPro-Regular'" font-size="16">filter samples</text>
+</g>
+<g>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" points="98.545,235.488 98.546,217.428 
+			982.253,218.552 982.253,190.539 		"/>
+		<g>
+			<path fill="#58595B" d="M98.545,242.042c1.229-2.727,3.323-6.109,5.541-8.208l-5.541,1.653l-5.538-1.653
+				C95.225,235.932,97.32,239.315,98.545,242.042z"/>
+		</g>
+	</g>
+</g>
+<g>
+	<text transform="matrix(1 0 0 1 191.127 342.4419)" font-family="'MyriadPro-Regular'" font-size="12">Output genotypes</text>
+	<text transform="matrix(1 0 0 1 191.127 354.4419)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-og</text>
+	<text transform="matrix(1 0 0 1 205.9678 354.4419)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -ofiletype, -vcf-output-fields,</text>
+	<text transform="matrix(1 0 0 1 191.127 366.4419)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-bgen-bits, -omit-chromosome, -sort</text>
+	<text transform="matrix(1 0 0 1 191.127 291.4419)" font-family="'MyriadPro-Regular'" font-size="12">Output samples</text>
+	<text transform="matrix(1 0 0 1 191.127 303.4419)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-os</text>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="175.687,279.692 167.958,279.692 167.958,371.604 
+			175.687,371.604 		"/>
+		<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="160.12" y1="325.648" x2="167.958" y2="325.648"/>
+	</g>
+	<text transform="matrix(1 0 0 1 48 329.647)" font-family="'MyriadPro-Regular'" font-size="16">Recode/output</text>
+	<g>
+		<g>
+			
+				<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="223.646" y1="310.942" x2="223.646" y2="320.854"/>
+			<g>
+				<path fill="#58595B" d="M223.646,326.89c-1.053-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.756-1.72
+					C226.497,320.526,224.699,324.05,223.646,326.89z"/>
+			</g>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<text transform="matrix(1 0 0 1 493.7168 277.9468)" font-family="'MyriadPro-Regular'" font-size="12">Compute per-variant summary statistics</text>
+		<text transform="matrix(1 0 0 1 493.7168 289.9468)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-snp-stats</text>
+		<text transform="matrix(1 0 0 1 537.6357 289.9468)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -intensity-stats,</text>
+		<text transform="matrix(1 0 0 1 493.7168 301.9468)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-differential, -stratify,</text>
+		<text transform="matrix(1 0 0 1 493.7168 313.9468)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-annotate-genetic-map, -annotate-sequence, -flanking,</text>
+		<text transform="matrix(1 0 0 1 493.7168 325.9468)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-fit-clusters, -fit-cluster-parameters, -fit-cluster-scale</text>
+		<text transform="matrix(1 0 0 1 493.7168 359.6069)" font-family="'MyriadPro-Regular'" font-size="12">Output per-variant summary statistics</text>
+		<text transform="matrix(1 0 0 1 493.7168 371.6069)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-osnp</text>
+		<text transform="matrix(1 0 0 1 518.8867 371.6069)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -analysis-name, -analysis-chunk,</text>
+		<text transform="matrix(1 0 0 1 493.7168 383.6069)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-no-clobber</text>
+		<g>
+			<g>
+				
+					<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="525.898" y1="330.658" x2="525.898" y2="340.57"/>
+				<g>
+					<path fill="#58595B" d="M525.898,346.605c-1.054-2.84-2.853-6.363-4.756-8.547l4.756,1.719l4.755-1.719
+						C528.749,340.242,526.952,343.766,525.898,346.605z"/>
+				</g>
+			</g>
+		</g>
+	</g>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="479.425,264.434 471.696,264.434 471.696,386.863 
+			479.425,386.863 		"/>
+		<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="463.858" y1="325.648" x2="471.696" y2="325.648"/>
+	</g>
+	<text transform="matrix(1 0 0 1 380.0098 317.3901)" font-family="'MyriadPro-Regular'" font-size="16">Per-variant</text>
+	<text transform="matrix(1 0 0 1 366.0264 336.5894)" font-family="'MyriadPro-Regular'" font-size="16">computation</text>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="386.055" y1="86.558" x2="421.339" y2="86.558"/>
+		<g>
+			<path fill="#58595B" d="M431.963,86.558c-4.999,2.039-11.2,5.518-15.046,9.203l3.028-9.203l-3.028-9.203
+				C420.763,81.04,426.964,84.521,431.963,86.558z"/>
+		</g>
+	</g>
+</g>
+<g>
+	<g>
+		<text transform="matrix(1 0 0 1 947.5156 13.8945)" font-family="'MyriadPro-Regular'" font-size="12">Threshhold genotype probabilities</text>
+		<text transform="matrix(1 0 0 1 947.5156 28.2935)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-threshhold</text>
+		<text transform="matrix(1 0 0 1 996.2744 28.2935)" font-family="'MyriadPro-Regular'" font-size="12" letter-spacing="18"> </text>
+		<text transform="matrix(1 0 0 1 947.5098 155.5859)" font-family="'MyriadPro-Regular'" font-size="12">Reorder samples</text>
+		<text transform="matrix(1 0 0 1 947.5098 167.5859)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-reorder</text>
+		<text transform="matrix(1 0 0 1 947.5098 110.6387)" font-family="'MyriadPro-Regular'" font-size="12">Normalise sample file columns</text>
+		<text transform="matrix(1 0 0 1 947.5098 122.6387)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-quantile-normalise</text>
+		<text transform="matrix(1 0 0 1 947.5098 63.5918)" font-family="'MyriadPro-Regular'" font-size="12">Add/compute per-sample data</text>
+		<text transform="matrix(1 0 0 1 947.5098 75.5918)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-sample-data, -condition-on</text>
+		<g>
+			<g>
+				<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="980.04" y1="81.865" x2="980.04" y2="91.777"/>
+				<g>
+					<path fill="#58595B" d="M980.04,97.812c-1.053-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.756-1.72
+						C982.892,91.449,981.094,94.972,980.04,97.812z"/>
+				</g>
+			</g>
+		</g>
+		<g>
+			<g>
+				
+					<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="980.04" y1="126.585" x2="980.04" y2="136.498"/>
+				<g>
+					<path fill="#58595B" d="M980.04,142.533c-1.053-2.84-2.852-6.363-4.756-8.547l4.756,1.72l4.756-1.72
+						C982.892,136.169,981.094,139.693,980.04,142.533z"/>
+				</g>
+			</g>
+		</g>
+		<g>
+			<g>
+				
+					<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="980.034" y1="34.697" x2="980.034" y2="44.609"/>
+				<g>
+					<path fill="#58595B" d="M980.034,50.644c-1.053-2.84-2.852-6.363-4.756-8.548l4.756,1.721l4.756-1.721
+						C982.885,44.281,981.088,47.804,980.034,50.644z"/>
+				</g>
+			</g>
+		</g>
+		<g>
+			<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="933.338,0.617 925.61,0.617 925.61,172.5 933.338,172.5 
+							"/>
+			<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="917.772" y1="86.558" x2="925.61" y2="86.558"/>
+		</g>
+	</g>
+	<text transform="matrix(1 0 0 1 829.3223 89.8379)" font-family="'MyriadPro-Regular'" font-size="16">Adjust data</text>
+</g>
+<g>
+	<g>
+		<text transform="matrix(1 0 0 1 883.8613 293.3232)" font-family="'MyriadPro-Regular'" font-size="12">Compute per-sample summary statistics</text>
+		<text transform="matrix(1 0 0 1 883.8613 305.3232)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-sample-stats</text>
+		<text transform="matrix(1 0 0 1 943.8301 305.3232)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -risk-score</text>
+		<text transform="matrix(1 0 0 1 883.8613 340.7939)" font-family="'MyriadPro-Regular'" font-size="12">Output per-sample summary statistics</text>
+		<text transform="matrix(1 0 0 1 883.8613 352.7939)" fill="#58595B" font-family="'MyriadPro-Bold'" font-size="10">-osample</text>
+		<text transform="matrix(1 0 0 1 925.0811 352.7939)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">, -analysis-name, -analysis-chunk,</text>
+		<text transform="matrix(1 0 0 1 883.8613 364.7939)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-no-clobber</text>
+		<g>
+			<g>
+				
+					<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="916.043" y1="311.032" x2="916.043" y2="320.946"/>
+				<g>
+					<path fill="#58595B" d="M916.043,326.98c-1.054-2.84-2.852-6.361-4.756-8.547l4.756,1.72l4.755-1.72
+						C918.895,320.617,917.096,324.14,916.043,326.98z"/>
+				</g>
+			</g>
+		</g>
+	</g>
+	<g>
+		<polyline fill="none" stroke="#58595B" stroke-miterlimit="10" points="869.624,279.581 861.895,279.581 861.895,371.716 
+			869.624,371.716 		"/>
+		<line fill="none" stroke="#58595B" stroke-miterlimit="10" x1="854.059" y1="325.648" x2="861.895" y2="325.648"/>
+	</g>
+	<text transform="matrix(1 0 0 1 768.1387 325.6475)" font-family="'MyriadPro-Regular'" font-size="16">Per-sample</text>
+	<text transform="matrix(1 0 0 1 756.1709 344.8467)" font-family="'MyriadPro-Regular'" font-size="16">computation</text>
+</g>
+<g>
+	<g>
+		<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="771.139" y1="86.558" x2="806.423" y2="86.558"/>
+		<g>
+			<path fill="#58595B" d="M817.047,86.558c-4.999,2.039-11.2,5.518-15.046,9.203l3.028-9.203l-3.028-9.203
+				C805.847,81.04,812.048,84.521,817.047,86.558z"/>
+		</g>
+	</g>
+</g>
+<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="416.915" y1="236.31" x2="416.917" y2="218.25"/>
+<g>
+	<path fill="#58595B" d="M416.915,242.864c1.229-2.727,3.322-6.109,5.541-8.208l-5.541,1.653l-5.538-1.653
+		C413.595,236.753,415.69,240.137,416.915,242.864z"/>
+</g>
+<line fill="none" stroke="#58595B" stroke-width="2" stroke-miterlimit="10" x1="806.421" y1="236.31" x2="806.423" y2="218.25"/>
+<g>
+	<path fill="#58595B" d="M806.421,242.864c1.229-2.727,3.322-6.109,5.541-8.208l-5.541,1.653l-5.538-1.653
+		C803.101,236.753,805.196,240.137,806.421,242.864z"/>
+</g>
+</svg>
