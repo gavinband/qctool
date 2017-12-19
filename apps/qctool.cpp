@@ -1461,7 +1461,7 @@ public:
 				) ;
 			}
 			snp_data_source = open_merged_data_sources(
-				snp_data_source,
+				snp_data_source, *samples,
 				(*merge_in_sources)[0], (*merge_in_sources)[1]
 			) ;
 		}
@@ -1604,6 +1604,9 @@ private:
 		needle_samples.get_column_values( needle_column, boost::bind( push_back, &needle_ids, _2 ) ) ;
 		haystack_samples.get_column_values( haystack_column, boost::bind( push_back, &haystack_ids, _2 ) ) ;
 
+		assert( needle_ids.size() == needle_samples.size() ) ;
+		assert( haystack_ids.size() == haystack_samples.size() ) ;
+
 		// typedef boost::unordered_map< VariantEntry, std::size_t > HaystackMap ;
 		typedef std::map< genfile::VariantEntry, std::size_t > IdMap ;
 		IdMap haystack_map ;
@@ -1625,6 +1628,7 @@ private:
 	
 	genfile::SNPDataSource::UniquePtr open_merged_data_sources(
 		genfile::SNPDataSource::UniquePtr snp_data_source,
+		genfile::CohortIndividualSource const& samples,
 		std::string const& merge_in_gen_file,
 		std::string const& merge_in_sample_file
 	) {
@@ -1669,7 +1673,7 @@ private:
 #if 1
 			merge_in_source = genfile::ReorderingSNPDataSource::create(
 				merge_in_source,
-				get_sample_id_mapping( *m_samples, id_columns[0], *merge_in_samples, id_columns[1] )
+				get_sample_id_mapping( samples, id_columns[0], *merge_in_samples, id_columns[1] )
 			) ;
 #else
 			merge_in_source.reset(
