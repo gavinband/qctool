@@ -12,6 +12,7 @@
 #include <vector>
 #include <set>
 #include <algorithm>
+#include <limits>
 #include "config/config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
@@ -24,27 +25,27 @@ namespace genfile {
 	class ReorderingSNPDataSource: public SNPDataSource
 	{
 	public:
+		static std::size_t const eNotIncluded ;
+		
+		static SNPDataSource::UniquePtr create(
+			SNPDataSource::UniquePtr source,
+			std::vector< std::size_t > const& order
+		) ;
+
+	public:
+		/*
+		* Present a view of a data source with samples reordered according to the 
+		* second argument.
+		* Argument 'order' is a mapping from target to source samples
+		* i.e. if order[j] = v_j, then v_j is the index of target sample
+		* j in the source data.  If target sample j is not in the source data
+		* it should be given value eNotIncluded.
+		*/
 		ReorderingSNPDataSource(
 			SNPDataSource::UniquePtr source,
 			std::vector< std::size_t > const& order
-		):
-			m_source( source ),
-			m_order( order )
-		{
-			assert( m_source.get() ) ;
-			assert( m_order.size() == m_source->number_of_samples() ) ;
-			assert( *std::min_element( m_order.begin(), m_order.end() ) == 0 ) ;
-			assert( *std::max_element( m_order.begin(), m_order.end() ) == ( m_order.size() - 1 ) ) ;
-			assert( std::set< std::size_t > ( m_order.begin(), m_order.end() ).size() == m_order.size() ) ;
-			m_inverse_order.resize( order.size() ) ;
-			for( std::size_t i = 0; i < m_order.size(); ++i ) {
-				m_inverse_order[ m_order[i] ] = i ;
-			}
-		}
+		) ;
 
-		void set_expected_ploidy( GetPloidy getPloidy ) {
-			m_source->set_expected_ploidy( getPloidy ) ;
-		} ;
 		Metadata get_metadata() const {
 			return m_source->get_metadata() ;
 		} ;
@@ -52,7 +53,7 @@ namespace genfile {
 			return m_source->operator bool() ;
 		} ;
 		unsigned int number_of_samples() const {
-			return m_source->number_of_samples() ;
+			return m_order.size() ;
 		};
 		OptionalSnpCount total_number_of_snps() const {
 			return m_source->total_number_of_snps() ;
@@ -90,11 +91,23 @@ namespace genfile {
 
 	private:
 		SNPDataSource::UniquePtr m_source ;
-		// If order[i] = j then this indicates
-		// that sample i in result dataset is sample j in the original dataset.
+		// If order[j] = v_j then this indicates
+		// that sample j in result dataset is sample v_j in the original dataset.
 		std::vector< std::size_t > m_order ;
-		// We need to compute the inverse.
+		// Inverse order, stored for efficient computation.
 		std::vector< std::size_t > m_inverse_order ;
+		
+		
+		// Used in sample mapping
+		std::vector< uint32_t > m_ploidies ;
+		std::vector< std::pair< OrderType, ValueType > > m_types ;
+		std::vector< std::vector< char > > m_entry_types ;
+		std::vector< std::vector< Integer > > m_ints ;
+		std::vector< std::vector< std::string > > m_strings ;
+		std::vector< std::vector< double > > m_doubles ;
+		
+		friend struct ReorderingVariantDataReader ;
+		
 	} ;
 }
 
