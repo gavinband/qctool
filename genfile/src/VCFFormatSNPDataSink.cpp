@@ -53,11 +53,14 @@ namespace genfile {
 	
 	namespace {
 		struct DataWriter: public VariantDataReader::PerSampleSetter {
+			enum State { eUninitialised = 0, eInitialised = 1, eSampleSet = 2, eNumberOfEntriesSet = 3, eValueSet = 4, eFinalised = 5 } ;
+
 			DataWriter( boost::ptr_vector< std::ostringstream >& streams, bool field_is_genotype ):
 				m_streams( streams ),
 				m_field_is_genotype( field_is_genotype ),
 				m_sample_i( 0 ),
-				m_sep( m_field_is_genotype ? '/' : ',' )
+				m_sep( m_field_is_genotype ? '/' : ',' ),
+				m_state( eUninitialised )
 			{
 			}
 			
@@ -66,10 +69,20 @@ namespace genfile {
 			void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 				assert( m_streams.size() == nSamples ) ;
 				m_sample_i = 0 ;
+				m_state = eInitialised ;
 			}
 
 			bool set_sample( std::size_t i ) {
+				// Ensure we are in a correct state
+				assert( m_state == eInitialised || m_state == eValueSet || m_state == eSampleSet ) ;
+				// Ensure samples are delivered contiguously
+				assert( (m_sample_i == 0 && i == 0) || ( i == m_sample_i+1 )) ;
+				if( m_state == eSampleSet ) {
+					// last sample was completely missing, write a .
+					m_streams[ m_sample_i ] << "." ;
+				}
 				m_sample_i = i ;
+				m_state = eSampleSet ;
 				return true ;
 			}
 
@@ -82,6 +95,7 @@ namespace genfile {
 				} else {
 					m_sep = ',' ;
 				}
+				m_state = eNumberOfEntriesSet ;
 			}
 
 			void set_value( std::size_t, MissingValue const value ) {
@@ -89,6 +103,7 @@ namespace genfile {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << "." ;
+				m_state = eValueSet ;
 			}
 
 			void set_value( std::size_t, std::string& value ) {
@@ -96,6 +111,7 @@ namespace genfile {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
+				m_state = eValueSet ;
 			}
 
 			void set_value( std::size_t, Integer const value ) {
@@ -103,6 +119,7 @@ namespace genfile {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
+				m_state = eValueSet ;
 			}
 
 			void set_value( std::size_t, double const value ) {
@@ -110,9 +127,12 @@ namespace genfile {
 					m_streams[ m_sample_i ] << m_sep ;
 				}
 				m_streams[ m_sample_i ] << value ;
+				m_state = eValueSet ;
 			}
 			
-			void finalise() {}
+			void finalise() {
+				m_state = eFinalised ;
+			}
 
 		private:
 			boost::ptr_vector< std::ostringstream >& m_streams ;
@@ -122,6 +142,7 @@ namespace genfile {
 			std::size_t m_entry_i ;
 			OrderType m_order_type ;
 			char m_sep ;
+			State m_state ;
 		} ;
 	}
 
