@@ -559,13 +559,14 @@ namespace impl {
 		// estimate allele frequency using data augmentation:
 		// add two haplotypes, one with each allele.
 		// This prevents the estimate becoming one or zero.
-		double allele_frequency = (1 + genotypes.sum()) / ( 2 + (2.0 * nonmissingness.sum()) ) ;
+		double const posterior_allele_frequency = (1 + genotypes.sum()) / ( 2 + (2.0 * nonmissingness.sum()) ) ;
+		double const allele_frequency = genotypes.sum() / (2.0 * nonmissingness.sum()) ;
 		if( std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			pca::mean_centre_genotypes( &genotypes, nonmissingness, allele_frequency ) ;
 			// Could compute actual SNP sd:
 			//double const sd = std::sqrt( ( genotypes.array().square().sum() - ( genotypes.sum() * genotypes.sum() ) ) / ( nonmissingness.sum() - 1 ) ) ;
 			// Or sd based on allele frequency:
-			double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			double const sd = std::sqrt( ( 2.0 * posterior_allele_frequency * ( 1.0 - posterior_allele_frequency )) ) ;
 			genotypes /= sd ;
 			m_dispatcher->add_data( &genotypes, &nonmissingness ) ;
 			++m_number_of_snps_included ;
@@ -759,7 +760,8 @@ namespace impl {
 		// double const allele_frequency = allele2_count / ( nonmissing_count * 2.0 ) ;
 		// Regularised estimate based on adding one of each allele,
 		// this matches Price et al Nature Genetics 2006
-		double const allele_frequency = (1 + allele2_count) / ( 2 + ( 2 * nonmissing_count)) ;
+		double const posterior_allele_frequency = (1 + allele2_count) / ( 2 + ( 2 * nonmissing_count)) ;
+		double const allele_frequency = allele2_count / ( 2 * nonmissing_count ) ;
 		if( nonmissing_count > 0 && std::min( allele_frequency, 1.0 - allele_frequency ) > m_allele_frequency_threshhold ) {
 			// Ok we will process this SNP.
 			// We batch SNPs together to form a total of m_number_of_snps_per_computation SNPs.
@@ -787,7 +789,7 @@ namespace impl {
 
 			std::size_t const lookup_table_index = ( m_snp_count % m_number_of_snps_per_computation ) / m_number_of_snps_per_chunk ;
 			double const mean = 2.0 * allele_frequency ;
-			double const sd = std::sqrt( ( 2.0 * allele_frequency * ( 1.0 - allele_frequency )) ) ;
+			double const sd = std::sqrt( ( 2.0 * posterior_allele_frequency * ( 1.0 - posterior_allele_frequency )) ) ;
 #if DEBUG_KINSHIP_COEFFICIENT_COMPUTER
 			std::cerr << "NormaliseGenotypesAndComputeXXtFast::processed_snp(): filling lookup table " << lookup_table_index << ".\n" ;
 #endif
