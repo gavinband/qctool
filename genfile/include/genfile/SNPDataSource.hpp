@@ -70,7 +70,6 @@ namespace genfile {
 		void reset_to_start() ;
 
 		typedef boost::function< int ( Chromosome const&, std::size_t ) > GetPloidy ;
-		virtual void set_expected_ploidy( GetPloidy ) {} ;
 
 		virtual Metadata get_metadata() const = 0 ;
 
