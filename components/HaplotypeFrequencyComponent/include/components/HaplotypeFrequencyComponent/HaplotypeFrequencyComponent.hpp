@@ -39,6 +39,7 @@ public:
 	void set_max_distance( uint64_t distance ) ;
 	void set_min_r2( double min_r2 ) ;
 	void set_stratification( genfile::SampleStratification stratification ) ;
+	void set_prior( Eigen::Matrix2d const& matrix ) ;
 
 public:
 	HaplotypeFrequencyComponent( genfile::SNPDataSource::UniquePtr source, appcontext::UIContext& ui_context ) ;
@@ -46,25 +47,41 @@ public:
 public:
 	void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
 	void processed_snp( genfile::VariantIdentifyingData const& target_snp, genfile::VariantDataReader& target_data_reader ) ;
+
 	void compute_ld_measures(
 		genfile::VariantIdentifyingData const& source_snp,
 		genfile::VariantDataReader& source_data_reader,
 		genfile::VariantIdentifyingData const& target_snp,
 		genfile::VariantDataReader& target_data_reader
 	) ;
-	
-	void compute_ld_measures(
-		genfile::VariantIdentifyingData const& source_snp,
-		Eigen::VectorXd const& source_genotypes,
-		genfile::VariantIdentifyingData const& target_snp,
-		Eigen::VectorXd const& target_genotypes
-	) ;
 
 	void compute_ld_measures(
 		genfile::VariantIdentifyingData const& source_snp,
-		Eigen::VectorXd const& source_genotypes,
+		std::vector< int > const& source_calls,
+		std::vector< uint32_t > const& source_ploidy,
 		genfile::VariantIdentifyingData const& target_snp,
-		Eigen::VectorXd const& target_genotypes,
+		std::vector< int > const& target_calls,
+		std::vector< uint32_t > const& target_ploidy,
+		Eigen::MatrixXd const& dosages,
+		Eigen::MatrixXd const& nonmissingness
+	) ;
+
+	bool compute_dosage_ld_measures(
+		genfile::VariantIdentifyingData const& source_snp,
+		genfile::VariantIdentifyingData const& target_snp,
+		Eigen::MatrixXd const& dosages,
+		Eigen::MatrixXd const& nonmissingness,
+		std::string const& variable_name_stub,
+		std::vector< genfile::SampleRange > const& sample_set
+	) ;
+
+	bool compute_em_ld_measures(
+		genfile::VariantIdentifyingData const& source_snp,
+		std::vector< int > const& source_calls,
+		std::vector< uint32_t > const& source_ploidy,
+		genfile::VariantIdentifyingData const& target_snp,
+		std::vector< int > const& target_calls,
+		std::vector< uint32_t > const& target_ploidy,
 		std::string const& variable_name_stub,
 		std::vector< genfile::SampleRange > const& sample_set
 	) ;
@@ -81,6 +98,7 @@ private:
 	int64_t m_max_distance ;
 	double m_min_r2 ;
 	haplotype_frequency_component::FlatTableDBOutputter::UniquePtr m_sink ;
+	Eigen::Matrix2d m_prior ;
 } ;
 
 #endif

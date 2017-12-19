@@ -22,8 +22,8 @@ HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood(
 	m_D_ll( 3 ),
 	m_DDt_ll( 3, 3 )
 {
-	if( m_genotype_table.array().abs().maxCoeff() == 0 ) {
-		throw genfile::BadArgumentError( "HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood()", "genotyped_table = 0" ) ;
+	if( m_genotype_table.array().maxCoeff() == 0 && m_haplotype_table.array().maxCoeff() == 0 ) {
+		throw genfile::BadArgumentError( "HaplotypeFrequencyLogLikelihood::HaplotypeFrequencyLogLikelihood()", "genotype_table, haplotype_table" ) ;
 	}
 	// store derivatives of elements of the parameters pi with respect to pi.
 	m_dpi.push_back( std::vector< RowVector >( 2, RowVector::Zero( 3 ) )) ;

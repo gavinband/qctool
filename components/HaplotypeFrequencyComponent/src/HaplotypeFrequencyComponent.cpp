@@ -24,7 +24,7 @@
 #include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
-// #define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
+#define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
 struct HaplotypeFrequencyLogLikelihood ;
 
 void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& options ) {
@@ -47,6 +47,8 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 			"lower than this squared correlation will not be output." )
 		.set_takes_single_value()
 		.set_default_value( "0" ) ;
+	options[ "-no-ld-shrinkage" ]
+		.set_description( "Do not use prior to shrink LD estimates." ) ;
 	options.option_implies_option( "-compute-ld-with", "-old" ) ;
 }
 
@@ -140,6 +142,9 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	
 	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
 	result->set_min_r2( options.get< double >( "-min-r2" )) ;
+	if( options.check( "-no-ld-shrinkage" )) {
+		result->set_prior( Eigen::Matrix2d::Zero() ) ;
+	}
 
 	using namespace genfile::string_utils ;
 	std::string filename = options.get_value< std::string >( "-old" ) ;
@@ -183,8 +188,19 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 	m_ui_context( ui_context ),
 	m_threshhold( 0.9 ),
 	m_max_distance( 200000 ),
-	m_min_r2( 0.0 )
-{}
+	m_min_r2( 0.0 ),
+	m_prior( Eigen::Matrix2d::Zero() )
+{
+	// By default we estimate LD under a prior, represented as data augmentation 
+	// that assumes we have previously seen at least one of each haplotype.
+	// That corresponds to the assumptions:
+	// 1: that both variants are polymorphic, and
+	// 2: there is at least some recombination (or difference) between them.
+	m_prior
+		<< 1, 1,
+		   1, 1
+	;
+}
 
 void HaplotypeFrequencyComponent::set_max_distance( uint64_t distance ) {
 	m_max_distance = distance ;
@@ -193,6 +209,11 @@ void HaplotypeFrequencyComponent::set_max_distance( uint64_t distance ) {
 void HaplotypeFrequencyComponent::set_min_r2( double min_r2 ) {
 	assert( min_r2 >= 0.0 ) ;
 	m_min_r2 = min_r2 ;
+}
+
+void HaplotypeFrequencyComponent::set_prior( Eigen::Matrix2d const& matrix ) {
+	assert( matrix.array().minCoeff() >= 0.0 ) ;
+	m_prior = matrix ;
 }
 
 void HaplotypeFrequencyComponent::set_stratification( genfile::SampleStratification stratification ) {
@@ -238,17 +259,25 @@ void HaplotypeFrequencyComponent::processed_snp(
 }
 
 namespace {
-	struct ThreshholdCalls: public genfile::VariantDataReader::PerSampleSetter {
-		ThreshholdCalls( Eigen::VectorXd* data, double const threshhold ):
-			m_data( data ),
-			m_missing_value( -1.0 ),
-			m_threshhold( threshhold )
-		{}
+	struct CallSetter: public genfile::VariantDataReader::PerSampleSetter {
+		enum { ePhased = 0x80000000 } ;
+
+		CallSetter(
+			std::vector< int >* result,
+			std::vector< uint32_t >* ploidy
+		):
+			m_result( result ),
+			m_ploidy( ploidy )
+		{
+			assert( result ) ;
+		}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			assert( nAlleles == 2 ) ;
-			m_data->resize( nSamples ) ;
-			m_data->setConstant( nSamples, m_missing_value ) ;
+			m_result->clear() ; // ploidy 2
+			m_result->resize( nSamples, -1 ) ;
+			m_ploidy->clear() ;
+			m_ploidy->resize( nSamples, 0 ) ;
 		}
 
 		bool set_sample( std::size_t n ) {
@@ -256,40 +285,204 @@ namespace {
 			return true ;
 		}
 
-		void set_number_of_entries( uint32_t ploidy, std::size_t n, genfile::OrderType const, genfile::ValueType const ) {
-			assert( ploidy == 2 ) ;
-			assert( n == 3 ) ;
+		void set_number_of_entries(
+			uint32_t ploidy, std::size_t n,
+			genfile::OrderType const order_type,
+			genfile::ValueType const value_type
+		) {
+			assert( ploidy <= 2 ) ;
+			if( value_type != genfile::eAlleleIndex ) {
+				throw genfile::BadArgumentError(
+					"Callsetter::set_number_of_entries()",
+					"value_type=" + genfile::string_utils::to_string( value_type ),
+					"Expected a hard-called genotype, consider using threshholded calls."
+				) ;
+			}
+			if( order_type != genfile::ePerOrderedHaplotype && order_type != genfile::ePerUnorderedHaplotype ) {
+				throw genfile::BadArgumentError(
+					"Callsetter::set_number_of_entries()",
+					"order_type=" + genfile::string_utils::to_string( order_type ),
+					"Expected a hard-called genotype, consider using threshholded calls."
+				) ;
+			}
+			assert( value_type == genfile::eAlleleIndex ) ;
+			m_order_type = order_type ;
+			uint32_t storedPloidy = ploidy ;
+			if( m_order_type == genfile::ePerOrderedHaplotype ) {
+				storedPloidy |= ePhased ;
+			}
+			(*m_ploidy)[m_sample_i] = storedPloidy ;
+			(*m_result)[m_sample_i] = 0 ;
 		}
 
 		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
-			(*m_data)[m_sample_i] = m_missing_value ;
+			(*m_result)[m_sample_i] = -1; 
+		}
+
+		void set_value( std::size_t entry_i, Integer const value ) {
+			// Only accumulate if not missing
+			int& stored = (*m_result)[m_sample_i] ;
+			if( stored != -1 ) {
+				if( m_order_type == genfile::ePerUnorderedHaplotype ) {
+					// Compute count of 2nd allele
+					(*m_result)[m_sample_i] += value ;
+				}
+				else if( m_order_type == genfile::ePerOrderedHaplotype ) {
+					// Put haplotype allele counts in seperate bits.
+					(*m_result)[m_sample_i] += (value << entry_i) ;
+				}
+				else {
+					assert(0) ;
+				}
+			}
 		}
 
 		void set_value( std::size_t entry_i, double const value ) {
-			assert( m_value >= 0.0 ) ;
-			//std::cerr << m_sample_i << ": " << entry_i << ": " << value << "\n" ;
-			bool passesThreshhold = ( value >= m_threshhold ) ;
-			if( passesThreshhold ) {
-				// should only get one value passing threshhold.
-				//assert( (*m_data)[m_sample_i] == m_missing_value ) ;
-				(*m_data)[m_sample_i] = entry_i ;
-			}
+			assert(0) ; // expecting GT field
 		}
 
 		void finalise() {
 			// nothing to do
 		}
 		
+	private:
+		std::vector< int >* m_result ;
+		std::vector< uint32_t >* m_ploidy ;
+		std::size_t m_sample_i ;
+		genfile::OrderType m_order_type ;
+	} ;
+	
+	void tabulate_calls(
+		std::vector< genfile::SampleRange > const& sample_set,
+		std::vector< int > left_calls,
+		std::vector< uint32_t > left_ploidy,
+		std::vector< int > right_calls,
+		std::vector< uint32_t > right_ploidy,
+		Eigen::Matrix3d* diploid_table,
+		Eigen::Matrix2d* haploid_table
+	) {
+		for( std::size_t range_i = 0; range_i < sample_set.size(); ++range_i ) {
+			for( std::size_t j = sample_set[range_i].begin(); j < sample_set[range_i].end(); ++j ) {
+				if( right_ploidy[j] == left_ploidy[j] && left_calls[j] != -1 && right_calls[j] != -1 ) {
+					uint32_t const ploidy = left_ploidy[j] & 0xF;
+					uint32_t const phased = left_ploidy[j] & CallSetter::ePhased ;
+					switch( ploidy ) {
+						case 0: break; // zeroploid, nothing to do
+						case 1:
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT > 1
+							std::cerr << "Setting haploid: " << left_calls[j] << ", " << right_calls[j] << ".\n" ;
+#endif
+							++((*haploid_table)( left_calls[j], right_calls[j] )) ;
+							break ;
+						case 2:
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT > 1
+							std::cerr << "Setting diploid: " << left_calls[j] << ", " << right_calls[j] << ".\n" ;
+#endif
+							if( phased != 0 ) {
+								++(*haploid_table)(
+									(left_calls[j] & 0x1),
+									(right_calls[j] & 0x1)
+								) ;
+								++(*haploid_table)(
+									(left_calls[j] & 0x2) >> 1,
+									(right_calls[j] & 0x2) >> 1
+								) ;
+							} else {
+								++(*diploid_table)( left_calls[j], right_calls[j] ) ;
+							}
+							break ;
+						default:
+							assert(0) ;
+					}
+				}
+			}
+		}
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+		std::cerr << "Haploid table:\n" << *haploid_table << "\n" ;
+		std::cerr << "Diploid table:\n" << *diploid_table << "\n" ;
+#endif
+	} ;
+
+	struct DosageSetter: public genfile::VariantDataReader::PerSampleSetter {
+		DosageSetter(
+			Eigen::MatrixXd* result,
+			Eigen::MatrixXd* nonmissingness,
+			int column
+		):
+			m_result( result ),
+			m_nonmissingness( nonmissingness ),
+			m_order_type( genfile::eUnknownOrderType ),
+			m_result_column( column )
+		{
+			assert( result ) ;
+			assert( column >= 0 && column < result->cols() ) ;
+		}
+
+		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+			assert( nAlleles == 2 ) ;
+			assert( m_result->rows() == nSamples ) ;
+			assert( m_nonmissingness->rows() == nSamples ) ;
+		}
+
+		bool set_sample( std::size_t n ) {
+			m_sample_i = n ;
+			m_order_type = genfile::eUnknownOrderType ;
+			return true ;
+		}
+
+		void set_number_of_entries(
+			uint32_t ploidy, std::size_t n,
+			genfile::OrderType const order_type,
+			genfile::ValueType const value_type
+		) {
+			assert( ploidy <= 2 ) ;
+			assert( (order_type == genfile::ePerOrderedHaplotype || genfile::ePerUnorderedGenotype) && value_type == genfile::eProbability ) ;
+			m_order_type = order_type ;
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT > 1
+			std::cerr << m_order_type << ", " << m_sample_i << ", " << m_result_column << "\n" << std::flush ;
+			std::cerr << m_result->rows() << " x " << m_result->cols() << ".\n" << std::flush ;
+			std::cerr << m_nonmissingness->rows() << " x " << m_nonmissingness->cols() << ".\n" << std::flush ;
+#endif
+			(*m_result)(m_sample_i,m_result_column) = 0 ;
+			(*m_nonmissingness)(m_sample_i,m_result_column) = 0 ;
+		}
+
+		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
+			(*m_result)(m_sample_i, m_result_column) = 0 ;
+			(*m_nonmissingness)(m_sample_i,m_result_column) = 0 ;
+		}
+
+		void set_value( std::size_t entry_i, double const value ) {
+			// For biallelic variants, genotypes come in the order of
+			// the number of B alleles, so this computes dosage:
+			if( m_order_type == genfile::ePerOrderedHaplotype ) {
+				// genotypes come in the order A, B (1st hap); A, B (2nd hap)
+				// assumption is variant is biallelic.
+				(*m_result)(m_sample_i, m_result_column) += (entry_i % 2) * value ;
+			} else {
+				// order type = genfile::ePerUnorderedGenotype
+				// genotypes come in the order AA, AB, BB, 
+				(*m_result)(m_sample_i, m_result_column) += entry_i * value ;
+			}
+			(*m_nonmissingness)(m_sample_i,m_result_column) = 1 ;
+		}
+
+		void set_value( std::size_t entry_i, Integer const value ) {
+			assert(0) ; // expecting GT field
+		}
+
+		void finalise() {
+			// nothing to do
+		}
 		
 	private:
-		Eigen::VectorXd* const m_data ;
-		double const m_missing_value ;
-		double const m_threshhold ;
+		Eigen::MatrixXd* m_result ;
+		Eigen::MatrixXd* m_nonmissingness ;
+		genfile::OrderType m_order_type ;
+		int m_result_column ;
 		std::size_t m_sample_i ;
-		double m_value ;
 	} ;
 }
-
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
@@ -298,39 +491,71 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantDataReader& target_data_reader
 ) {
 	if( source_snp.number_of_alleles() == 2 && target_snp.number_of_alleles() == 2 ) {
-		std::vector< Eigen::VectorXd > genotypes( 2 ) ;
-		ThreshholdCalls setter1( &(genotypes[0] ), m_threshhold ) ;
-		ThreshholdCalls setter2( &(genotypes[1] ), m_threshhold ) ;
-		source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter1 ) ) ;
-		target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( setter2 ) ) ;
-	//	source_data_reader.get( ":genotypes:", setter1 ) ;
-	//	target_data_reader.get( ":genotypes:", setter2 ) ;
-		assert( genotypes[0].size() == m_source->number_of_samples() ) ;
-		assert( genotypes[0].size() == genotypes[1].size() ) ;
+		std::vector< int > source_calls ;
+		std::vector< uint32_t > source_ploidy ;
+		std::vector< int > target_calls ;
+		std::vector< uint32_t > target_ploidy ;
+		Eigen::MatrixXd dosages( source_data_reader.get_number_of_samples(), 2 ) ;
+		Eigen::MatrixXd nonmissingness( source_data_reader.get_number_of_samples(), 2 ) ;
 
+		source_data_reader.get( ":genotypes:", CallSetter( &source_calls, &source_ploidy ) ) ;
+		target_data_reader.get( ":genotypes:", CallSetter( &target_calls, &target_ploidy ) ) ;
+		{
+			DosageSetter source_setter( &dosages, &nonmissingness, 0 ) ;
+			DosageSetter target_setter( &dosages, &nonmissingness, 1 ) ;
+			source_data_reader.get( ":genotypes:", genfile::to_GP_unphased( source_setter ) ) ;
+			target_data_reader.get( ":genotypes:", genfile::to_GP_unphased( target_setter ) ) ;
+		}
+		
+		// we treat any data point that is missing in one sample as missing in both
+		for( int i = 0; i < nonmissingness.rows(); ++i ) {
+			if( nonmissingness.row(i).sum() < 2 ) {
+				nonmissingness.row(i).setZero() ;
+			}
+		}
+		
 		compute_ld_measures(
 			source_snp,
-			genotypes[0],
+			source_calls,
+			source_ploidy,
 			target_snp,
-			genotypes[1]
+			target_calls,
+			target_ploidy,
+			dosages,
+			nonmissingness
 		) ;
 	}
 }
 
 void HaplotypeFrequencyComponent::compute_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
-	Eigen::VectorXd const& source_genotypes,
+	std::vector< int > const& source_calls,
+	std::vector< uint32_t > const& source_ploidy,
 	genfile::VariantIdentifyingData const& target_snp,
-	Eigen::VectorXd const& target_genotypes
+	std::vector< int > const& target_calls,
+	std::vector< uint32_t > const& target_ploidy,
+	Eigen::MatrixXd const& dosages,
+	Eigen::MatrixXd const& nonmissingness
 ) {
 	if( m_stratification ) {
 		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
 			try {
-				compute_ld_measures(
+				bool output = compute_em_ld_measures(
 					source_snp,
-					source_genotypes,
+					source_calls,
+					source_ploidy,
 					target_snp,
-					target_genotypes,
+					target_calls,
+					target_ploidy,
+					m_stratification->stratum_name(i) + ":",
+					m_stratification->stratum(i)
+				) ;
+
+				compute_dosage_ld_measures(
+					source_snp,
+					target_snp,
+					dosages,
+					nonmissingness,
 					m_stratification->stratum_name(i) + ":",
 					m_stratification->stratum(i)
 				) ;
@@ -344,13 +569,21 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	} else {
 		try {
-			compute_ld_measures(
+			compute_em_ld_measures(
 				source_snp,
-				source_genotypes,
+				source_calls, source_ploidy,
 				target_snp,
-				target_genotypes,
+				target_calls, target_ploidy,
 				"",
-				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, source_genotypes.size() ) )
+				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) )
+			) ;
+			compute_dosage_ld_measures(
+				source_snp,
+				target_snp,
+				dosages,
+				nonmissingness,
+				"",
+				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) )
 			) ;
 		} catch( genfile::OperationFailedError const& e ) {
 			m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
@@ -361,50 +594,104 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	}
 }
 
-void HaplotypeFrequencyComponent::compute_ld_measures(
+bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
-	Eigen::VectorXd const& source_genotypes,
 	genfile::VariantIdentifyingData const& target_snp,
-	Eigen::VectorXd const& target_genotypes,
+	Eigen::MatrixXd const& dosages,
+	Eigen::MatrixXd const& nonmissingness,
+	std::string const& variable_name_stub,
+	std::vector< genfile::SampleRange > const& sample_set
+) {
+	bool includeInOutput = true ;
+	Eigen::RowVectorXd means = Eigen::RowVectorXd::Zero(2) ;
+	Eigen::RowVectorXd totals = Eigen::RowVectorXd::Zero(2) ;
+	for( std::size_t i = 0; i < sample_set.size(); ++i ) {
+
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+		std::cerr << sample_set[i].begin() << "-" << sample_set[i].end() << ":\n" ;
+		std::cerr << dosages.rows() << "x" << dosages.cols()
+			<< ", " << nonmissingness.rows() << "x" << nonmissingness.cols() << ".\n" ;
+		std::cerr << dosages.block( 0, 0, std::min( int( dosages.rows() ), 10 ), dosages.cols() ) << ".\n" ;
+#endif
+		means.array() += (
+			dosages.block( sample_set[i].begin(), 0, sample_set[i].end() - sample_set[i].begin(), 2 ).array()
+			* nonmissingness.block( sample_set[i].begin(), 0, sample_set[i].end() - sample_set[i].begin(), 2 ).array()
+		).colwise().sum() ;
+		
+		totals += nonmissingness.block( sample_set[i].begin(), 0, sample_set[i].end() - sample_set[i].begin(), 2 ).colwise().sum() ;
+	}
+
+	means.array() /= totals.array() ;
+
+	Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero() ;
+	Eigen::Matrix2d nonmissing = Eigen::Matrix2d::Zero() ;
+	for( std::size_t i = 0; i < sample_set.size(); ++i ) {
+		//Eigen::MatrixBase< Eigen::MatrixXd > block = (
+		Eigen::MatrixXd block = (
+			(dosages.block( sample_set[i].begin(), 0,  sample_set[i].end() - sample_set[i].begin(), 2 ).rowwise() - means ).array()
+				* nonmissingness.block( sample_set[i].begin(), 0,  sample_set[i].end() - sample_set[i].begin(), 2 ).array()
+		) ;
+		Eigen::Block< Eigen::MatrixXd const > nonmissing_block = nonmissingness.block(
+			sample_set[i].begin(), 0,  sample_set[i].end() - sample_set[i].begin(), 2
+		) ;
+
+		covariance += block.transpose() * block ;
+		nonmissing += nonmissing_block.transpose() * nonmissing_block ;
+	}
+	// Compute correlation as:
+	// 
+	double r = covariance(0,1) / std::sqrt( covariance(0,0) * covariance(1,1) ) ;
+	includeInOutput = (r*r >= m_min_r2 ) ;
+
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+	std::cerr << "means = " << means << ".\n" ;
+	std::cerr << "cov =\n" << covariance << ".\n" ;
+	std::cerr << "r =\n" << r << ".\n" ;
+#endif
+
+	if( includeInOutput ) {
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r", r  ) ;
+		m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r2", r*r ) ;
+	}
+	return includeInOutput ;
+}
+
+bool HaplotypeFrequencyComponent::compute_em_ld_measures(
+	genfile::VariantIdentifyingData const& source_snp,
+	std::vector< int > const& source_calls,
+	std::vector< uint32_t > const& source_ploidy,
+	genfile::VariantIdentifyingData const& target_snp,
+	std::vector< int > const& target_calls,
+	std::vector< uint32_t > const& target_ploidy,
 	std::string const& variable_name_stub,
 	std::vector< genfile::SampleRange > const& sample_set
 ) {
 	// Construct table of genotypes at each SNP.
-	Eigen::Matrix3d table = Eigen::Matrix3d::Zero() ;
-	for( std::size_t i = 0; i < sample_set.size(); ++i ) {
-		for( std::size_t j = sample_set[i].begin(); j < sample_set[i].end(); ++j ) {
-			assert( source_genotypes(j) > -2 && source_genotypes(j) < 3 ) ;
-			assert( target_genotypes(j) > -2 && target_genotypes(j) < 3 ) ;
-			if( source_genotypes(j) != -1 && target_genotypes(j) != -1 ) {
-				++table( source_genotypes(j), target_genotypes(j) ) ;
-			}
-		}
-	}
+	Eigen::Matrix3d diploid_table = Eigen::Matrix3d::Zero() ;
+	Eigen::Matrix2d haploid_table = Eigen::Matrix2d::Zero() ;
 	
-	// We estimate LD under a prior, represented as data augmentation 
-	// that assumes we have previously seen at least one of each haplotype.
-	// That corresponds to the assumptions:
-	// 1: that both variants are polymorphic, and
-	// 2: there is at least some recombination (or difference) between them.
-	Eigen::Matrix2d prior ;
-	prior
-		<< 1, 1,
-		   1, 1
-	;
+	tabulate_calls(
+		sample_set,
+		source_calls, source_ploidy,
+		target_calls, target_ploidy,
+		&diploid_table,
+		&haploid_table
+	) ;
 	
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "SNP1: " << source_snp << "\n"
 		<< "SNP2: " << target_snp << "\n"
-		<< "table: " << table << ".\n" ;
+		<< "diploids: " << diploid_table << ".\n"
+		<< "haploids: " << haploid_table << ".\n" ;
 #endif
 
-	genfile::VariantEntry::Integer const N = table.sum() ;
+	genfile::VariantEntry::Integer const N = diploid_table.sum() + haploid_table.sum() ;
 	bool includeInOutput = (m_min_r2 == 0.0 ) ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;
 
 	if( includeInOutput ) {
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_genotypes", N ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_haplotypes", missing ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_genotypes", diploid_table.sum() ) ;
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "number_of_haplotypes", haploid_table.sum() ) ;
 	}
 
 	if( N == 0 ) {
@@ -422,7 +709,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	} else {
 		try {
-			HaplotypeFrequencyLogLikelihood ll( table, prior ) ;
+			HaplotypeFrequencyLogLikelihood ll( diploid_table, haploid_table + m_prior ) ;
 			HaplotypeFrequencyLogLikelihood::Vector pi( 4 ) ;
 			pi.tail( 3 ) = ll.get_MLE_by_EM() ;
 			pi(0) = 1.0 - pi.tail( 3 ).sum() ;
@@ -437,6 +724,14 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			double const Dprime = D / max_D ;
 			double const r = D / std::sqrt( (pi(0)+pi(1)) * (pi(2)+pi(3)) * (pi(0)+pi(2)) * (pi(1)+pi(3))) ;
 			double const r2 = r*r ;
+#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
+			std::cerr << "r = \n" << std::setprecision(3) << r << ".\n" ;
+			std::cerr << "r^2 = " << r2 << ".\n" ;
+			std::cerr << "D =\n" << D << ".\n" ;
+			std::cerr << "Dprime =\n" << Dprime << ".\n" ;
+			std::cerr << "pi = " << pi.transpose() << "\n" ;
+#endif
+			
 			includeInOutput = (r2 >= m_min_r2 ) ;
 			if( includeInOutput ) {
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", pi(0) ) ;
@@ -454,7 +749,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 		catch( genfile::OperationFailedError const& ) {
 			m_ui_context.logger() << "!! Could not compute haplotype frequencies for " << source_snp << ", " << target_snp << ".\n"
-				<< "!! table is:\n" << table << ".\n" ;
+				<< "!! table is:\n" << diploid_table << ".\n" ;
 
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", missing ) ;
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", missing ) ;
@@ -466,39 +761,9 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "r2", missing ) ;
 		}
 	
-		if( includeInOutput ) {
-			// compute allele dosage r squared too.
-			Eigen::Vector2d means = Eigen::Vector2d::Zero() ;
-			for( int i = 0; i < 3; ++i ) {
-				means(0) += table.row( i ).sum() * i ;
-				means(1) += table.col( i ).sum() * i ;
-			}
-			means /= table.sum() ;
-	#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
-			std::cerr << "table: " << table << "\n" ;
-			std::cerr << "prior: " << prior << "\n" ;
-			std::cerr << "means:\n" << std::fixed << std::setprecision( 5 ) <<  means << ".\n" ;
-	#endif
-			double dosage_cov = 0.0 ;
-			Eigen::Vector2d variances = Eigen::Vector2d::Zero() ;
-			for( int i = 0; i < 3; ++i ) {
-				for( int j = 0; j < 3; ++j ) {
-					dosage_cov += table(i,j)  * ( i - means(0) ) * ( j - means(1) ) ;
-				}
-				variances(0) += table.row( i ).sum() * ( i - means(0) ) * ( i - means(0) ) ;
-				variances(1) += table.col( i ).sum() * ( i - means(1) ) * ( i - means(1) ) ;
-			}
-		
-#if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT	
-			std::cerr << "dosage_cov:\n" << dosage_cov << ".\n" ;
-			std::cerr << "variances:\n" << variances << ".\n" ;
-#endif
 
-			double dosage_r = dosage_cov / std::sqrt( variances(0) * variances( 1 ) ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r", dosage_r ) ;
-			m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r2", dosage_r * dosage_r ) ;
-		}
 	}
+	return includeInOutput ;
 }
 
 void HaplotypeFrequencyComponent::end_processing_snps() {
