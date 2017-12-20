@@ -339,9 +339,9 @@ namespace metro {
 		}
 	}
 
-	RegressionDesign::Matrix const& RegressionDesign::get_matrix_for_predictor_level( int level ) {
-		int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
+	RegressionDesign& RegressionDesign::set_predictor_level( int level ) {
 		if( m_number_of_predictors > 0 ) {
+			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
 			m_design_matrix.block(
 				0, 1,
 				m_design_matrix.rows(), number_of_predictors_and_interactions
@@ -350,6 +350,6 @@ namespace metro {
 				m_design_matrix.rows(), number_of_predictors_and_interactions
 			) ;
 		}
-		return m_design_matrix ;
+		return *this ;
 	}
 }

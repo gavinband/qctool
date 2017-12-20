@@ -75,7 +75,7 @@ namespace metro {
 				std::cerr << " " << included_samples[i].begin() << "-" << included_samples[i].end() ;
 			}
 			std::cerr << "\n" ;
-			Matrix const& design_matrix = m_design->get_matrix_for_predictor_level(0) ;
+			Matrix const& design_matrix = m_design->set_predictor_level(0).matrix() ;
 			std::cerr << "MultinomialRegressionLogLikelihood::design matrix = (" << design_matrix.rows() << "x" << design_matrix.cols() << ")\n"
 				<< design_matrix.block( 0, 0, print_N, design_matrix.cols() ) << "\n" ;
 			std::cerr << "MultinomialRegressionLogLikelihood::predictor levels = (" << levels.rows() << "x" << levels.cols() << ")\n"
@@ -239,7 +239,7 @@ namespace metro {
 			result->setZero( m_number_of_samples, number_of_levels *  m_number_of_outcomes ) ;
 			Vector sums = Vector::Zero( m_number_of_samples ) ;
 			for( int level_i = 0; level_i < number_of_levels; ++level_i ) {
-				Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( level_i ) ;
+				Matrix const& design_matrix = m_design->set_predictor_level( level_i ).matrix() ;
 				int const block_first_column = level_i * m_number_of_outcomes ;
 				MatrixBlock block = result->block( 0, block_first_column, m_number_of_samples, m_number_of_outcomes ) ;
 				// numerator for baseline outcome is 1
@@ -327,7 +327,7 @@ namespace metro {
 			result->setZero( D * M ) ;
 			terms->setZero( m_design->matrix().rows(), D*M ) ;
 			for( int level_i = 0; level_i < number_of_levels; ++level_i ) {
-				Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( level_i ) ;
+				Matrix const& design_matrix = m_design->set_predictor_level( level_i ).matrix() ;
 				for( int i = 0; i < included_samples.size(); ++i ) {
 					int const start_row = included_samples[i].begin() ;
 					int const end_row = included_samples[i].end() ;
@@ -398,7 +398,7 @@ namespace metro {
 				<< C.block( 0, 0, std::min( int( C.rows() ), 10 ), C.cols() ) << "\n" ;
 #endif
 			for( int level_i = 0; level_i < number_of_levels; ++level_i ) {
-				Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( level_i ) ;
+				Matrix const& design_matrix = m_design->set_predictor_level( level_i ).matrix() ;
 				for( int row_i = 0; row_i < D; ++row_i ) {
 #ifdef EIGEN_RUNTIME_NO_MALLOC
 					Eigen::internal::set_is_malloc_allowed( false ) ;

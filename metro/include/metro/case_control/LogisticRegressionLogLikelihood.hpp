@@ -33,12 +33,12 @@ namespace metro {
 			typedef boost::function< std::string( std::string const& predictor_name, int outcome_level ) > GetParameterName ;
 		public:
 			typedef std::auto_ptr< LogisticRegressionLogLikelihood > UniquePtr ;
-			static UniquePtr create( RegressionDesign::UniquePtr ) ;
+			static UniquePtr create( RegressionDesign& ) ;
 			
 		public:
-			LogisticRegressionLogLikelihood( RegressionDesign::UniquePtr ) ;
+			LogisticRegressionLogLikelihood( RegressionDesign& ) ;
 
-			RegressionDesign const& get_design() const { return *m_design ; }
+			RegressionDesign& get_design() const { return *m_design ; }
 			void set_predictor_levels(
 				Matrix const& levels,
 				Matrix const& probabilities,
@@ -61,7 +61,7 @@ namespace metro {
 			std::string get_summary() const ;
 
 		private:
-			RegressionDesign::UniquePtr m_design ;
+			RegressionDesign* m_design ;
 			GetParameterName m_get_parameter_name ;
 			Point m_parameters ;
 			enum State {

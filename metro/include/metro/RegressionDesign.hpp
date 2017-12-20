@@ -85,7 +85,7 @@ namespace metro {
 		) ;
 
 		Matrix const& matrix() const { return m_design_matrix ; }
-		Matrix const& get_matrix_for_predictor_level( int level ) ;
+		RegressionDesign& set_predictor_level( int level ) ;
 		
 		Matrix const& get_predictor_level_probabilities() const { return m_predictor_level_probabilities ; }
 		int const get_number_of_predictor_levels() const { return m_number_of_predictor_levels ; }

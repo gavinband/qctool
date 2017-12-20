@@ -46,7 +46,7 @@ AUTO_TEST_CASE( test_construction ) {
 					BOOST_CHECK_EQUAL( design.outcome()[i], ( i % 2 ) ) ;
 				}
 
-				Matrix const& matrix = design.get_matrix_for_predictor_level( 0 ) ;
+				Matrix const& matrix = design.set_predictor_level( 0 ).matrix() ;
 				BOOST_CHECK_EQUAL( matrix.rows(), nSamples ) ;
 				BOOST_CHECK_EQUAL( matrix.cols(), nCovariates + nPredictors + 1 ) ;
 
@@ -112,7 +112,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 			design.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
 			
 			for( int iLevel = 0; iLevel < nPredictorLevels; ++iLevel ) {
-				Matrix const& matrix = design.get_matrix_for_predictor_level( iLevel ) ;
+				Matrix const& matrix = design.set_predictor_level( iLevel ).matrix() ;
 			
 				if( nSamples > 0 ) {
 					for( int j = 0; j < nPredictors; ++j ) {

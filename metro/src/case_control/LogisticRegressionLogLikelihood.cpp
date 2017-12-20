@@ -21,7 +21,7 @@
 namespace metro {
 	namespace case_control {
 		LogisticRegressionLogLikelihood::UniquePtr LogisticRegressionLogLikelihood::create(
-			RegressionDesign::UniquePtr design
+			RegressionDesign& design
 		) {
 			return LogisticRegressionLogLikelihood::UniquePtr(
 				new LogisticRegressionLogLikelihood( design )
@@ -29,13 +29,13 @@ namespace metro {
 		}
 		
 		LogisticRegressionLogLikelihood::LogisticRegressionLogLikelihood(
-			RegressionDesign::UniquePtr design
+			RegressionDesign& design
 		):
-			m_design( design ),
+			m_design( &design ),
 			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
 			m_state( e_Uncomputed )
 		{
-			assert( m_design.get() != 0 ) ;
+			assert( m_design != 0 ) ;
 			// Verify design looks sane.
 			Eigen::VectorXd const& outcome = m_design->outcome() ;
 			for( int i = 0; i < outcome.size(); ++i ) {
@@ -191,7 +191,7 @@ namespace metro {
 			Vector linear_combination ;
 			int const number_of_predictor_levels = m_design->get_number_of_predictor_levels() ;
 			for( int g = 0; g < number_of_predictor_levels; ++g ) {
-				Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( g ) ;
+				Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
 				result->col( g ) = evaluate_mean_function( design_matrix * parameters, outcome ) ;
 			}
 		}
@@ -233,7 +233,7 @@ namespace metro {
 				m_first_derivative_terms.setZero( m_design->matrix().rows(), m_design->matrix().cols() ) ;
 				Vector signs = (( m_design->outcome() * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
 				for( int g = 0; g < N_predictor_levels; ++g ) {
-					Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( g ) ;
+					Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
 #if DEBUG_LOGLIKELIHOOD
 					std::cerr << "LogisticRegressionLogLikelihood::compute_value_of_first_derivative(): design_matrix for predictor level " << g << " =\n"
 						<< design_matrix.topRows( std::min( N, 5 ) ) << "\n" ;
@@ -264,7 +264,7 @@ namespace metro {
 			for( int row_i = 0; row_i < D; ++row_i ) {
 				MatrixBlock resultRow = m_value_of_second_derivative.block(row_i, 0, 1, D ) ;
 				for( int g1 = 0; g1 < N_predictor_levels; ++g1 ) {
-					Matrix const& design_matrix = m_design->get_matrix_for_predictor_level( g1 ) ;
+					Matrix const& design_matrix = m_design->set_predictor_level( g1 ).matrix() ;
 					for( std::size_t sample_i = 0; sample_i < included_samples.size(); ++sample_i ) {
 						int const start_row = included_samples[sample_i].begin() ;
 						int const end_row = included_samples[sample_i].end() ;
