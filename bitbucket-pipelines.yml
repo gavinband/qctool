@@ -18,4 +18,4 @@ pipelines:
           - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - mkdir -p test-reports
-          - pybot -xunit test-reports/results.xml ./tests.txt
+          - pybot -d test-reports -o NONE -l NONE -r NONE -x xunit.xml ./tests.txt
