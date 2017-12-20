@@ -17,5 +17,6 @@ pipelines:
           - cd release/test
           - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
-          - pybot ./tests.txt
-          
+          - mkdir -p test-reports
+          - pybot -xunit test-reports/results.xml ./tests.txt
+
