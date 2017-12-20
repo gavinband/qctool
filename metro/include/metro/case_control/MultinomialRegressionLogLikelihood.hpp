@@ -11,7 +11,7 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
-#include "metro/case_control/RegressionDesign.hpp"
+#include "metro/RegressionDesign.hpp"
 #include "metro/case_control/LogLikelihood.hpp"
 
 namespace metro {

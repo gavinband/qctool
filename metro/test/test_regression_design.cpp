@@ -4,14 +4,14 @@
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
 #include "metro/union_ranges.hpp"
-#include "metro/case_control/RegressionDesign.hpp"
+#include "metro/RegressionDesign.hpp"
 
 #define DEBUG 1
 
 BOOST_AUTO_TEST_SUITE( test_regressiondesign )
 AUTO_TEST_CASE( test_construction ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 	typedef RegressionDesign::Matrix Matrix ;
 	typedef RegressionDesign::Vector Vector ;
 
@@ -74,7 +74,7 @@ AUTO_TEST_CASE( test_construction ) {
 
 AUTO_TEST_CASE( test_predictor_levels ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 	typedef RegressionDesign::Matrix Matrix ;
 	typedef RegressionDesign::Vector Vector ;
 
@@ -127,7 +127,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 
 AUTO_TEST_CASE( test_names ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;
@@ -166,7 +166,7 @@ AUTO_TEST_CASE( test_names ) {
 
 AUTO_TEST_CASE( test_names_interaction ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;

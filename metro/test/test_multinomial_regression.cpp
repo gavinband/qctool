@@ -2,7 +2,7 @@
 #include <iostream>
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
-#include "metro/case_control/RegressionDesign.hpp"
+#include "metro/RegressionDesign.hpp"
 #include "metro/case_control/LogisticRegressionLogLikelihood.hpp"
 #include "metro/case_control/MultinomialRegressionLogLikelihood.hpp"
 
@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_SUITE( test_multinomial ) ;
 AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 	typedef RegressionDesign::Matrix Matrix ;
 	typedef RegressionDesign::Vector Vector ;
 	using std::exp ;
@@ -226,6 +227,7 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 	typedef RegressionDesign::Matrix Matrix ;
 	typedef RegressionDesign::Vector Vector ;
 	using std::exp ;
@@ -366,6 +368,7 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
+	using metro::RegressionDesign ;
 	typedef RegressionDesign::Matrix Matrix ;
 	typedef RegressionDesign::Vector Vector ;
 	using std::exp ;

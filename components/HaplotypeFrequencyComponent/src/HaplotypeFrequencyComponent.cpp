@@ -273,7 +273,13 @@ namespace {
 		}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
-			assert( nAlleles == 2 ) ;
+			if( nAlleles != 2 ) {
+				throw genfile::BadArgumentError(
+					"CallSetter::initialise()",
+					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
+					"I only support biallelic variants"
+				) ;
+			}
 			m_result->clear() ; // ploidy 2
 			m_result->resize( nSamples, -1 ) ;
 			m_ploidy->clear() ;

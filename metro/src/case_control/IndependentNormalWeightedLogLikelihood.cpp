@@ -11,7 +11,7 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/case_control/RegressionDesign.hpp"
+#include "metro/RegressionDesign.hpp"
 #include "metro/case_control/LogLikelihood.hpp"
 #include "metro/case_control/IndependentNormalWeightedLogLikelihood.hpp"
 
