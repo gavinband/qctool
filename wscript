@@ -120,7 +120,18 @@ def platform_specific_configure( conf ):
 			conf.define( 'HAVE_CLAPACK', 1 )
 			conf.define( 'HAVE_LAPACK', 1 )
 	else:
-		if conf.check_cxx( lib = 'blas', fragment = '#include "cblas.h"\nint main() {}', uselib_store = 'CBLAS' ):
+		blasCode = """#include "cblas.h"
+int main() {
+	float v[10] ;
+	float result = cblas_snrm2( 1, v, 1 ) ;
+	return int(result) ;
+}
+"""
+		if conf.check_cxx( lib = 'cblas', fragment = blasCode, uselib_store = 'CBLAS' ):
+			conf.define( 'HAVE_CBLAS', 1 ) ;
+		elif conf.check_cxx( lib = 'blas', fragment = blasCode, uselib_store = 'CBLAS' ):
+			conf.define( 'HAVE_CBLAS', 1 ) ;
+		elif conf.check_cxx( lib = 'openblas', fragment = blasCode, uselib_store = 'CBLAS' ):
 			conf.define( 'HAVE_CBLAS', 1 ) ;
 		if conf.check_cxx(
 			lib = 'lapack',
