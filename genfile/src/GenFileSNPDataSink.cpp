@@ -91,7 +91,7 @@ namespace genfile {
 			void set_number_of_entries( uint32_t, std::size_t n, OrderType const order_type, ValueType const value_type ) {
 				if( n != 3 || order_type != ePerUnorderedGenotype || value_type != eProbability ) {
 					throw genfile::BadArgumentError(
-						"genfile::IntensityWriter::set_number_of_entries()",
+						"genfile::GenotypeWriter::set_number_of_entries()",
 						"n=" + string_utils::to_string(n),
 						"Expected 3 genotype probabilities per sample."
 					) ;
