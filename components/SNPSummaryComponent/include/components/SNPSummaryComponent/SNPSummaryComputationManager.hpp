@@ -61,9 +61,6 @@ public:
 	
 private:
 	genfile::CohortIndividualSource const& m_samples ;
-	std::vector< char > m_sexes ;
-	std::map< char, std::vector< int > > m_samples_by_sex ;
-	
 	typedef boost::ptr_map< std::string, SNPSummaryComputation > Computations ;
 	Computations m_computations ;
 
