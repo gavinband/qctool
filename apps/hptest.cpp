@@ -302,12 +302,11 @@ private:
 		while( predictor_source->get_snp_identifying_data( &pv )) {
 			predictor_source->read_variant_data()->get( "GT", CallSetter( &predictor, &predictor_nonmissingness, &predictor_ploidy )) ;
 			design->set_covariates( predictor, predictor_nonmissingness ) ;
-			std::cerr << predictor << "\n" ;
 			outcome_source->reset_to_start() ;
 			while( outcome_source->get_snp_identifying_data( &ov )) {
 				outcome_source->read_variant_data()->get( "GT", CallSetter( &outcome, &outcome_nonmissingness, &outcome_ploidy ) ) ;
 				design->set_outcome( outcome, outcome_nonmissingness, "gp" ) ;
-			
+				
 				get_ui_context().logger()
 					<< "test(): read data for outcome variant: ["
 					<< ov
@@ -317,8 +316,6 @@ private:
 					<< design->get_summary()
 					<< "\n" ;
 				;
-				
-				
 			}
 		}
 	}
