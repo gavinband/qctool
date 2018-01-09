@@ -1,33 +1,36 @@
+#include <string>
 #include <vector>
 #include <iostream>
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
-#include "metro/regression::Design.hpp"
-#include "metro/regression/LogisticLogLikelihood.hpp"
-#include "metro/regression/MultinomialLogLikelihood.hpp"
+#include "metro/regression/Design.hpp"
+#include "metro/regression/Logistic.hpp"
+#include "metro/regression/MultinomialRegressionLogLikelihood.hpp"
 
 // #define DEBUG_TESTS 1
 namespace {
-	void check_close_or_small(
-	    double expected, double observed, 
-	    double small, double pct_tol
+	inline void check_close_or_small(
+		double expected, double observed, 
+		double small, double pct_tol
 	) {
-	    if (std::fabs(expected) < small) {
-	        BOOST_CHECK_SMALL(observed, small);
-	    } else {
-	        BOOST_CHECK_CLOSE(expected, observed, pct_tol);
-	    }
+		if (std::fabs(expected) < small) {
+			BOOST_CHECK_SMALL(observed, small);
+		} else {
+			BOOST_CHECK_CLOSE(expected, observed, pct_tol);
+		}
 	}
 }
+
+typedef std::vector< std::string > Names ;
 
 BOOST_AUTO_TEST_SUITE( test_multinomial ) ;
 
 AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using namespace metro::regression ;
 	using metro::regression::Design ;
-	typedef regression::Design::Matrix Matrix ;
-	typedef regression::Design::Vector Vector ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -38,22 +41,26 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 	predictor_levels(1,0) = 2 ;
 
 	for( int nOutcomes = 3; nOutcomes < 5; ++nOutcomes ) {
-		Vector outcome = Vector::Zero(nSamples) ;
-		Vector outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
+		Matrix outcome = Matrix::Zero(nSamples, nOutcomes) ;
+		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
-
+		Names outcome_names ;
+		for( int j = 0; j < nOutcomes; ++j ) {
+			outcome_names.push_back( "outcome" + std::to_string( j )) ;
+		}
 //		for( int outcome_i = 0; outcome_i < nOutcomes; ++outcome_i ) {
 		for( int outcome_i = 1; outcome_i < nOutcomes; ++outcome_i ) {
-			outcome(0) = outcome_i ;
+			// Set the chosen outcome for the single sample
+			outcome.setZero() ;
+			outcome(0,outcome_i) = 1 ;
 			
-			MultinomialLogLikelihood ll(
-				regression::Design::create(
-					outcome, outcome_nonmissingness, "case",
-					covariates, covariate_nonmissingness, std::vector< std::string >(),
-					std::vector< std::string >( 1, "predictor" )
-				),
-				nOutcomes
+			MultinomialRegressionLogLikelihood ll(
+				Design::create(
+					outcome, outcome_nonmissingness, outcome_names,
+					covariates, covariate_nonmissingness, Names(),
+					Names( 1, "predictor" )
+				)
 			) ;
 			
 			// Set up a single predictor, equal to 1 with certainty.
@@ -67,7 +74,7 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 			{
 				Vector parameters = Vector::Zero( nParameters ) ;
 				ll.evaluate_at( parameters ) ;
-				// All probs are equal to 1/(M+1).  So outcome probability equals this.
+				// All probs are equal to 1/(M+1).	So outcome probability equals this.
 				Matrix parameter_matrix = parameters ;
 				parameter_matrix.resize( 2, nOutcomes - 1 ) ;
 #if DEBUG_TESTS
@@ -226,28 +233,28 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using namespace metro::regression ;
 	using metro::regression::Design ;
-	typedef regression::Design::Matrix Matrix ;
-	typedef regression::Design::Vector Vector ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
 	{
 		int const nSamples = 2 ;
-		Vector outcome = Vector::Zero(nSamples) ;
-		outcome(1) = 1 ;
-		Vector outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
+		Matrix outcome = Matrix::Zero(nSamples,2) ;
+		outcome(0,0) = 1 ;
+		outcome(1,1) = 1 ;
+		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, 2, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
-
-		MultinomialLogLikelihood ll(
-			regression::Design::create(
-				outcome, outcome_nonmissingness, "outcome",
+		
+		MultinomialRegressionLogLikelihood ll(
+			Design::create(
+				outcome, outcome_nonmissingness, Names({"outcome=0","outcome=1"}),
 				covariates, covariate_nonmissingness, std::vector< std::string >(),
-				std::vector< std::string >( 1, "predictor" )
-			),
-			2
+				Names({"predictor"})
+			)
 		) ;
 		
 		Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
@@ -312,7 +319,7 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 			Vector parameters = Vector::Zero( 2 ) ;
 			parameters << 0.0, 1.0 ;
 			ll.evaluate_at( parameters ) ;
-			// Now we have exp( x^t theta ) = 1, e for the two samples.  Thus f1 is 1/2, e/1+e
+			// Now we have exp( x^t theta ) = 1, e for the two samples.	 Thus f1 is 1/2, e/1+e
 			Vector f1( 2 ) ;
 			f1 << 0.5, ( std::exp( 1 ) / ( 1.0 + std::exp(1.0) ) ) ;
 			Vector F = f1 ; // f_0 = f_1 for first sample because the first prob is 0.5.
@@ -367,10 +374,10 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using namespace metro::regression ;
 	using metro::regression::Design ;
-	typedef regression::Design::Matrix Matrix ;
-	typedef regression::Design::Vector Vector ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -391,22 +398,26 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 			int nSamples = nCases + nControls ;
 
 			// contruct outcome
-			Vector outcome = Vector::Zero(nSamples) ;
-			for( int i = 0; i < nCases; ++i ) {
-				outcome(i) = 1 ;
+			Matrix outcome = Matrix::Zero(nSamples,2) ;
+			{
+				int i = 0 ;
+				for( ; i < nCases; ++i ) {
+					outcome(i,1) = 1 ;
+				}
+				for( ; i < nSamples; ++i ) {
+					outcome(i,0) = 1 ;
+				}
 			}
-			Vector outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
-
+			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, 2, 1.0 ) ;
 			Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 			Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
-			MultinomialLogLikelihood ll(
-				regression::Design::create(
-					outcome, outcome_nonmissingness, "outcome",
-					covariates, covariate_nonmissingness, std::vector< std::string >(),
-					std::vector< std::string >( 1, "predictor" )
-				),
-				2
+			MultinomialRegressionLogLikelihood ll(
+				Design::create(
+					outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
+					covariates, covariate_nonmissingness, Names(),
+					Names({"predictor"})
+				)
 			) ;
 		
 			// construct a 0/1 predictor.
@@ -436,7 +447,8 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 				double expected_ll = nSamples * std::log( 0.5 ) ;
 				BOOST_CHECK_CLOSE( ll.get_value_of_function(), expected_ll, 0.0000001 ) ;
 
-				Vector one_minus_f1 = ( outcome.array() - 0.5 ) ;
+				std::cerr << "test_multinomialregression_two_outcomes_certain_predictors(): outcome:\n" << outcome << ".\n" ;
+				Vector one_minus_f1 = ( outcome.col(1).array() - 0.5 ) ;
 				Matrix design_matrix = Matrix::Zero( nSamples, 2 ) ;
 				design_matrix.col(0).setConstant( 1.0 ) ;
 				design_matrix.col(1).segment( 0, nOnes ).setConstant( 1.0 ) ;
@@ -475,14 +487,20 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 					Vector const F0 = ones.array() / ( 1.0 + F1.array() ) ;
 					F1 = F1.array() / ( 1.0 + F1.array() ) ;
 
+					// Incorporate the phenotype by taking F0 for controls or F1 for cases.
 					Vector Fpsi = F1 ;
 					Fpsi.segment( nCases, nControls ) = F0.segment( nCases, nControls ) ;
 
-					// all probabilities are one-half.
+#if DEBUG_TESTS > 1
+					std::cerr << "ncontrols = " << nControls << ", nCases = " << nCases << ".\n" ; 
+					std::cerr << "F0 =\n" << F0 << ".\n" ; 
+					std::cerr << "F1 =\n" << F1 << ".\n" ; 
+					std::cerr << "Fpsi =\n" << Fpsi << ".\n" ; 
+#endif
+					
 					double expected_ll = Fpsi.array().log().sum() ;
 					check_close_or_small( expected_ll, ll.get_value_of_function(), 0.00000000001, 0.0001 ) ;
-
-					Vector outcome_minus_f1 = ( outcome - F1 ) ;
+					Vector outcome_minus_f1 = ( outcome.col(1) - F1 ) ;
 
 					Vector const expected_first_derivative = ( outcome_minus_f1.transpose() * design_matrix ) ;
 					Vector first_derivative = ll.get_value_of_first_derivative() ;

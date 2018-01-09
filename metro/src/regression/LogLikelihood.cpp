@@ -7,7 +7,7 @@
 #include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		LogLikelihood::~LogLikelihood() {}
 	}
 }

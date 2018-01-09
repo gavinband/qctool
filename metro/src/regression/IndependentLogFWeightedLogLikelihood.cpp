@@ -12,14 +12,14 @@
 #include <boost/math/special_functions/gamma.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 #include "metro/regression/IndependentLogFWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		IndependentLogFWeightedLogLikelihood::UniquePtr IndependentLogFWeightedLogLikelihood::create(
 			LogLikelihood::UniquePtr ll,
 			std::vector< int > parameter_indices,

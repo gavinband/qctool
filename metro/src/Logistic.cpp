@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <boost/format.hpp>
 #include <boost/iterator/counting_iterator.hpp>
-#include "metro/regression/LogisticLogLikelihood.hpp"
+#include "metro/regression/Logistic.hpp"
 #include "metro/intersect_ranges.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
@@ -19,31 +19,47 @@
 // #define DEBUG_LOGLIKELIHOOD 2
 
 namespace metro {
-	namespace case_control {
-		LogisticLogLikelihood::UniquePtr LogisticLogLikelihood::create(
+	namespace regression {
+		
+		namespace {
+			std::string standard_parameter_name( std::string const& predictor_name, std::string const& outcome_name ) {
+				return predictor_name + "/" + outcome_name ;
+			}
+		}
+		
+		Logistic::UniquePtr Logistic::create(
 			regression::Design& design
 		) {
-			return LogisticLogLikelihood::UniquePtr(
-				new LogisticLogLikelihood( design )
+			return Logistic::UniquePtr(
+				new Logistic( design )
 			) ;
 		}
 
-		LogisticLogLikelihood::UniquePtr LogisticLogLikelihood::create(
+		Logistic::UniquePtr Logistic::create(
 			regression::Design::UniquePtr design
 		) {
-			return LogisticLogLikelihood::UniquePtr(
-				new LogisticLogLikelihood( design )
+			return Logistic::UniquePtr(
+				new Logistic( design )
 			) ;
 		}
 
 		namespace {
 			void check_design( regression::Design const& design ) {
 				// Verify design looks sane.
-				Eigen::VectorXd const& outcome = design.outcome() ;
-				for( int i = 0; i < outcome.size(); ++i ) {
-					if( outcome(i) == outcome(i) && outcome(i) != 0 && outcome(i) != 1 ) {
+				// Right now we handle only a bernoulli outcome, i.e.
+				// each sample must have a 1 in column 0 or 1 of the outcome matrix.
+				Eigen::MatrixXd const& outcome = design.outcome() ;
+				for( int i = 0; i < outcome.rows(); ++i ) {
+					if(
+						(outcome.row(i).sum() == outcome.row(i).sum())
+						&& (
+							( outcome.row(i).sum() != 1.0 )
+							|| ( outcome(i,0) != 1.0 && outcome(i,1) != 1.0 )
+						)
+					) {
+						std::cerr << "outcome:\n" << outcome << "\n" ;
 						throw genfile::BadArgumentError(
-							"metro::case_control::LogisticLogLikelihood::check_design()",
+							"metro::case_control::Logistic::check_design()",
 							"design",
 							( boost::format( "Outcome (%f for individual %d) has non-missing level other than zero or one." ) % outcome(i) % (i+1) ).str()
 						) ;
@@ -52,20 +68,24 @@ namespace metro {
 			}
 		}
 
-		LogisticLogLikelihood::LogisticLogLikelihood(
+		Logistic::Logistic(
 			regression::Design::UniquePtr design
 		):
 			m_design( design.release() ),
-			m_design_owned( true )
+			m_design_owned( true ),
+			m_get_parameter_name( &standard_parameter_name ),
+			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
+			m_state( e_Uncomputed )
 		{
 			check_design( *m_design ) ;
 		}
 
-		LogisticLogLikelihood::LogisticLogLikelihood(
+		Logistic::Logistic(
 			regression::Design& design
 		):
 			m_design( &design ),
 			m_design_owned( false ),
+			m_get_parameter_name( &standard_parameter_name ),
 			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
 			m_state( e_Uncomputed )
 		{
@@ -73,30 +93,30 @@ namespace metro {
 			check_design( *m_design ) ;
 		}
 		
-		LogisticLogLikelihood::~LogisticLogLikelihood() {
+		Logistic::~Logistic() {
 			if( m_design_owned ) {
 				delete m_design ;
 			}
 		}
 
-		std::string LogisticLogLikelihood::get_summary() const {
+		std::string Logistic::get_summary() const {
 			using genfile::string_utils::to_string ;
-			return "LogisticLogLikelihood( "
-				+ to_string( m_design->outcome().size() )
+			return "Logistic( "
+				+ to_string( m_design->outcome().rows() )
 				+ " samples )" ;
 		}
 
-		void LogisticLogLikelihood::set_parameter_naming_scheme( LogisticLogLikelihood::GetParameterName get_parameter_name ) {
+		void Logistic::set_parameter_naming_scheme( Logistic::GetParameterName get_parameter_name ) {
 			assert( get_parameter_name ) ;
 			m_get_parameter_name = get_parameter_name ;		
 		}
 	
-		std::string LogisticLogLikelihood::get_parameter_name( std::size_t i ) const {
+		std::string Logistic::get_parameter_name( std::size_t i ) const {
 			IntegerMatrix const identity = identify_parameters() ;
-			return m_get_parameter_name( m_design->get_predictor_name( identity(i,1)), identity(i,0) ) ;
+			return m_get_parameter_name( m_design->get_predictor_name( identity(i,1) ), m_design->get_outcome_name(identity(i,0)) ) ;
 		}
 	
-		LogLikelihood::IntegerMatrix LogisticLogLikelihood::identify_parameters() const {
+		LogLikelihood::IntegerMatrix Logistic::identify_parameters() const {
 			IntegerMatrix result = IntegerMatrix::Zero( m_design->matrix().cols(), 2 ) ;
 			// Each parameter corresponds to an effect for the non-baseline outcome level
 			// and a column of the design matrix.
@@ -108,11 +128,11 @@ namespace metro {
 			return result ;
 		}
 
-		int LogisticLogLikelihood::number_of_outcomes() const {
+		int Logistic::number_of_outcomes() const {
 			return 2 ;
 		}
 
-		void LogisticLogLikelihood::set_predictor_levels(
+		void Logistic::set_predictor_levels(
 			Matrix const& levels,
 			Matrix const& probabilities,
 			std::vector< metro::SampleRange > const& included_samples
@@ -120,7 +140,7 @@ namespace metro {
 			m_design->set_predictor_levels( levels, probabilities, included_samples ) ;
 			m_state = e_Uncomputed ;
 #if DEBUG_LOGLIKELIHOOD
-			std::cerr << "LogisticLogLikelihood::set_predictor_probs(): Included samples:" ;
+			std::cerr << "Logistic::set_predictor_probs(): Included samples:" ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				std::cerr << " " << included_samples[i].begin() << "-" << included_samples[i].end() ;
 			}
@@ -128,11 +148,11 @@ namespace metro {
 #endif
 		}
 
-		void LogisticLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
+		void Logistic::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			evaluate_at_impl( parameters, m_design->per_predictor_included_samples(), numberOfDerivatives ) ;
 		}
 
-		void LogisticLogLikelihood::evaluate_at_impl(
+		void Logistic::evaluate_at_impl(
 			Point const& parameters,
 			std::vector< metro::SampleRange > const& included_samples,
 			int const numberOfDerivatives
@@ -148,8 +168,8 @@ namespace metro {
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << std::fixed << std::setprecision(4) ;
-			int const N = m_design->outcome().size() ;
-			std::cerr << "==== LogisticLogLikelihood::evaluate_at() ====\n" ;
+			int const N = m_design->outcome().rows() ;
+			std::cerr << "==== Logistic::evaluate_at() ====\n" ;
 			std::cerr << "  m_state: " << ( boost::format( "0x%x" ) % m_state ).str() << ", "
 				<< "Number of samples: " << N << ", "
 				<< "Included samples:" ;
@@ -158,7 +178,7 @@ namespace metro {
 			}
 			std::cerr << "\n" ;
 			std::cerr << "  Params: " << parameters.transpose() << ".\n" ;
-			std::cerr << "  Phenotypes: " << m_design->outcome().head( std::min( N, 5 ) ).transpose() << "...\n";
+			std::cerr << "  Phenotypes: " << m_design->outcome().col(1).head( std::min( N, 5 ) ).transpose() << "...\n";
 			//std::cerr << "  Predictor levels: " << m_design->get_predictor_levels().transpose() << ".\n" ;
 #endif
 
@@ -207,17 +227,18 @@ namespace metro {
 #endif
 		}
 		
-		LogisticLogLikelihood::Point const& LogisticLogLikelihood::get_parameters() const {
+		Logistic::Point const& Logistic::get_parameters() const {
 			return m_parameters ;
 		}
 
 		// Calculate P( outcome | genotype, covariates, parameters ).
-		void LogisticLogLikelihood::calculate_outcome_probabilities(
+		void Logistic::calculate_outcome_probabilities(
 			Vector const& parameters,
-			Vector const& outcome,
-			LogisticLogLikelihood::Matrix* result
+			Matrix const& outcome,
+			Logistic::Matrix* result
 		) const {
-			result->resize( outcome.size(), m_design->get_number_of_predictor_levels() ) ;
+			assert( outcome.cols() == 2 ) ;
+			result->resize( outcome.rows(), m_design->get_number_of_predictor_levels() ) ;
 			Vector linear_combination ;
 			int const number_of_predictor_levels = m_design->get_number_of_predictor_levels() ;
 			for( int g = 0; g < number_of_predictor_levels; ++g ) {
@@ -226,14 +247,15 @@ namespace metro {
 			}
 		}
 		
-		LogisticLogLikelihood::Vector LogisticLogLikelihood::evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const {
-			assert( linear_combinations.size() == outcomes.size() ) ;
+		Logistic::Vector Logistic::evaluate_mean_function( Vector const& linear_combinations, Matrix const& outcomes ) const {
+			assert( linear_combinations.size() == outcomes.rows() ) ;
+			// Only the 2nd column of the outcome (i.e. outcome is not baseline) is used in this calculation.
 			Vector exps = linear_combinations.array().exp() ;
 			Vector ones = Vector::Ones( linear_combinations.size() ) ;
-			return ( ones.array() + outcomes.array() * ( exps.array() - ones.array() ) )  / ( ones + exps ).array() ;
+			return ( ones.array() + outcomes.col(1).array() * ( exps.array() - ones.array() ) )  / ( ones + exps ).array() ;
 		}
 
-		void LogisticLogLikelihood::compute_value_of_function( Matrix const& V, std::vector< metro::SampleRange > const& included_samples ) {
+		void Logistic::compute_value_of_function( Matrix const& V, std::vector< metro::SampleRange > const& included_samples ) {
 			m_value_of_function = 0.0 ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				int const start_row = included_samples[i].begin() ;
@@ -244,8 +266,8 @@ namespace metro {
 			}
 		}
 
-		void LogisticLogLikelihood::compute_value_of_first_derivative( Matrix const& A, std::vector< metro::SampleRange > const& included_samples, Matrix* B ) {
-			int const N = m_design->outcome().size() ;
+		void Logistic::compute_value_of_first_derivative( Matrix const& A, std::vector< metro::SampleRange > const& included_samples, Matrix* B ) {
+			int const N = m_design->outcome().rows() ;
 			int const D = m_design->matrix().cols() ;
 			int const N_predictor_levels = m_design->get_number_of_predictor_levels() ;
 			// ...and its first derivative...
@@ -261,11 +283,11 @@ namespace metro {
 
 			{
 				m_first_derivative_terms.setZero( m_design->matrix().rows(), m_design->matrix().cols() ) ;
-				Vector signs = (( m_design->outcome() * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
+				Vector signs = (( m_design->outcome().col(1) * 2.0 ) - Vector::Ones( N ) ) ; // == (-1)^{phenotype + 1}
 				for( int g = 0; g < N_predictor_levels; ++g ) {
 					Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
 #if DEBUG_LOGLIKELIHOOD
-					std::cerr << "LogisticLogLikelihood::compute_value_of_first_derivative(): design_matrix for predictor level " << g << " =\n"
+					std::cerr << "Logistic::compute_value_of_first_derivative(): design_matrix for predictor level " << g << " =\n"
 						<< design_matrix.topRows( std::min( N, 5 ) ) << "\n" ;
 #endif
 					//m_design->matrix().block( 0, 1, m_design->matrix().rows(), predictor_levels.cols() ).rowwise() = predictor_levels.row( g ) ;
@@ -286,7 +308,7 @@ namespace metro {
 			}
 		}
 
-		void LogisticLogLikelihood::compute_value_of_second_derivative( Matrix const& B, std::vector< metro::SampleRange > const& included_samples ) {
+		void Logistic::compute_value_of_second_derivative( Matrix const& B, std::vector< metro::SampleRange > const& included_samples ) {
 			int const D = m_design->matrix().cols() ;
 			int const N_predictor_levels = m_design->get_number_of_predictor_levels() ;
 			m_value_of_second_derivative = Matrix::Zero( D, D ) ;
@@ -315,15 +337,15 @@ namespace metro {
 			}
 		}
 		
-		double LogisticLogLikelihood::get_value_of_function() const {
+		double Logistic::get_value_of_function() const {
 			return m_value_of_function ;
 		}
 
-		LogisticLogLikelihood::Vector LogisticLogLikelihood::get_value_of_first_derivative() const {
+		Logistic::Vector Logistic::get_value_of_first_derivative() const {
 			return m_value_of_first_derivative ;
 		}
 
-		LogisticLogLikelihood::Matrix LogisticLogLikelihood::get_value_of_second_derivative() const {
+		Logistic::Matrix Logistic::get_value_of_second_derivative() const {
 			return m_value_of_second_derivative ;
 		}
 	}

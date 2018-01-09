@@ -11,17 +11,17 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		/*
 		* This class implements a log-likelihood for binomial logistic regression, allowing predictors
 		* to take one of a finite set of values with associated probabilities. (A "missing data log-likelihood" ).
 		* The outcome variables must be 0 or 1.
 		*/
-		struct LogisticLogLikelihood: public LogLikelihood
+		struct Logistic: public LogLikelihood
 		{
 		public:
 			typedef regression::Design::Point Point ;
@@ -30,16 +30,14 @@ namespace metro {
 			typedef regression::Design::Matrix Matrix ;
 			typedef Eigen::Block< Matrix > MatrixBlock ;
 			typedef Eigen::Block< Matrix const > ConstMatrixBlock ;
-			typedef boost::function< std::string( std::string const& predictor_name, int outcome_level ) > GetParameterName ;
+			typedef boost::function< std::string( std::string const& predictor_name, std::string const& outcome_name ) > GetParameterName ;
 		public:
-			typedef std::auto_ptr< LogisticLogLikelihood > UniquePtr ;
-			static UniquePtr create( regression::Design& ) ;
-			static UniquePtr create( regression::Design::UniquePtr ) ;
-			
-		public:
-			LogisticLogLikelihood( regression::Design::UniquePtr ) ;
-			LogisticLogLikelihood( regression::Design& ) ;
-			~LogisticLogLikelihood() ;
+			typedef std::auto_ptr< Logistic > UniquePtr ;
+			static UniquePtr create( Design& ) ;
+			static UniquePtr create( Design::UniquePtr ) ;
+			Logistic( Design& ) ;
+			Logistic( Design::UniquePtr ) ;
+			~Logistic() ;
 			
 			regression::Design& get_design() const { return *m_design ; }
 			void set_predictor_levels(
@@ -89,9 +87,9 @@ namespace metro {
 			// Evaluate
 			void evaluate_at_impl( Point const& parameters, std::vector< metro::SampleRange > const& included_samples, int const numberOfDerivatives ) ;
 			// Calculate the probability of outcome given the genotype, parameters, and covariates.
-			Vector evaluate_mean_function( Vector const& linear_combinations, Vector const& outcomes ) const ;
+			Vector evaluate_mean_function( Vector const& linear_combinations, Matrix const& outcomes ) const ;
 			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
-			void calculate_outcome_probabilities( Vector const& parameters, Vector const& phenotypes, Matrix* result ) const ;
+			void calculate_outcome_probabilities( Vector const& parameters, Matrix const& phenotypes, Matrix* result ) const ;
 			void compute_value_of_function( Matrix const& V, std::vector< metro::SampleRange > const& included_samples ) ;
 			void compute_value_of_first_derivative( Matrix const& A, std::vector< metro::SampleRange > const& included_samples, Matrix* B ) ;
 			void compute_value_of_second_derivative( Matrix const& B, std::vector< metro::SampleRange > const& included_samples ) ;

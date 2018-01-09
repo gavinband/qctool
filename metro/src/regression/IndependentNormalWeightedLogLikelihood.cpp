@@ -11,14 +11,14 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 #include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		IndependentNormalWeightedLogLikelihood::UniquePtr IndependentNormalWeightedLogLikelihood::create(
 			LogLikelihood::UniquePtr ll,
 			std::vector< int > parameter_indices,

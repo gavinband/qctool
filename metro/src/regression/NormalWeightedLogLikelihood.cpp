@@ -11,14 +11,14 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 #include "metro/regression/NormalWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		namespace impl {
 			double compute_mvn_constant( int const k, double determinant ) {
 				return -0.5 * k * std::log( 2 * 3.141592654 ) - 0.5 * std::log( determinant ) ;

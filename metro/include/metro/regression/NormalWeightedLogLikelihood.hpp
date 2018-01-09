@@ -12,11 +12,11 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		// Represents a log-likelihood function weighted by independent
 		// normal distributions on each parameter.
 		// by default variance=infinity, i.e. no weighting, and weighting

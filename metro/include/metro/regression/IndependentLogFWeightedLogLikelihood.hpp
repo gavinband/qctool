@@ -12,11 +12,11 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		// Represents a log-likelihood function weighted by independent
 		// log-F distributions on each of a chosen set of parameters.
 		struct IndependentLogFWeightedLogLikelihood: public LogLikelihood {

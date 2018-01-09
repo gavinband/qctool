@@ -11,11 +11,11 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
-#include "metro/regression::Design.hpp"
+#include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
-	namespace case_control {
+	namespace regression {
 		/*
 		* This class implements a log-likelihood for multinomial logistic regression, allowing predictors
 		* to take one of a finite set of values with associated probabilities. (A "missing data log-likelihood" ).
@@ -28,7 +28,7 @@ namespace metro {
 		* M - number of outcome levels not counting the baseline.
 		* 
 		*/
-		struct MultinomialLogLikelihood: public LogLikelihood
+		struct MultinomialRegressionLogLikelihood: public LogLikelihood
 		{
 		public:
 			typedef regression::Design::Vector Vector ;
@@ -39,11 +39,11 @@ namespace metro {
 			typedef Eigen::PermutationMatrix< Eigen::Dynamic, Eigen::Dynamic > PermutationMatrix ;
 			typedef boost::function< std::string( std::string const& predictor_name, int outcome_level ) > GetParameterName ;
 		public:
-			typedef std::auto_ptr< MultinomialLogLikelihood > UniquePtr ;
-			static UniquePtr create( regression::Design::UniquePtr, int const number_of_outcomes ) ;
+			typedef std::auto_ptr< MultinomialRegressionLogLikelihood > UniquePtr ;
+			static UniquePtr create( regression::Design::UniquePtr ) ;
 			
 		public:
-			MultinomialLogLikelihood( regression::Design::UniquePtr, int const number_of_outcomes ) ;
+			MultinomialRegressionLogLikelihood( regression::Design::UniquePtr ) ;
 
 			regression::Design& get_design() const { return *m_design ; }
 			void set_predictor_levels( Matrix const& levels, Matrix const& probabilities, std::vector< metro::SampleRange > const& included_samples ) ;
@@ -63,7 +63,6 @@ namespace metro {
 
 		private:
 			regression::Design::UniquePtr m_design ;
-			int m_number_of_outcomes ;
 			int const m_number_of_samples ;
 			GetParameterName m_get_parameter_name ;
 			Vector m_parameter_vector ;
@@ -95,13 +94,7 @@ namespace metro {
 		private:
 			
 			void compute_psi(
-				Vector const& outcome,
-				int const number_of_levels,
-				std::vector< metro::SampleRange > const& included_samples,
-				Matrix* result
-			) const ;
-			void compute_Gamma(
-				Vector const& outcome,
+				Matrix const& outcome,
 				int const number_of_levels,
 				std::vector< metro::SampleRange > const& included_samples,
 				Matrix* result

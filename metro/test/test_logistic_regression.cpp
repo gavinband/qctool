@@ -2,8 +2,8 @@
 #include <iostream>
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
-#include "metro/regression::Design.hpp"
-#include "metro/regression/LogisticLogLikelihood.hpp"
+#include "metro/regression/Design.hpp"
+#include "metro/regression/Logistic.hpp"
 
 // #define DEBUG_TESTS 1
 
@@ -20,31 +20,34 @@ namespace {
 	}
 }
 
+typedef std::vector< std::string > Names ;
+
 BOOST_AUTO_TEST_SUITE( test_logistic ) ;
 
 AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using namespace metro::regression ;
 	using metro::regression::Design ;
-	typedef regression::Design::Matrix Matrix ;
-	typedef regression::Design::Vector Vector ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
 	{
 		int const nSamples = 2 ;
-		Vector outcome = Vector::Zero(nSamples) ;
-		outcome << 0, 1 ;
-		Vector outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
-
+		Matrix outcome = Matrix::Zero(nSamples, 2) ;
+		outcome <<
+			1, 0,
+			0, 1 ;
+		Matrix outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
-		LogisticLogLikelihood ll(
-			regression::Design::create(
-				outcome, outcome_nonmissingness, "outcome",
-				covariates, covariate_nonmissingness, std::vector< std::string >(),
-				std::vector< std::string >( 1, "predictor" )
+		Logistic ll(
+			Design::create(
+				outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
+				covariates, covariate_nonmissingness, Names(),
+				Names({"predictor"})
 			)
 		) ;
 		
@@ -143,10 +146,10 @@ AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 
 AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 	using metro::SampleRange ;
-	using namespace metro::case_control ;
+	using namespace metro::regression ;
 	using metro::regression::Design ;
-	typedef regression::Design::Matrix Matrix ;
-	typedef regression::Design::Vector Vector ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -170,18 +173,24 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 			int nSamples = nCases + nControls ;
 
 			// contruct outcome
-			Vector outcome = Vector::Zero(nSamples) ;
-			for( int i = 0; i < nCases; ++i ) {
-				outcome(i) = 1 ;
+			Matrix outcome = Matrix::Zero(nSamples,2) ;
+			{
+				int i = 0 ;
+				for( ; i < nCases; ++i ) {
+					outcome(i,1) = 1 ;
+				}
+				for( ; i < nSamples; ++i ) {
+					outcome(i,0) = 1 ;
+				}
 			}
-			Vector outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
+			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, 2, 1.0 ) ;
 
 			Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 			Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
-			LogisticLogLikelihood ll(
-				regression::Design::create(
-					outcome, outcome_nonmissingness, "outcome",
+			Logistic ll(
+				Design::create(
+					outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
 					covariates, covariate_nonmissingness, std::vector< std::string >(),
 					std::vector< std::string >( 1, "predictor" )
 				)
@@ -214,7 +223,7 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 				double expected_ll = nSamples * std::log( 0.5 ) ;
 				BOOST_CHECK_CLOSE( ll.get_value_of_function(), expected_ll, 0.0000001 ) ;
 
-				Vector one_minus_f1 = ( outcome.array() - 0.5 ) ;
+				Vector one_minus_f1 = ( outcome.col(1).array() - 0.5 ) ;
 				Matrix design_matrix = Matrix::Zero( nSamples, 2 ) ;
 				design_matrix.col(0).setConstant( 1.0 ) ;
 				design_matrix.col(1).segment( 0, nOnes ).setConstant( 1.0 ) ;
@@ -249,7 +258,7 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 					double expected_ll = Fpsi.array().log().sum() ;
 					check_close_or_small( expected_ll, ll.get_value_of_function(), 0.00000000001, 0.0001 ) ;
 
-					Vector outcome_minus_f1 = ( outcome - F1 ) ;
+					Vector outcome_minus_f1 = ( outcome.col(1) - F1 ) ;
 
 					Vector const expected_first_derivative = ( outcome_minus_f1.transpose() * design_matrix ) ;
 					Vector first_derivative = ll.get_value_of_first_derivative() ;
