@@ -4,16 +4,16 @@
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
 #include "metro/union_ranges.hpp"
-#include "metro/RegressionDesign.hpp"
+#include "metro/regression::Design.hpp"
 
 #define DEBUG 1
 
 BOOST_AUTO_TEST_SUITE( test_regressiondesign )
 AUTO_TEST_CASE( test_construction ) {
 	using metro::SampleRange ;
-	using metro::RegressionDesign ;
-	typedef RegressionDesign::Matrix Matrix ;
-	typedef RegressionDesign::Vector Vector ;
+	using metro::regression::Design ;
+	typedef regression::Design::Matrix Matrix ;
+	typedef regression::Design::Vector Vector ;
 
 	for( int nSamples = 0; nSamples < 100; ++nSamples ) {
 		Vector const outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
@@ -32,7 +32,7 @@ AUTO_TEST_CASE( test_construction ) {
 				Matrix predictor_levels = Matrix::Constant( 1, nPredictors, 5.0 ) ;
 				Matrix predictor_probabilities = Matrix::Constant( nSamples, 1, 1.0 ) ;
 			
-				RegressionDesign design(
+				regression::Design design(
 					outcome, outcome_nonmissingness, "outcome",
 					covariates, covariate_nonmissingness, std::vector< std::string >( nCovariates, "cov" ),
 					std::vector< std::string >( nPredictors, "predictor" )
@@ -74,9 +74,9 @@ AUTO_TEST_CASE( test_construction ) {
 
 AUTO_TEST_CASE( test_predictor_levels ) {
 	using metro::SampleRange ;
-	using metro::RegressionDesign ;
-	typedef RegressionDesign::Matrix Matrix ;
-	typedef RegressionDesign::Vector Vector ;
+	using metro::regression::Design ;
+	typedef regression::Design::Matrix Matrix ;
+	typedef regression::Design::Vector Vector ;
 
 	int nSamples = 10;
 	int nCovariates = 0 ;
@@ -94,7 +94,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 	Matrix const covariate_nonmissingness = Matrix::Constant( nSamples, nCovariates, 1.0 ) ;
 
 	for( int nPredictors = 0; nPredictors < 10; ++nPredictors ) {
-		RegressionDesign design(
+		regression::Design design(
 			outcome, outcome_nonmissingness, "outcome",
 			covariates, covariate_nonmissingness, std::vector< std::string >( nCovariates, "cov" ),
 			std::vector< std::string >( nPredictors, "predictor" )
@@ -127,7 +127,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 
 AUTO_TEST_CASE( test_names ) {
 	using metro::SampleRange ;
-	using metro::RegressionDesign ;
+	using metro::regression::Design ;
 
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;
@@ -145,7 +145,7 @@ AUTO_TEST_CASE( test_names ) {
 				cov.col(i).setConstant( i ) ;
 			}
 		
-			RegressionDesign design( outcome, outcome_nm, "outcome", cov, cov_nm, cov_names, predictor_names ) ;
+			regression::Design design( outcome, outcome_nm, "outcome", cov, cov_nm, cov_names, predictor_names ) ;
 			std::vector< std::string > names = design.design_matrix_column_names() ;
 			TEST_ASSERT( names.size() == 1 + numberOfPredictors + numberOfCovariates ) ;
 			TEST_ASSERT( names[0] == "baseline" ) ;
@@ -166,7 +166,7 @@ AUTO_TEST_CASE( test_names ) {
 
 AUTO_TEST_CASE( test_names_interaction ) {
 	using metro::SampleRange ;
-	using metro::RegressionDesign ;
+	using metro::regression::Design ;
 
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;
@@ -189,7 +189,7 @@ AUTO_TEST_CASE( test_names_interaction ) {
 				interactions.push_back( interaction ) ;
 			}
 		
-			RegressionDesign design( outcome, outcome_nm, "outcome", cov, cov_nm, cov_names, predictor_names, RegressionDesign::eIdentity, interactions ) ;
+			regression::Design design( outcome, outcome_nm, "outcome", cov, cov_nm, cov_names, predictor_names, regression::Design::eIdentity, interactions ) ;
 
 #if DEBUG
 			std::cerr << design.get_summary() << "\n" ;

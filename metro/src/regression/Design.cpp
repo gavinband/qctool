@@ -12,20 +12,20 @@
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/bind.hpp>
-#include "metro/RegressionDesign.hpp"
+#include "metro/regression::Design.hpp"
 
 // #define DEBUG_REGRESSIONDESIGN 1
 
 namespace metro {
-	RegressionDesign::UniquePtr RegressionDesign::create(
+	regression::Design::UniquePtr regression::Design::create(
 		Vector const& outcome, Vector const& phenotype_nonmissingness, std::string const& outcome_name,
 		Matrix const& covariates, Matrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
 		std::vector< std::string > const& predictor_names,
 		Transform transform,
 		std::vector< int > const& interacting_covariates
 	) {
-		return RegressionDesign::UniquePtr(
-			new RegressionDesign(
+		return regression::Design::UniquePtr(
+			new regression::Design(
 				outcome, phenotype_nonmissingness, outcome_name,
 				covariates, covariate_nonmissingness, covariate_names,
 				predictor_names,
@@ -35,7 +35,7 @@ namespace metro {
 		) ;
 	}
 
-	RegressionDesign::RegressionDesign(
+	regression::Design::regression::Design(
 		Vector const& outcome, Vector const& phenotype_nonmissingness, std::string const& outcome_name,
 		Matrix const& covariates, Matrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
 		std::vector< std::string > const& predictor_names,
@@ -68,15 +68,15 @@ namespace metro {
 		assert( m_design_matrix_column_names.size() == m_design_matrix.cols() ) ;
 	}
 
-	std::string const& RegressionDesign::get_predictor_name( std::size_t i ) const {
+	std::string const& regression::Design::get_predictor_name( std::size_t i ) const {
 		return m_design_matrix_column_names[i] ;
 	}
 
-	std::vector< std::string > const& RegressionDesign::design_matrix_column_names() const {
+	std::vector< std::string > const& regression::Design::design_matrix_column_names() const {
 		return m_design_matrix_column_names ;
 	}
 
-	std::string RegressionDesign::get_summary() const {
+	std::string regression::Design::get_summary() const {
 		std::ostringstream out ;
 
 		int const N = matrix().rows() ;
@@ -135,14 +135,7 @@ namespace metro {
 		return out.str() ;
 	}
 
-	void RegressionDesign::set_sample_weights(
-		Vector const& weights
-	) {
-		assert( weights.size() == m_design_matrix.rows() ) ;
-		m_sample_weights = weights ;
-	}
-	
-	std::vector< metro::SampleRange > RegressionDesign::compute_included_samples(
+	std::vector< metro::SampleRange > regression::Design::compute_included_samples(
 		Vector const& nonmissing_outcome,
 		Matrix const& nonmissing_covariates
 	) const {
@@ -169,7 +162,7 @@ namespace metro {
 		return result ;
 	}
 
-	void RegressionDesign::calculate_design_matrix(
+	void regression::Design::calculate_design_matrix(
 		int const number_of_samples,
 		Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
 		int const number_of_predictors,
@@ -219,7 +212,7 @@ namespace metro {
 			) ;
 		}
 #if DEBUG_REGRESSIONDESIGN
-		std::cerr << "RegressionDesign::calculate_design_matrix():"
+		std::cerr << "regression::Design::calculate_design_matrix():"
 			<< "result has " << result->cols() << " columns, and " << design_matrix_column_names->size() << " names.\n" ;
 #endif
 		
@@ -227,7 +220,7 @@ namespace metro {
 		assert( design_matrix_column_names->size() == result->cols() ) ;
 	}
 	
-	RegressionDesign& RegressionDesign::set_outcome(
+	regression::Design& regression::Design::set_outcome(
 		Vector const& outcome,
 		Vector const& nonmissingness,
 		std::string const& name
@@ -243,7 +236,7 @@ namespace metro {
 		return *this ;
 	}
 	
-	RegressionDesign& RegressionDesign::set_covariates(
+	regression::Design& regression::Design::set_covariates(
 		Matrix const& covariates,
 		Matrix const& covariate_nonmissingness,
 		int start_column
@@ -258,7 +251,7 @@ namespace metro {
 		return *this ;
 	}
 	
-	RegressionDesign& RegressionDesign::set_predictor_levels(
+	regression::Design& regression::Design::set_predictor_levels(
 		Matrix const& levels,
 		Matrix const& probabilities,
 		std::vector< metro::SampleRange > const& included_samples
@@ -305,7 +298,7 @@ namespace metro {
 		return *this ;
 	}
 
-	void RegressionDesign::mean_centre_predictor_levels(
+	void regression::Design::mean_centre_predictor_levels(
 		Matrix const& probs,
 		Matrix* predictor_levels,
 		SampleRanges const& included_samples
@@ -339,7 +332,7 @@ namespace metro {
 		}
 	}
 
-	RegressionDesign& RegressionDesign::set_predictor_level( int level ) {
+	regression::Design& regression::Design::set_predictor_level( int level ) {
 		if( m_number_of_predictors > 0 ) {
 			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
 			m_design_matrix.block(

@@ -26,7 +26,7 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'metro',
-		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/case_control/*.cpp' ),
+		source = bld.glob( 'src/*.cpp' ) + bld.glob( 'src/regression/*.cpp' ),
 		includes='./include',
 		uselib_local='eigen boost genfile',
 		uselib = 'BOOST',

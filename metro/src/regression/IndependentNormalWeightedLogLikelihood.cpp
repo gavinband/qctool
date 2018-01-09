@@ -11,9 +11,9 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
-#include "metro/case_control/IndependentNormalWeightedLogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
+#include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
@@ -39,14 +39,6 @@ namespace metro {
 			m_means( means ),
 			m_variances( variances )
 		{}
-
-		void IndependentNormalWeightedLogLikelihood::set_predictor_levels(
-			Matrix const& levels,
-			Matrix const& probabilities,
-			std::vector< metro::SampleRange > const& included_samples
-		) { 
-			m_ll->set_predictor_levels( levels, probabilities, included_samples ) ;
-		}
 
 		std::string IndependentNormalWeightedLogLikelihood::get_parameter_name( std::size_t i ) const {
 			return m_ll->get_parameter_name(i) ;

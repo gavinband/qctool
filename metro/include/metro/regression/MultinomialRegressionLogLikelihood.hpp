@@ -11,8 +11,8 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
 	namespace case_control {
@@ -28,29 +28,29 @@ namespace metro {
 		* M - number of outcome levels not counting the baseline.
 		* 
 		*/
-		struct MultinomialRegressionLogLikelihood: public LogLikelihood
+		struct MultinomialLogLikelihood: public LogLikelihood
 		{
 		public:
-			typedef RegressionDesign::Vector Vector ;
-			typedef RegressionDesign::RowVector RowVector ;
-			typedef RegressionDesign::Matrix Matrix ;
+			typedef regression::Design::Vector Vector ;
+			typedef regression::Design::RowVector RowVector ;
+			typedef regression::Design::Matrix Matrix ;
 			typedef Eigen::Block< Matrix > MatrixBlock ;
 			typedef Eigen::Block< Matrix const > ConstMatrixBlock ;
 			typedef Eigen::PermutationMatrix< Eigen::Dynamic, Eigen::Dynamic > PermutationMatrix ;
 			typedef boost::function< std::string( std::string const& predictor_name, int outcome_level ) > GetParameterName ;
 		public:
-			typedef std::auto_ptr< MultinomialRegressionLogLikelihood > UniquePtr ;
-			static UniquePtr create( RegressionDesign::UniquePtr, int const number_of_outcomes ) ;
+			typedef std::auto_ptr< MultinomialLogLikelihood > UniquePtr ;
+			static UniquePtr create( regression::Design::UniquePtr, int const number_of_outcomes ) ;
 			
 		public:
-			MultinomialRegressionLogLikelihood( RegressionDesign::UniquePtr, int const number_of_outcomes ) ;
+			MultinomialLogLikelihood( regression::Design::UniquePtr, int const number_of_outcomes ) ;
 
-			RegressionDesign const& get_design() const { return *m_design ; }
+			regression::Design& get_design() const { return *m_design ; }
 			void set_predictor_levels( Matrix const& levels, Matrix const& probabilities, std::vector< metro::SampleRange > const& included_samples ) ;
 		
 			void set_parameter_naming_scheme( GetParameterName ) ;
 			std::string get_parameter_name( std::size_t i ) const ;		
-			LogLikelihood::IntegerMatrix identify_parameters() const ;
+			IntegerMatrix identify_parameters() const ;
 			int number_of_outcomes() const ;
 			
 			void evaluate_at( Vector const& parameters, int const numberOfDerivatives = 2 ) ;
@@ -62,7 +62,7 @@ namespace metro {
 			std::string get_summary() const ;
 
 		private:
-			RegressionDesign::UniquePtr m_design ;
+			regression::Design::UniquePtr m_design ;
 			int m_number_of_outcomes ;
 			int const m_number_of_samples ;
 			GetParameterName m_get_parameter_name ;

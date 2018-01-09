@@ -12,8 +12,8 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
 	namespace case_control {
@@ -37,13 +37,7 @@ namespace metro {
 				std::vector< double > nu2
 			) ;
 			
-			RegressionDesign const& get_design() const { return m_ll->get_design() ; }
-
-			void set_predictor_levels(
-				Matrix const& levels,
-				Matrix const& probabilities,
-				std::vector< metro::SampleRange > const& included_samples
-			) ;
+			regression::Design& get_design() const { return m_ll->get_design() ; }
 
 			std::string get_parameter_name( std::size_t i ) const ;
 

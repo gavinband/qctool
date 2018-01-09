@@ -11,8 +11,8 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
 	namespace case_control {
@@ -21,24 +21,27 @@ namespace metro {
 		* to take one of a finite set of values with associated probabilities. (A "missing data log-likelihood" ).
 		* The outcome variables must be 0 or 1.
 		*/
-		struct LogisticRegressionLogLikelihood: public LogLikelihood
+		struct LogisticLogLikelihood: public LogLikelihood
 		{
 		public:
-			typedef RegressionDesign::Point Point ;
-			typedef RegressionDesign::Vector Vector ;
-			typedef RegressionDesign::RowVector RowVector ;
-			typedef RegressionDesign::Matrix Matrix ;
+			typedef regression::Design::Point Point ;
+			typedef regression::Design::Vector Vector ;
+			typedef regression::Design::RowVector RowVector ;
+			typedef regression::Design::Matrix Matrix ;
 			typedef Eigen::Block< Matrix > MatrixBlock ;
 			typedef Eigen::Block< Matrix const > ConstMatrixBlock ;
 			typedef boost::function< std::string( std::string const& predictor_name, int outcome_level ) > GetParameterName ;
 		public:
-			typedef std::auto_ptr< LogisticRegressionLogLikelihood > UniquePtr ;
-			static UniquePtr create( RegressionDesign& ) ;
+			typedef std::auto_ptr< LogisticLogLikelihood > UniquePtr ;
+			static UniquePtr create( regression::Design& ) ;
+			static UniquePtr create( regression::Design::UniquePtr ) ;
 			
 		public:
-			LogisticRegressionLogLikelihood( RegressionDesign& ) ;
-
-			RegressionDesign& get_design() const { return *m_design ; }
+			LogisticLogLikelihood( regression::Design::UniquePtr ) ;
+			LogisticLogLikelihood( regression::Design& ) ;
+			~LogisticLogLikelihood() ;
+			
+			regression::Design& get_design() const { return *m_design ; }
 			void set_predictor_levels(
 				Matrix const& levels,
 				Matrix const& probabilities,
@@ -48,7 +51,7 @@ namespace metro {
 			void set_parameter_naming_scheme( GetParameterName ) ;
 			std::string get_parameter_name( std::size_t i ) const ;
 	
-			LogLikelihood::IntegerMatrix identify_parameters() const ;
+			IntegerMatrix identify_parameters() const ;
 			int number_of_outcomes() const ;
 
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
@@ -61,7 +64,8 @@ namespace metro {
 			std::string get_summary() const ;
 
 		private:
-			RegressionDesign* m_design ;
+			regression::Design* m_design ;
+			bool m_design_owned ;
 			GetParameterName m_get_parameter_name ;
 			Point m_parameters ;
 			enum State {

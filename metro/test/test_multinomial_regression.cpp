@@ -2,9 +2,9 @@
 #include <iostream>
 #include "test_case.hpp"
 #include "metro/SampleRange.hpp"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogisticRegressionLogLikelihood.hpp"
-#include "metro/case_control/MultinomialRegressionLogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogisticLogLikelihood.hpp"
+#include "metro/regression/MultinomialLogLikelihood.hpp"
 
 // #define DEBUG_TESTS 1
 namespace {
@@ -25,9 +25,9 @@ BOOST_AUTO_TEST_SUITE( test_multinomial ) ;
 AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
-	using metro::RegressionDesign ;
-	typedef RegressionDesign::Matrix Matrix ;
-	typedef RegressionDesign::Vector Vector ;
+	using metro::regression::Design ;
+	typedef regression::Design::Matrix Matrix ;
+	typedef regression::Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -47,8 +47,8 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 		for( int outcome_i = 1; outcome_i < nOutcomes; ++outcome_i ) {
 			outcome(0) = outcome_i ;
 			
-			MultinomialRegressionLogLikelihood ll(
-				RegressionDesign::create(
+			MultinomialLogLikelihood ll(
+				regression::Design::create(
 					outcome, outcome_nonmissingness, "case",
 					covariates, covariate_nonmissingness, std::vector< std::string >(),
 					std::vector< std::string >( 1, "predictor" )
@@ -227,9 +227,9 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
-	using metro::RegressionDesign ;
-	typedef RegressionDesign::Matrix Matrix ;
-	typedef RegressionDesign::Vector Vector ;
+	using metro::regression::Design ;
+	typedef regression::Design::Matrix Matrix ;
+	typedef regression::Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -241,8 +241,8 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
-		MultinomialRegressionLogLikelihood ll(
-			RegressionDesign::create(
+		MultinomialLogLikelihood ll(
+			regression::Design::create(
 				outcome, outcome_nonmissingness, "outcome",
 				covariates, covariate_nonmissingness, std::vector< std::string >(),
 				std::vector< std::string >( 1, "predictor" )
@@ -368,9 +368,9 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 	using metro::SampleRange ;
 	using namespace metro::case_control ;
-	using metro::RegressionDesign ;
-	typedef RegressionDesign::Matrix Matrix ;
-	typedef RegressionDesign::Vector Vector ;
+	using metro::regression::Design ;
+	typedef regression::Design::Matrix Matrix ;
+	typedef regression::Design::Vector Vector ;
 	using std::exp ;
 	using std::log ;
 	
@@ -400,8 +400,8 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 			Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 			Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
-			MultinomialRegressionLogLikelihood ll(
-				RegressionDesign::create(
+			MultinomialLogLikelihood ll(
+				regression::Design::create(
 					outcome, outcome_nonmissingness, "outcome",
 					covariates, covariate_nonmissingness, std::vector< std::string >(),
 					std::vector< std::string >( 1, "predictor" )

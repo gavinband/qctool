@@ -12,9 +12,9 @@
 #include <boost/math/special_functions/gamma.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
-#include "metro/case_control/IndependentLogFWeightedLogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
+#include "metro/regression/IndependentLogFWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
@@ -61,14 +61,6 @@ namespace metro {
 			} else {
 				assert(0) ;
 			}
-		}
-
-		void IndependentLogFWeightedLogLikelihood::set_predictor_levels(
-			Matrix const& levels,
-			Matrix const& probabilities,
-			std::vector< metro::SampleRange > const& included_samples
-		) { 
-			m_ll->set_predictor_levels( levels, probabilities, included_samples ) ;
 		}
 
 		std::string IndependentLogFWeightedLogLikelihood::get_parameter_name( std::size_t i ) const {

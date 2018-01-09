@@ -4,16 +4,16 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef SNPTEST_REGRESSION_NORMAL_WEIGHTED_LOGLIKELIHOOD_HPP
-#define SNPTEST_REGRESSION_NORMAL_WEIGHTED_LOGLIKELIHOOD_HPP
+#ifndef SNPTEST_REGRESSION_INDEPENDENT_NORMAL_WEIGHTED_LOGLIKELIHOOD_HPP
+#define SNPTEST_REGRESSION_INDEPENDENT_NORMAL_WEIGHTED_LOGLIKELIHOOD_HPP
 
 #include <vector>
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/Cholesky"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
 
 namespace metro {
 	namespace case_control {
@@ -21,32 +21,24 @@ namespace metro {
 		// normal distributions on each parameter.
 		// by default variance=infinity, i.e. no weighting, and weighting
 		// must be set.
-		struct NormalWeightedLogLikelihood: public LogLikelihood {
+		struct IndependentNormalWeightedLogLikelihood: public LogLikelihood {
 		public:
-			typedef std::auto_ptr< NormalWeightedLogLikelihood > UniquePtr ;
-			enum Normalisation { eNoConstantTerm = 0, eWithConstantTerm = 1 } ;
+			typedef std::auto_ptr< IndependentNormalWeightedLogLikelihood > UniquePtr ;
 			static UniquePtr create(
 				LogLikelihood::UniquePtr ll,
-				Vector const mean,
-				Matrix const covariance,
-				Normalisation normalisation = eWithConstantTerm
+				std::vector< int > parameter_indices,
+				std::vector< double > means,
+				std::vector< double > variances
 			) ;
-				
 		public:
-			NormalWeightedLogLikelihood(
+			IndependentNormalWeightedLogLikelihood(
 				LogLikelihood::UniquePtr ll,
-				Vector const mean,
-				Matrix const covariance,
-				Normalisation normalisation = eWithConstantTerm
+				std::vector< int > parameter_indices,
+				std::vector< double > means,
+				std::vector< double > variances
 			) ;
 			
-			RegressionDesign const& get_design() const { return m_ll->get_design() ; }
-
-			void set_predictor_levels(
-				Matrix const& levels,
-				Matrix const& probabilities,
-				std::vector< metro::SampleRange > const& included_samples
-			) ;
+			regression::Design& get_design() const { return m_ll->get_design() ; }
 
 			std::string get_parameter_name( std::size_t i ) const ;
 
@@ -62,7 +54,7 @@ namespace metro {
 			}
 
 			double get_value_of_function() const {
-				return m_ll->get_value_of_function() + m_log_density + ( (m_normalisation == eWithConstantTerm) ? m_constant : 0.0 ) ;
+				return m_ll->get_value_of_function() + m_value_of_function ;
 			}
 
 			Vector get_value_of_first_derivative() const {
@@ -74,16 +66,13 @@ namespace metro {
 			}
 		
 			std::string get_summary() const ;
-				
+			
 		private:
 			LogLikelihood::UniquePtr m_ll ;
-			Vector const m_mean ;
-			Matrix const m_covariance ;
-			Normalisation const m_normalisation ;
-			Eigen::LDLT< Matrix > m_solver ;
-			Matrix const m_inverse_covariance ;
-			double const m_constant ;
-			double m_log_density ;
+			std::vector< int > const m_parameter_indices ;
+			std::vector< double > const m_means ;
+			std::vector< double > const m_variances ;
+			double m_value_of_function ;
 			Vector m_value_of_first_derivative ;
 			Matrix m_value_of_second_derivative ;
 		} ;

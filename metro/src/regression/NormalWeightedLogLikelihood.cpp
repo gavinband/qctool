@@ -11,9 +11,9 @@
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
 #include "Eigen/LU"
-#include "metro/RegressionDesign.hpp"
-#include "metro/case_control/LogLikelihood.hpp"
-#include "metro/case_control/NormalWeightedLogLikelihood.hpp"
+#include "metro/regression::Design.hpp"
+#include "metro/regression/LogLikelihood.hpp"
+#include "metro/regression/NormalWeightedLogLikelihood.hpp"
 
 // #define DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD 1
 
@@ -48,14 +48,6 @@ namespace metro {
 			m_inverse_covariance( m_solver.solve( Matrix::Identity( mean.size(), mean.size() ))),
 			m_constant( impl::compute_mvn_constant( m_mean.size(), m_covariance.determinant() ))
 		{}
-
-		void NormalWeightedLogLikelihood::set_predictor_levels(
-			Matrix const& levels,
-			Matrix const& probabilities,
-			std::vector< metro::SampleRange > const& included_samples
-		) { 
-			m_ll->set_predictor_levels( levels, probabilities, included_samples ) ;
-		}
 
 		std::string NormalWeightedLogLikelihood::get_parameter_name( std::size_t i ) const {
 			return m_ll->get_parameter_name(i) ;

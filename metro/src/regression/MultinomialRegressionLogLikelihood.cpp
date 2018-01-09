@@ -1,8 +1,8 @@
 
-//          Copyright Gavin Band 2008 - 2012.
+//			Copyright Gavin Band 2008 - 2012.
 // Distributed under the Boost Software License, Version 1.0.
-//    (See accompanying file LICENSE_1_0.txt or copy at
-//          http://www.boost.org/LICENSE_1_0.txt)
+//	  (See accompanying file LICENSE_1_0.txt or copy at
+//			http://www.boost.org/LICENSE_1_0.txt)
 
 #define EIGEN_RUNTIME_NO_MALLOC
 #include <iostream>
@@ -12,7 +12,7 @@
 #include <utility>
 #include <algorithm>
 #include <boost/iterator/counting_iterator.hpp>
-#include "metro/case_control/MultinomialRegressionLogLikelihood.hpp"
+#include "metro/regression/MultinomialLogLikelihood.hpp"
 #include "metro/intersect_ranges.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils/string_utils.hpp"
@@ -30,17 +30,17 @@ namespace metro {
 			}
 		}
 		
-		MultinomialRegressionLogLikelihood::UniquePtr MultinomialRegressionLogLikelihood::create(
-			RegressionDesign::UniquePtr design,
+		MultinomialLogLikelihood::UniquePtr MultinomialLogLikelihood::create(
+			regression::Design::UniquePtr design,
 			int const number_of_outcomes
 		) {
-			return MultinomialRegressionLogLikelihood::UniquePtr(
-				new MultinomialRegressionLogLikelihood( design, number_of_outcomes )
+			return MultinomialLogLikelihood::UniquePtr(
+				new MultinomialLogLikelihood( design, number_of_outcomes )
 			) ;
 		}
 		
-		MultinomialRegressionLogLikelihood::MultinomialRegressionLogLikelihood(
-			RegressionDesign::UniquePtr design,
+		MultinomialLogLikelihood::MultinomialLogLikelihood(
+			regression::Design::UniquePtr design,
 			int const number_of_outcomes
 		):
 			m_design( design ),
@@ -55,12 +55,12 @@ namespace metro {
 			// assert( m_design->outcome().size() == 0 || m_design->outcome().array().maxCoeff() <= number_of_outcomes ) ;
 		}
 
-		std::string MultinomialRegressionLogLikelihood::get_summary() const {
+		std::string MultinomialLogLikelihood::get_summary() const {
 			using genfile::string_utils::to_string ;
-			return "MultinomialRegressionLogLikelihood( " + to_string( m_number_of_samples ) + " samples, " + to_string( m_number_of_outcomes ) + " outcomes )" ;
+			return "MultinomialLogLikelihood( " + to_string( m_number_of_samples ) + " samples, " + to_string( m_number_of_outcomes ) + " outcomes )" ;
 		}
 
-		void MultinomialRegressionLogLikelihood::set_predictor_levels(
+		void MultinomialLogLikelihood::set_predictor_levels(
 			Matrix const& levels,
 			Matrix const& probabilities,
 			std::vector< metro::SampleRange > const& included_samples
@@ -69,16 +69,16 @@ namespace metro {
 
 #if DEBUG_LOGLIKELIHOOD
 			int const print_N = std::min( m_design->outcome().size(), Vector::Index( 10 ) ) ;
-			std::cerr << "MultinomialRegressionLogLikelihood::m_number_of_outcomes = " << m_number_of_outcomes << "\n" ;
-			std::cerr << "MultinomialRegressionLogLikelihood::set_predictor_levels(): Included samples:" ;
+			std::cerr << "MultinomialLogLikelihood::m_number_of_outcomes = " << m_number_of_outcomes << "\n" ;
+			std::cerr << "MultinomialLogLikelihood::set_predictor_levels(): Included samples:" ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				std::cerr << " " << included_samples[i].begin() << "-" << included_samples[i].end() ;
 			}
 			std::cerr << "\n" ;
 			Matrix const& design_matrix = m_design->set_predictor_level(0).matrix() ;
-			std::cerr << "MultinomialRegressionLogLikelihood::design matrix = (" << design_matrix.rows() << "x" << design_matrix.cols() << ")\n"
+			std::cerr << "MultinomialLogLikelihood::design matrix = (" << design_matrix.rows() << "x" << design_matrix.cols() << ")\n"
 				<< design_matrix.block( 0, 0, print_N, design_matrix.cols() ) << "\n" ;
-			std::cerr << "MultinomialRegressionLogLikelihood::predictor levels = (" << levels.rows() << "x" << levels.cols() << ")\n"
+			std::cerr << "MultinomialLogLikelihood::predictor levels = (" << levels.rows() << "x" << levels.cols() << ")\n"
 				<< levels << "\n" ;
 #endif
 			compute_psi( m_design->outcome(), levels.rows(), included_samples, &m_psi ) ;
@@ -86,13 +86,13 @@ namespace metro {
 			m_numberOfDerivativesComputed = 0 ;
 
 #if DEBUG_LOGLIKELIHOOD
-			std::cerr << "MultinomialRegressionLogLikelihood:" ;
+			std::cerr << "MultinomialLogLikelihood:" ;
 			std::cerr << "outcome = " << m_design->outcome().transpose().head( print_N ) << "\n" ;
 			print_matrix( "psi", m_psi.block( 0, 0, print_N, m_psi.cols() ), std::cerr ) ;
 #endif
 		}
 		
-		void MultinomialRegressionLogLikelihood::compute_psi(
+		void MultinomialLogLikelihood::compute_psi(
 			Vector const& outcome,
 			int const number_of_predictor_levels,
 			std::vector< metro::SampleRange > const& included_samples,
@@ -112,8 +112,8 @@ namespace metro {
 			}
 		}
 		
-		void MultinomialRegressionLogLikelihood::compute_rearranger( int const number_of_predictor_levels, PermutationMatrix* result ) const {
-			// rearranger is MLxML.  It is a square matrix which when multiplied on the right turns a matrix like
+		void MultinomialLogLikelihood::compute_rearranger( int const number_of_predictor_levels, PermutationMatrix* result ) const {
+			// rearranger is MLxML.	 It is a square matrix which when multiplied on the right turns a matrix like
 			// f1(x1) f2(x1) ... fM(x1) f1(x2)...etc (L blocks of NxM)
 			// into
 			// f1(x1) f1(x2) ... f1(xl) f2(x1)...etc (M blocks of NxL).
@@ -132,40 +132,40 @@ namespace metro {
 #endif
 		}
 		
-		MultinomialRegressionLogLikelihood::Vector const& MultinomialRegressionLogLikelihood::get_parameters() const {
+		MultinomialLogLikelihood::Vector const& MultinomialLogLikelihood::get_parameters() const {
 			return m_parameter_vector ;
 		}
 		
-		void MultinomialRegressionLogLikelihood::evaluate_at(
+		void MultinomialLogLikelihood::evaluate_at(
 			Vector const& parameters,
 			int const numberOfDerivatives
 		) {
 #if DEBUG_LOGLIKELIHOOD
-			std::cerr << "MultinomialRegressionLogLikelihood::evaluate_at(): parameters = " << parameters.transpose() << "\n" ;
+			std::cerr << "MultinomialLogLikelihood::evaluate_at(): parameters = " << parameters.transpose() << "\n" ;
 #endif
 			assert( parameters.size() == m_design->matrix().cols() * ( m_number_of_outcomes - 1 ) ) ;
 			evaluate_at_impl( parameters, numberOfDerivatives ) ;
 		}
 
-        void MultinomialRegressionLogLikelihood::set_parameter_naming_scheme( MultinomialRegressionLogLikelihood::GetParameterName get_parameter_name ) {
-            assert( get_parameter_name ) ;
-            m_get_parameter_name = get_parameter_name ;
-        }
+		void MultinomialLogLikelihood::set_parameter_naming_scheme( MultinomialLogLikelihood::GetParameterName get_parameter_name ) {
+			assert( get_parameter_name ) ;
+			m_get_parameter_name = get_parameter_name ;
+		}
 
-        std::string MultinomialRegressionLogLikelihood::get_parameter_name( std::size_t i ) const {
-            IntegerMatrix const identity = identify_parameters() ;
-            return m_get_parameter_name( m_design->get_predictor_name( identity(i,1)), identity(i,0) ) ;
-        }
+		std::string MultinomialLogLikelihood::get_parameter_name( std::size_t i ) const {
+			IntegerMatrix const identity = identify_parameters() ;
+			return m_get_parameter_name( m_design->get_predictor_name( identity(i,1)), identity(i,0) ) ;
+		}
 
-		LogLikelihood::IntegerMatrix MultinomialRegressionLogLikelihood::identify_parameters() const {
+		LogLikelihood::IntegerMatrix MultinomialLogLikelihood::identify_parameters() const {
 			return m_parameter_identity ;
 		}
 
-		int MultinomialRegressionLogLikelihood::number_of_outcomes() const {
+		int MultinomialLogLikelihood::number_of_outcomes() const {
 			return m_number_of_outcomes ;
 		}
 
-		LogLikelihood::IntegerMatrix MultinomialRegressionLogLikelihood::compute_parameter_identity() const {
+		LogLikelihood::IntegerMatrix MultinomialLogLikelihood::compute_parameter_identity() const {
 			// each parameter corresponds to a column of the design matrix and a non-baseline phenotype level.
 			IntegerMatrix result = IntegerMatrix::Zero( m_parameter_vector.size(), 2 ) ;
 			int const D = m_design->matrix().cols() ;
@@ -178,7 +178,7 @@ namespace metro {
 			return result ;
 		}
 
-		void MultinomialRegressionLogLikelihood::evaluate_at_impl(
+		void MultinomialLogLikelihood::evaluate_at_impl(
 			Vector const& parameters,
 			int const numberOfDerivatives
 		) {
@@ -232,7 +232,7 @@ namespace metro {
 			}
 		}
 		
-		void MultinomialRegressionLogLikelihood::compute_F( Matrix const& parameters, Matrix* result ) const {
+		void MultinomialLogLikelihood::compute_F( Matrix const& parameters, Matrix* result ) const {
 			// F is NxLM, though of as (M+1) blocks of L.
 			// We compute it as L blocks of (M+1), since this leads to simpler code, and then rearrange columns.
 			int const number_of_levels = m_design->get_number_of_predictor_levels() ;
@@ -262,7 +262,7 @@ namespace metro {
 			rearrange_F( result ) ;
 		}
 
-		void MultinomialRegressionLogLikelihood::rearrange_F( Matrix* result ) const {
+		void MultinomialLogLikelihood::rearrange_F( Matrix* result ) const {
 			// We've computed F in the order
 			// f1(x1) f2(x1) ... fM(x1) f1(x2) ...
 			// We now re-arrange so that it comes in the order
@@ -271,7 +271,7 @@ namespace metro {
 			(*result) *= m_outcome_wise_to_predictor_wise_rearranger ;
 		}
 		
-		void MultinomialRegressionLogLikelihood::compute_A_and_function_value(
+		void MultinomialLogLikelihood::compute_A_and_function_value(
 			Matrix const& F,
 			Matrix const& predictor_probabilities,
 			std::vector< metro::SampleRange > const& included_samples,
@@ -301,7 +301,7 @@ namespace metro {
 			}
 		}
 
-		void MultinomialRegressionLogLikelihood::compute_B( Matrix const& A, Matrix const& F, Matrix const& psi, Matrix* result ) const {
+		void MultinomialLogLikelihood::compute_B( Matrix const& A, Matrix const& F, Matrix const& psi, Matrix* result ) const {
 			// B is NxLM, thought of as M blocks of L.
 			int const number_of_levels = m_design->get_number_of_predictor_levels() ;
 			int const M = m_number_of_outcomes - 1 ;
@@ -315,7 +315,7 @@ namespace metro {
 			}
 		}
 
-		void MultinomialRegressionLogLikelihood::compute_value_of_first_derivative(
+		void MultinomialLogLikelihood::compute_value_of_first_derivative(
 			Matrix const& B,
 			std::vector< metro::SampleRange > const& included_samples,
 			Vector* result,
@@ -344,7 +344,7 @@ namespace metro {
 			(*result) = m_first_derivative_terms.colwise().sum() ;
 		}
 
-		void MultinomialRegressionLogLikelihood::compute_C(
+		void MultinomialLogLikelihood::compute_C(
 			Matrix const& A,
 			Matrix const& F,
 			Matrix const& psi,
@@ -381,7 +381,7 @@ namespace metro {
 			}
 		}
 
-		void MultinomialRegressionLogLikelihood::compute_value_of_second_derivative(
+		void MultinomialLogLikelihood::compute_value_of_second_derivative(
 			Matrix const& B,
 			Matrix const& C,
 			std::vector< metro::SampleRange > const& included_samples,
@@ -394,7 +394,7 @@ namespace metro {
 			result->setZero( D*M, D*M ) ;
 			m_design_matrix_tensor_square_rows.resize( m_design->matrix().rows(), D ) ;
 #if DEBUG_LOGLIKELIHOOD
-			std::cerr << "MultinomialRegressionLogLikelihood::compute_value_of_second_derivative(): C =\n"
+			std::cerr << "MultinomialLogLikelihood::compute_value_of_second_derivative(): C =\n"
 				<< C.block( 0, 0, std::min( int( C.rows() ), 10 ), C.cols() ) << "\n" ;
 #endif
 			for( int level_i = 0; level_i < number_of_levels; ++level_i ) {
@@ -455,15 +455,15 @@ namespace metro {
 			}
 		}
 
-		double MultinomialRegressionLogLikelihood::get_value_of_function() const {
+		double MultinomialLogLikelihood::get_value_of_function() const {
 			return m_value_of_function ;
 		}
 
-		MultinomialRegressionLogLikelihood::Vector MultinomialRegressionLogLikelihood::get_value_of_first_derivative() const {
+		MultinomialLogLikelihood::Vector MultinomialLogLikelihood::get_value_of_first_derivative() const {
 			return m_value_of_first_derivative ;
 		}
 
-		MultinomialRegressionLogLikelihood::Matrix MultinomialRegressionLogLikelihood::get_value_of_second_derivative() const {
+		MultinomialLogLikelihood::Matrix MultinomialLogLikelihood::get_value_of_second_derivative() const {
 			return m_value_of_second_derivative ;
 		}
 	}
