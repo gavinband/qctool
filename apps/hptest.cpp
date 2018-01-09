@@ -12,7 +12,8 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "db/Error.hpp"
-#include "metro/RegressionDesign.hpp"
+#include "metro/regression/Design.hpp"
+#include "metro/regression/Logistic.hpp"
 
 namespace globals {
 	std::string const program_name = "hptest" ;
@@ -282,19 +283,22 @@ private:
 		assert( options().get< std::string >( "-model" ) == "gp ~ gh" ) ;
 		covariate_names.push_back( "gh" ) ;
 
-		metro::RegressionDesign::UniquePtr design = metro::RegressionDesign::create(
-			Vector::Zero( samples.size() ), Vector::Constant( samples.size(), 1.0 ), "gp",
+		using namespace metro ;
+		regression::Design::UniquePtr design = regression::Design::create(
+			Vector::Zero( samples.size() ), Vector::Constant( samples.size(), 1.0 ), std::vector< std::string >( 1, "gp" ),
 			Matrix::Zero( samples.size(), 1 ), Matrix::Zero( samples.size(), 1 ), covariate_names,
 			predictor_names
 		) ;
-		
+			
+		regression::Logistic::UniquePtr ll = regression::Logistic::create( design ) ;
+
 		genfile::SNPDataSource* const predictor_source = &host ;
 		genfile::SNPDataSource* const outcome_source = &para ;
 		
 		// Make the predictor the inner loop
 		genfile::VariantIdentifyingData ov, pv ;
-		Vector outcome = Vector::Zero( samples.size() ) ;
-		Vector outcome_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
+		Matrix outcome = Matrix::Zero( samples.size(), 2 ) ;
+		Matrix outcome_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
 		Vector outcome_ploidy = Vector::Zero( samples.size() ) ;
 		Vector predictor = Vector::Zero( samples.size() ) ;
 		Vector predictor_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
@@ -305,7 +309,7 @@ private:
 			outcome_source->reset_to_start() ;
 			while( outcome_source->get_snp_identifying_data( &ov )) {
 				outcome_source->read_variant_data()->get( "GT", CallSetter( &outcome, &outcome_nonmissingness, &outcome_ploidy ) ) ;
-				design->set_outcome( outcome, outcome_nonmissingness, "gp" ) ;
+				design->set_outcome( outcome, outcome_nonmissingness, std::vector< std::string >( 1, "gp" )) ;
 				
 				get_ui_context().logger()
 					<< "test(): read data for outcome variant: ["
