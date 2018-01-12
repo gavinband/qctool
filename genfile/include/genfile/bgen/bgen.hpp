@@ -764,20 +764,44 @@ namespace genfile {
 				// data - the place to read bits into
 				// size - the current number of bits stored in data
 				// bits - the number of bits required.
-				byte_t const* read_bits_from_buffer(
+				// 
+				// This is inlined here for performance reasons
+				inline byte_t const* read_bits_from_buffer(
 					byte_t const* buffer,
 					byte_t const* const end,
 					uint64_t* data,
 					int* size,
 					uint8_t const bits
-				) ;
-
-				double parse_bit_representation(
+				) {
+					//assert( bits <= 64 - 8 ) ;
+					while( (*size) < bits && buffer < end ) {
+						(*data) |= uint64_t( *(reinterpret_cast< byte_t const* >( buffer++ ))) << (*size) ;
+						(*size) += 8 ;
+					}
+					if( (*size) < bits ) {
+						throw BGenError() ;
+					}
+					return buffer ;
+				}
+			
+				// Consume the given number of bits from the the least significant end
+				// of a data field (encoded as a uint64_t) and interpret them as a
+				// floating-point number in the range 0...1
+				// the consumed bits are also shifted out of the data.
+				// This is inlined here for performance reasons
+				inline double parse_bit_representation(
 					uint64_t* data,
 					int* size,
 					int const bits
-				) ;
-					
+				) {
+					//assert( bits <= 32 ) ;
+					uint64_t bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
+					double const result = ( *data & bitMask ) / double( bitMask ) ;
+					(*size) -= bits ;
+					(*data) >>= bits ;
+					return result ;
+				}
+				
 				// Round a point on the unit simplex (expressed as n floating-point probabilities)
 				// to a point representable with the given number of bits.
 				// precondition: p points to n doubles between 0 and 1 that sum to 1
