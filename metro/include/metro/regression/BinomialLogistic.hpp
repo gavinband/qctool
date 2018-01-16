@@ -17,12 +17,13 @@
 namespace metro {
 	namespace regression {
 		/*
-		* This class implements a log-likelihood for Bernoulli logistic regression, allowing predictors
+		* This class implements a log-likelihood for binomial logistic regression, allowing predictors
 		* to take one of a finite set of values with associated probabilities. (A "missing data log-likelihood" ).
-		* The outcome must be a two-column matrix containing 0s and 1s; a 1 in the 2nd column indicates
-		* a non-baseline outcome and a 1 in the 1st column indicates a baseline outcome.
+		* The outcome must be a two-column matrix containing positive integers; in the binomial formulation
+		* in terms of 'successes/failures', the 1st column is the number of failure (baseline) outcomes
+		* and the 2nd column the number of successful (non-baseline) outcomes.
 		*/
-		struct Logistic: public LogLikelihood
+		struct BinomialLogistic: public LogLikelihood
 		{
 		public:
 			typedef regression::Design::Point Point ;
@@ -33,12 +34,12 @@ namespace metro {
 			typedef Eigen::Block< Matrix const > ConstMatrixBlock ;
 			typedef boost::function< std::string( std::string const& predictor_name, std::string const& outcome_name ) > GetParameterName ;
 		public:
-			typedef std::auto_ptr< Logistic > UniquePtr ;
+			typedef std::auto_ptr< BinomialLogistic > UniquePtr ;
 			static UniquePtr create( Design& ) ;
 			static UniquePtr create( Design::UniquePtr ) ;
-			Logistic( Design& ) ;
-			Logistic( Design::UniquePtr ) ;
-			~Logistic() ;
+			BinomialLogistic( Design& ) ;
+			BinomialLogistic( Design::UniquePtr ) ;
+			~BinomialLogistic() ;
 			
 			regression::Design& get_design() const { return *m_design ; }
 			void set_predictor_levels(
@@ -74,12 +75,21 @@ namespace metro {
 				e_Computed2ndDerivative = 4
 			} ;
 			uint32_t m_state ;
-			Matrix m_outcome_probabilities ;
-			Matrix m_A ;
-			Matrix m_B ;
-			Vector m_temp ;
-			Matrix m_first_derivative_terms ;
 
+			Matrix m_outcome_probabilities ;
+			
+			// Given outcome, likelihood function is of the form f(x^t theta) where
+			// theta are the parameters (currently we don't handle the case e.g. normal
+			// linear regression where there are additional parameters).  
+			// Therefore derivatives are of the form (Df)|(x^t theta).x^t
+			// And D^2 f(x^t theta) . x^t
+			
+			Matrix m_hx ; // coefficient for each level x in complete data likelihood for each sample.
+			Matrix m_normalisedDhx ; // coefficient of x in 1st derivative of mean function.
+			Matrix m_normalisedDdhx ; // coefficient of x^t ⊗ x in 2nd derivative of mean function.
+			Vector m_f1 ; // temp storage used in likelihood and derivative computations
+
+			Matrix m_first_derivative_terms ;
 			double m_value_of_function ;
 			Vector m_value_of_first_derivative ;
 			Matrix m_value_of_second_derivative ;
@@ -87,13 +97,37 @@ namespace metro {
 		private:
 			// Evaluate
 			void evaluate_at_impl( Point const& parameters, std::vector< metro::SampleRange > const& included_samples, int const numberOfDerivatives ) ;
-			// Calculate the probability of outcome given the genotype, parameters, and covariates.
-			Vector evaluate_mean_function( Vector const& linear_combinations, Matrix const& outcomes ) const ;
+
+			// Compute complete data likelihood, and its derivatives, for each predictor level
+			// and each sample
+			virtual void compute_complete_data_likelihood_and_derivatives(
+				Point const& parameters,
+				Matrix* fx,
+				Matrix* dfx,
+				Matrix* ddfx,
+				std::vector< metro::SampleRange > const& included_samples,
+				int const numberOfDerivatives
+			) ;
+			
 			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
 			void calculate_outcome_probabilities( Vector const& parameters, Matrix const& phenotypes, Matrix* result ) const ;
-			void compute_value_of_function( Matrix const& V, std::vector< metro::SampleRange > const& included_samples ) ;
-			void compute_value_of_first_derivative( Matrix const& A, std::vector< metro::SampleRange > const& included_samples, Matrix* B ) ;
-			void compute_value_of_second_derivative( Matrix const& B, std::vector< metro::SampleRange > const& included_samples ) ;
+			void compute_value_of_loglikelihood(
+				Matrix const& hx,
+				double* result,
+				std::vector< metro::SampleRange > const& included_samples
+			) ;
+			void compute_value_of_first_derivative(
+				Matrix const& normalisedDhx,
+				Matrix* result_terms,
+				Vector* result,
+				std::vector< metro::SampleRange > const& included_samples
+			) ;
+			void compute_value_of_second_derivative(
+				Matrix const& first_derivative_terms,
+				Matrix const& normalisedDdhx,
+				Matrix* result,
+				std::vector< metro::SampleRange > const& included_samples
+			) ;
 		} ;
 	}
 }

@@ -48,7 +48,7 @@ namespace metro {
 				// Verify design looks sane.
 				// Right now we handle only a bernoulli outcome, i.e.
 				// each sample must have a 1 in column 0 or 1 of the outcome matrix.
-				Eigen::MatrixXd const& outcome = design.outcome() ;
+				Logistic::Matrix const& outcome = design.outcome() ;
 				for( int i = 0; i < outcome.rows(); ++i ) {
 					if(
 						(outcome.row(i).sum() == outcome.row(i).sum())
@@ -57,7 +57,7 @@ namespace metro {
 							|| ( outcome(i,0) != 1.0 && outcome(i,1) != 1.0 )
 						)
 					) {
-						std::cerr << "outcome:\n" << outcome << "\n" ;
+						std::cerr << "outcome:\n" << outcome.block(0,0,10,outcome.cols()) << "\n" ;
 						throw genfile::BadArgumentError(
 							"metro::case_control::Logistic::check_design()",
 							"design",
