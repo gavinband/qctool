@@ -163,7 +163,7 @@
 <g>
 	<g>
 		<text transform="matrix(1 0 0 1 947.5156 13.8945)" font-family="'MyriadPro-Regular'" font-size="12">Threshhold genotype probabilities</text>
-		<text transform="matrix(1 0 0 1 947.5156 28.2935)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-threshhold</text>
+		<text transform="matrix(1 0 0 1 947.5156 28.2935)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-threshold</text>
 		<text transform="matrix(1 0 0 1 996.2744 28.2935)" font-family="'MyriadPro-Regular'" font-size="12" letter-spacing="18"> </text>
 		<text transform="matrix(1 0 0 1 947.5098 155.5859)" font-family="'MyriadPro-Regular'" font-size="12">Reorder samples</text>
 		<text transform="matrix(1 0 0 1 947.5098 167.5859)" fill="#58595B" font-family="'MyriadPro-Regular'" font-size="10">-reorder</text>
