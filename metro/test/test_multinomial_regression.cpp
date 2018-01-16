@@ -447,7 +447,9 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 				double expected_ll = nSamples * std::log( 0.5 ) ;
 				BOOST_CHECK_CLOSE( ll.get_value_of_function(), expected_ll, 0.0000001 ) ;
 
+#if DEBUG_TESTS
 				std::cerr << "test_multinomialregression_two_outcomes_certain_predictors(): outcome:\n" << outcome << ".\n" ;
+#endif
 				Vector one_minus_f1 = ( outcome.col(1).array() - 0.5 ) ;
 				Matrix design_matrix = Matrix::Zero( nSamples, 2 ) ;
 				design_matrix.col(0).setConstant( 1.0 ) ;
