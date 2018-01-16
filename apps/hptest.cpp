@@ -85,7 +85,7 @@ public:
 namespace {
 	struct CallSetter: public genfile::VariantDataReader::PerSampleSetter {
 		CallSetter(
-			Eigen::VectorXd* genotypes,
+			Eigen::MatrixXd* genotypes,
 			Eigen::VectorXd* nonmissingness,
 			Eigen::VectorXd* ploidy
 		):
@@ -105,7 +105,7 @@ namespace {
 					"I only support biallelic variants"
 				) ;
 			}
-			m_genotypes->resize( nSamples ) ;
+			m_genotypes->resize( nSamples, nAlleles ) ;
 			m_nonmissingness->resize( nSamples ) ;
 			m_ploidy->resize( nSamples ) ;
 			
@@ -151,8 +151,8 @@ namespace {
 			// Only accumulate if not missing
 			double const& nonmissing = (*m_nonmissingness)(m_sample_i) ;
 			if( nonmissing == 1 ) {
-				// accumulate count of the 2nd allele
-				(*m_genotypes)(m_sample_i) += value ;
+				// accumulate count of either allele
+				(*m_genotypes)(m_sample_i,value) += 1 ;
 			}
 		}
 
@@ -165,7 +165,7 @@ namespace {
 		}
 		
 	private:
-		Eigen::VectorXd* m_genotypes ;
+		Eigen::MatrixXd* m_genotypes ;
 		Eigen::VectorXd* m_nonmissingness ;
 		Eigen::VectorXd* m_ploidy ;
 		std::size_t m_sample_i ;
@@ -290,26 +290,25 @@ private:
 			predictor_names
 		) ;
 			
-		regression::Logistic::UniquePtr ll = regression::Logistic::create( design ) ;
-
 		genfile::SNPDataSource* const predictor_source = &host ;
 		genfile::SNPDataSource* const outcome_source = &para ;
 		
 		// Make the predictor the inner loop
 		genfile::VariantIdentifyingData ov, pv ;
 		Matrix outcome = Matrix::Zero( samples.size(), 2 ) ;
-		Matrix outcome_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
+		Vector outcome_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
 		Vector outcome_ploidy = Vector::Zero( samples.size() ) ;
-		Vector predictor = Vector::Zero( samples.size() ) ;
+		Matrix predictor = Matrix::Zero( samples.size(), 2 ) ;
 		Vector predictor_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
 		Vector predictor_ploidy = Vector::Zero( samples.size() ) ;
 		while( predictor_source->get_snp_identifying_data( &pv )) {
 			predictor_source->read_variant_data()->get( "GT", CallSetter( &predictor, &predictor_nonmissingness, &predictor_ploidy )) ;
-			design->set_covariates( predictor, predictor_nonmissingness ) ;
+			design->set_covariates( predictor.col(1), predictor_nonmissingness ) ;
 			outcome_source->reset_to_start() ;
 			while( outcome_source->get_snp_identifying_data( &ov )) {
 				outcome_source->read_variant_data()->get( "GT", CallSetter( &outcome, &outcome_nonmissingness, &outcome_ploidy ) ) ;
-				design->set_outcome( outcome, outcome_nonmissingness, std::vector< std::string >( 1, "gp" )) ;
+				design->set_outcome( outcome, outcome_nonmissingness, std::vector< std::string >({"gp=0","gp=1"})) ;
+				regression::Logistic::UniquePtr ll = regression::Logistic::create( *design ) ;
 				
 				get_ui_context().logger()
 					<< "test(): read data for outcome variant: ["
