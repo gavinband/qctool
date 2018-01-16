@@ -51,7 +51,7 @@ namespace metro {
 			m_predictor_names( predictor_names ),
 			m_transform( transform ),
 			m_globally_included_samples( compute_included_samples( phenotype_nonmissingness, covariate_nonmissingness ) ),
-			m_predictor_level_probabilities( Eigen::MatrixXd::Zero( 0, m_number_of_predictors )),
+			m_predictor_level_probabilities( Matrix::Zero( 0, m_number_of_predictors )),
 			m_number_of_predictor_levels(0)
 		{
 			assert( covariates.rows() == m_outcome.rows() ) ;
