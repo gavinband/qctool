@@ -24,6 +24,214 @@ typedef std::vector< std::string > Names ;
 
 BOOST_AUTO_TEST_SUITE( test_logistic ) ;
 
+AUTO_TEST_CASE( test_logistic_regression_one_sample ) {
+	using metro::SampleRange ;
+	using namespace metro::regression ;
+	using metro::regression::Design ;
+	typedef Design::Matrix Matrix ;
+	typedef Design::Vector Vector ;
+	using std::exp ;
+	using std::log ;
+	
+	int const nSamples = 1 ;
+	std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, 1 ) ) ;
+	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
+	predictor_levels(0,0) = 1 ;
+	predictor_levels(1,0) = 2 ;
+	int const nOutcomes = 2 ;
+	{
+		Matrix outcome = Matrix::Zero(nSamples, nOutcomes) ;
+		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 1.0 ) ;
+		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
+		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
+		Names outcome_names ;
+		for( int j = 0; j < nOutcomes; ++j ) {
+			outcome_names.push_back( "outcome" + std::to_string( j )) ;
+		}
+//		for( int outcome_i = 0; outcome_i < nOutcomes; ++outcome_i ) {
+		for( int outcome_i = 1; outcome_i < nOutcomes; ++outcome_i ) {
+			// Set the chosen outcome for the single sample
+			outcome.setZero() ;
+			outcome(0,outcome_i) = 1 ;
+			
+			Logistic ll(
+				Design::create(
+					outcome, outcome_nonmissingness, outcome_names,
+					covariates, covariate_nonmissingness, Names(),
+					Names( 1, "predictor" )
+				)
+			) ;
+			
+			// Set up a single predictor, equal to 1 with certainty.
+			Matrix predictor_probabilities = Matrix::Zero( 1, 2 ) ;
+			predictor_probabilities(0, 0) = 1.0 ;
+			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+
+			int const nParameters = 2 * ( nOutcomes - 1 ) ;
+			int const M = nOutcomes - 1 ;
+			// Now test values.
+			{
+				Vector parameters = Vector::Zero( nParameters ) ;
+				ll.evaluate_at( parameters ) ;
+				// All probs are equal to 1/(M+1).	So outcome probability equals this.
+				Matrix parameter_matrix = parameters ;
+				parameter_matrix.resize( 2, nOutcomes - 1 ) ;
+#if DEBUG_TESTS
+				std::cerr << "parameters = " << parameters.transpose() << ".\n" ;
+				std::cerr << "outcome = " << outcome.transpose() << ".\n" ;
+#endif
+			
+				double const expected_ll = std::log( 1.0 / double( nOutcomes ) ) ;
+				BOOST_CHECK_CLOSE( expected_ll, ll.get_value_of_function(), 0.00001 ) ;
+				
+				Matrix F = Matrix::Constant( 1, nOutcomes, 1.0 / double( nOutcomes ) ) ;
+				
+				Matrix B = -F.block( 0, 1, 1, M ) ;
+				if( outcome_i > 0 ) {
+					B( 0, outcome_i - 1 ) += 1.0 ;
+				}
+				
+				Matrix design_matrix = Matrix::Constant( 1, 2, 1.0 ) ;
+				Matrix expected_first_derivative = Matrix::Zero( 1, M * 2 ) ;
+				for( int j = 0; j < M ; ++j ) {
+					expected_first_derivative.block( 0, j*2, 1, 2 ) = design_matrix.row(0) * B( 0, j ) ;
+				}
+
+				Vector const first_derivative = ll.get_value_of_first_derivative() ;
+				for( int j = 0; j < M*2; ++j ) {
+					BOOST_CHECK_CLOSE( expected_first_derivative(0,j), first_derivative(j), 0.00001 ) ;
+				}
+
+				Matrix C = Matrix::Zero( M, M ) ;
+				for( int j = 0; j < M ; ++j ) {
+					double Z_ij = ( j == outcome_i - 1 ) ? ( 1 - F(j+1) ) : ( - F(j+1) ) ;
+					for( int k = 0; k < M; ++k ) {
+						double Z_ik = ( k == outcome_i - 1 ) ? ( 1 - F(k+1) ) : ( - F(k+1) ) ;
+						double Z_jk = ( j == k ) ? ( 1 - F(k+1) ) : ( - F(k+1) ) ;
+//						std::cerr << "j:" << j << ", k:" << k << ", Zij:" << Z_ij << ", Z_ik:" << Z_ik << ", Z_jk:" << Z_jk << ".\n" ;
+						C( j, k ) = ( Z_ij * Z_ik ) - ( F( j+1 ) * Z_jk ) ;
+					}
+				}
+
+				Matrix expected_2nd_derivative = Matrix::Zero( M*2, M*2 ) ;
+				for( int j = 0; j < M ; ++j ) {
+					for( int k = 0; k < M ; ++k ) {
+						expected_2nd_derivative.block( j*2, k*2, 2, 2 )
+							= ( C( j, k ) - B( 0, j ) * B( 0, k ) ) * design_matrix.row(0).transpose() * design_matrix.row(0) ;
+					}
+				}
+
+				Matrix const second_derivative = ll.get_value_of_second_derivative() ;
+				for( int j = 0; j < M*2; ++j ) {
+					for( int k = 0; k < M*2; ++k ) {
+						BOOST_CHECK_CLOSE( expected_2nd_derivative(j,k), second_derivative(j,k), 0.00001 ) ;
+					}
+				}
+				
+#if DEBUG_TESTS
+				std::cerr << "test_multinomialregression_one_sample:\n" ;
+				std::cerr << "nOutcomes = " << nOutcomes << "\n" ;
+				std::cerr << "F = " << F << "\n" ;
+				std::cerr << "B = " << B << "\n" ;
+				std::cerr << "C = \n" << C << "\n" ;
+				std::cerr << "expected 2nd derivative = \n"
+					<< expected_2nd_derivative << "\n" ;
+				std::cerr << "actual 2nd derivative = \n"
+					<< second_derivative << "\n" ;
+#endif
+			}
+
+			for( int nonzero_i = 0; nonzero_i < nParameters; ++nonzero_i )
+			{
+
+				Vector parameters = Vector::Zero( 2 * ( nOutcomes - 1 ) ) ;
+				parameters( nonzero_i ) = log(2.0) ;
+#if DEBUG_TESTS
+				std::cerr << "##############\n" ;
+				std::cerr << "nOutcomes = " << nOutcomes << ".\n" ;
+				std::cerr << "parameters = " << parameters.transpose() << ".\n" ;
+				std::cerr << "outcome = " << outcome.transpose() << ".\n" ;
+				std::cerr << "nonzero = " << nonzero_i << ".\n" ;
+#endif
+				ll.evaluate_at( parameters ) ;
+
+				// f_i will equal 1/(M+2), or 2/(M+2) for i=floor(nonzero_i/2).
+				Matrix parameter_matrix = parameters ;
+				parameter_matrix.resize( 2, nParameters ) ;
+			
+				// So if the outcome equals floor(nonzero_i/2) we have
+				int const special_outcome = nonzero_i / 2 ;
+				double expected_ll ;
+				if( outcome_i == 0 ) {
+					expected_ll = std::log( 1.0 / ( M + 2.0 ) ) ;
+				} else if( ( outcome_i - 1 ) == special_outcome ) {
+					expected_ll = std::log( 2.0 / ( M + 2.0 ) ) ;
+				} else {
+					expected_ll = std::log( 1.0 / ( M + 2.0 ) ) ;
+				}
+				BOOST_CHECK_CLOSE( expected_ll, ll.get_value_of_function(), 0.00001 ) ;
+
+				Matrix F = Matrix::Constant( 1, nOutcomes, 1.0 / ( M + 2.0 ) ) ;
+				F( special_outcome + 1 ) = 2.0 / ( M + 2.0 ) ;
+				
+				Matrix B = -F.block( 0, 1, 1, M ) ;
+				if( outcome_i > 0 ) {
+					B( 0, outcome_i - 1 ) += 1.0 ;
+				}
+				Matrix design_matrix = Matrix::Constant( 1, 2, 1.0 ) ;
+				Matrix expected_first_derivative = Matrix::Zero( 1, M * 2 ) ;
+				for( int j = 0; j < M ; ++j ) {
+					expected_first_derivative.block( 0, j*2, 1, 2 ) = design_matrix.row(0) * B( 0, j ) ;
+				}
+
+				Vector const first_derivative = ll.get_value_of_first_derivative() ;
+				for( int j = 0; j < M*2; ++j ) {
+					BOOST_CHECK_CLOSE( expected_first_derivative(0,j), first_derivative(j), 0.00001 ) ;
+				}
+
+				Matrix C = Matrix::Zero( M, M ) ;
+				for( int j = 0; j < M ; ++j ) {
+					double Z_ij = ( j == outcome_i - 1 ) ? ( 1 - F(j+1) ) : ( - F(j+1) ) ;
+					for( int k = 0; k < M; ++k ) {
+						double Z_ik = ( k == outcome_i - 1 ) ? ( 1 - F(k+1) ) : ( - F(k+1) ) ;
+						double Z_jk = ( j == k ) ? ( 1 - F(k+1) ) : ( - F(k+1) ) ;
+						C( j, k ) = ( Z_ij * Z_ik ) - ( F( j+1 ) * Z_jk ) ;
+						//std::cerr << "j:" << j << ", k:" << k << ", Zij:" << Z_ij << ", Z_ik:" << Z_ik << ", Z_jk:" << Z_jk << ".\n" ;
+					}
+				}
+				Matrix expected_2nd_derivative = Matrix::Zero( M*2, M*2 ) ;
+				for( int j = 0; j < M ; ++j ) {
+					for( int k = 0; k < M ; ++k ) {
+						expected_2nd_derivative.block( j*2, k*2, 2, 2 )
+							= ( C( j, k ) - B( 0, j ) * B( 0, k ) ) * design_matrix.row(0).transpose() * design_matrix.row(0) ;
+					}
+				}
+
+				Matrix const second_derivative = ll.get_value_of_second_derivative() ;
+				
+#if DEBUG_TESTS
+				std::cerr << "test_multinomialregression_one_sample:\n" ;
+				std::cerr << "nOutcomes = " << nOutcomes << "\n" ;
+				std::cerr << "F = " << F << "\n" ;
+				std::cerr << "B = " << B << "\n" ;
+				std::cerr << "C = \n" << C << "\n" ;
+				std::cerr << "expected 2nd derivative = \n"
+					<< expected_2nd_derivative << "\n" ;
+				std::cerr << "actual 2nd derivative = \n"
+					<< second_derivative << "\n" ;
+#endif
+				for( int j = 0; j < M*2; ++j ) {
+					for( int k = 0; k < M*2; ++k ) {
+						BOOST_CHECK_CLOSE( expected_2nd_derivative(j,k), second_derivative(j,k), 0.00001 ) ;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
 AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 	using metro::SampleRange ;
 	using namespace metro::regression ;
