@@ -490,7 +490,7 @@ public:
 
 		// Other options
 		options.declare_group( "Other options" ) ;
-		options [ "-threshhold" ] 
+		options [ "-threshold" ] 
 			.set_description( "Threshhold genotype call probabilities.  This means replace call probabilities "
 			">= threshold with 1 and those < threshhold with 0." )
 			.set_takes_single_value() ;
@@ -1113,9 +1113,9 @@ private:
 			) ;
 		}
 
-		if( m_options.check( "-threshhold" )) {
+		if( m_options.check( "-threshold" )) {
 			m_snp_data_source.reset(
-				new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshhold" ))
+				new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshold" ))
 			) ;
 		}
 #endif
@@ -1488,9 +1488,9 @@ public:
 			) ;
 		}
 		
-		if( m_options.check( "-threshhold" )) {
+		if( m_options.check( "-threshold" )) {
 			snp_data_source.reset(
-				new genfile::ThreshholdingSNPDataSource( snp_data_source, m_options.get< double >( "-threshhold" ))
+				new genfile::ThreshholdingSNPDataSource( snp_data_source, m_options.get< double >( "-threshold" ))
 			) ;
 		}
 		
