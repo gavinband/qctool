@@ -137,7 +137,7 @@ PairwiseCallComparerManager::Merger::UniquePtr PairwiseCallComparerManager::Merg
 		result.reset(
 			new FrequentistTestCallMerger(
 				model,
-				options.get_value< double >( "-consensus-call-pvalue-threshhold" )
+				options.get_value< double >( "-consensus-call-pvalue-threshold" )
 			)
 		) ;
 	}

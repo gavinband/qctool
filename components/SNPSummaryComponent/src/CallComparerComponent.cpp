@@ -96,7 +96,7 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 		 	"Currently this can be \"LeastMissing\" or \"QuangStyle\"." )
 		.set_takes_single_value()
 		.set_default_value( "LeastMissing" ) ;
-	options[ "-consensus-call-pvalue-threshhold" ]
+	options[ "-consensus-call-pvalue-threshold" ]
 		.set_description( "Treat calls in call comparison treated as distinct if the p-value of an association test between them "
 			"is less than or equal to this value." )
 		.set_takes_single_value()
@@ -106,7 +106,7 @@ void CallComparerComponent::declare_options( appcontext::OptionProcessor& option
 	options.option_implies_option( "-compare-calls", "-s" ) ;
 	options.option_implies_option( "-tabulate-call-comparison", "-compare-calls" ) ;
 	options.option_implies_option( "-consensus-call", "-compare-calls" ) ;
-	options.option_implies_option( "-consensus-call-pvalue-threshhold", "-compare-calls" ) ;
+	options.option_implies_option( "-consensus-call-pvalue-threshold", "-compare-calls" ) ;
 }
 
 CallComparerComponent::UniquePtr CallComparerComponent::create(
