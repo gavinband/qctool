@@ -92,16 +92,63 @@ namespace {
 	}
 }
 
+using metro::SampleRange ;
+using namespace metro::regression ;
+using metro::regression::Design ;
+typedef Design::Matrix Matrix ;
+typedef Design::Vector Vector ;
+using std::exp ;
+using std::log ;
+
+// Test that when all samples are missing, the answer is zero.
+AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
+	std::vector< metro::SampleRange > included_samples ;
+	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
+	predictor_levels(0,0) = 1 ;
+	predictor_levels(1,0) = 2 ;
+	int const nOutcomes = 2 ;
+	for( int nSamples = 0; nSamples < 100; ++nSamples ) {
+		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
+		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
+
+		for( int nMissing = 0; nMissing < nSamples; ++nMissing ) {
+			Matrix outcome = Matrix::Zero( nSamples, nOutcomes ) ;
+			outcome.col(0).setConstant(1) ;
+			outcome.col(1).setZero() ;
+			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 0.0 ) ;
+			Names outcome_names ;
+			for( int j = 0; j < nOutcomes; ++j ) {
+				outcome_names.push_back( "outcome" + std::to_string( j )) ;
+			}
+
+			BinomialLogistic ll(
+				Design::create(
+					outcome, outcome_nonmissingness, outcome_names,
+					covariates, covariate_nonmissingness, Names(),
+					Names( 1, "predictor" )
+				)
+			) ;
+		
+			Matrix predictor_probabilities = Matrix::Zero( nSamples, 2 ) ;
+			predictor_probabilities.col(1).setConstant( 1.0 ) ;
+			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			// Now test values.
+			Vector parameters = Vector::Zero( 2 ) ;
+			parameters(0) = 1.0 ;
+			parameters(1) = -1.0 ;
+			ll.evaluate_at( parameters ) ;
+		
+			double const expected_ll = 0.0 ;
+			Vector const expected_dll = Vector::Zero(2) ;
+			Matrix const expected_ddll = Vector::Zero(2,2) ;
+			BOOST_CHECK_EQUAL( ll.get_value_of_function(), expected_ll ) ;
+			BOOST_CHECK_EQUAL( ll.get_value_of_first_derivative(), expected_dll ) ;
+			BOOST_CHECK_EQUAL( ll.get_value_of_second_derivative(), expected_ddll ) ;
+		}
+	}
+}
+
 AUTO_TEST_CASE( test_binomial_logisticregression_zero_samples ) {
-	using metro::SampleRange ;
-	using namespace metro::regression ;
-	using metro::regression::Design ;
-	typedef Design::Matrix Matrix ;
-	typedef Design::Vector Vector ;
-	using std::exp ;
-	using std::log ;
-	
-	int const nSamples = 0 ;
 	std::vector< metro::SampleRange > included_samples ;
 	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
 	predictor_levels(0,0) = 1 ;
@@ -127,13 +174,13 @@ AUTO_TEST_CASE( test_binomial_logisticregression_zero_samples ) {
 				Names( 1, "predictor" )
 			)
 		) ;
-					
-		Matrix predictor_probabilities = Matrix::Zero( 0, 2 ) ;
+	
+		Matrix predictor_probabilities = Matrix::Zero( nSamples, 2 ) ;
 		ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
 		// Now test values.
 		Vector parameters = Vector::Zero( 2 ) ;
 		ll.evaluate_at( parameters ) ;
-		
+	
 		double const expected_ll = 0.0 ;
 		Vector const expected_dll = Vector::Zero(2) ;
 		Matrix const expected_ddll = Vector::Zero(2,2) ;
