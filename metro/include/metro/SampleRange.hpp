@@ -8,6 +8,7 @@
 #define SNPTEST_CASE_CONTROL_SAMPLE_RANGE_HPP
 
 #include <iostream>
+#include <vector>
 
 namespace metro {
 	struct SampleRange {

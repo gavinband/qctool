@@ -47,4 +47,11 @@ namespace metro {
 	std::ostream& operator<<( std::ostream& out, SampleRange const& range ) {
 		return out << "[" << range.begin() << "-" << range.end() << ")" ;
 	}
+
+	std::ostream& operator<<( std::ostream& out, std::vector< SampleRange > const& ranges ) {
+		for( std::size_t i = 0; i < ranges.size(); ++i ) {
+			out << (i>0?",":"" ) << ranges[i] ;
+		}
+		return out ;
+	}
 }
