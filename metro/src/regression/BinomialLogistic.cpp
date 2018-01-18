@@ -16,7 +16,7 @@
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
-// #define DEBUG_LOGLIKELIHOOD 2
+#define DEBUG_LOGLIKELIHOOD 2
 
 namespace metro {
 	namespace regression {
@@ -92,9 +92,17 @@ namespace metro {
 
 		std::string BinomialLogistic::get_summary() const {
 			using genfile::string_utils::to_string ;
-			return "BinomialLogistic( "
+			std::string result = "BinomialLogistic( "
 				+ to_string( m_design->outcome().rows() )
-				+ " samples )" ;
+				+ " samples ): " ;
+			result += "(" + m_design->get_outcome_name(1) + ") ~ " ;
+			IntegerMatrix const identity = identify_parameters() ;
+			for( int i = 0; i < identity.rows(); ++i ) {
+				result +=
+					((i>0) ? " + " : "")
+					+ get_parameter_name(i) ;
+			}
+			return result ;
 		}
 
 		void BinomialLogistic::set_parameter_naming_scheme( BinomialLogistic::GetParameterName get_parameter_name ) {
@@ -262,14 +270,15 @@ namespace metro {
 		) {
 			int const N = m_design->outcome().rows() ;
 			int const D = m_design->matrix().cols() ;
+			int const L = m_design->get_number_of_predictor_levels() ;
 			Matrix const& outcome = m_design->outcome() ;
 			int const N_predictor_levels = m_design->get_number_of_predictor_levels() ;
 
-			fx->resize( N, D ) ;
+			fx->resize( N, L ) ;
 			if( numberOfDerivatives > 0 ) {
-				dfx->resize( N, D ) ;
+				dfx->resize( N, L ) ;
 				if( numberOfDerivatives > 1 ) {
-					ddfx->resize( N, D ) ;
+					ddfx->resize( N, L ) ;
 				}
 			}
 
@@ -286,12 +295,22 @@ namespace metro {
 				Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
 #if DEBUG_LOGLIKELIHOOD
 				std::cerr << "design(" << g << ") =\n"
-					<< design_matrix << ".\n" ;
+					<< design_matrix.block( 0, 0, std::min( 10, int(design_matrix.rows())), design_matrix.cols() ) << ".\n" ;
+				std::cerr << "outcome(" << g << ") =\n"
+					<< outcome.block( 0, 0, std::min( 10, int(outcome.rows())), outcome.cols() ) << ".\n" ;
 #endif
 				m_f1 = (design_matrix * parameters).array().exp() ;
 				m_f1 = m_f1.array() * ((one + m_f1).array().inverse()) ;
 				
 				// Likelihood is obtained by raising f1 and f0 to appropriate powers
+				
+				
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "(*fx) = \n"
+					<< fx->block( 0, 0, std::min( 10, int(fx->rows())), fx->cols() ) << ".\n" ;
+				std::cerr << "f1 = \n"
+					<< m_f1.block( 0, 0, std::min( 10, int(m_f1.rows())), m_f1.cols() ) << ".\n" ;
+#endif
 				(*fx).col(g)
 					= m_f1.array().pow( outcome.col(1).array() )
 					* (one.array() - m_f1.array() ).pow( outcome.col(0).array() ) ;
@@ -303,7 +322,7 @@ namespace metro {
 
 				if( numberOfDerivatives > 0 ) {
 					// compute coefficient of x^t in 1st derivative
-					// To share computatino with 2nd derivative,
+					// To share computation with 2nd derivative,
 					// first compute the shared term, we multiple by fx below.
 
 #if DEBUG_LOGLIKELIHOOD
