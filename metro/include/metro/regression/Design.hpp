@@ -36,7 +36,7 @@ namespace metro {
 		public:
 		
 			static UniquePtr create(
-				Matrix const& outcome, NonmissingnessMatrix const& phenotype_nonmissingness, std::vector< std::string > const& outcome_names,
+				Matrix const& outcome, NonmissingnessMatrix const& outcome_nonmissingness, std::vector< std::string > const& outcome_names,
 				Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
 				std::vector< std::string > const& predictor_names,
 				Transform transform = eIdentity,
