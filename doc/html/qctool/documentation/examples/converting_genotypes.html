@@ -31,50 +31,34 @@
 		</div>
 
 		<section class="main_text">
-			<h2>Basic examples</h2>
-				<div class="tutorial_header">
-				This page shows command lines used to carry out common tasks with QCTOOL.
-				We assume the program is being run from a directory containing a sample file <span class="monospace">example.sample</span> and 22 GEN files named <span class="monospace">example_01.gen, example_02.gen</span>, etc.
-				As one of the first examples, we convert these files to BGEN format and use this in subsequent examples.
-				 See also the <a href="../../documentation/alphabetical_options.html">list of options</a>.
-				</div>
-				<div class="tutorial_separator">
-				</div>
+					<h2>Converting genotypes</h2>
 				<div class="task">
 					<div class="task_name">
-						Run qctool
-					</div>
-					<div class="task_command_line">
-						$ qctool
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						View the program usage page
-					</div>
-					<div class="task_command_line">
-						$ qctool -help | less
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Get a computer-readable list of options
-					</div>
-					<div class="task_command_line">
-						$ qctool -spec
+						Computing genotype calls by thresholding
 					</div>
 					<div class="task_notes">
-						<b>Note:</b> output is is JSON format.  This option is used to construct the <a href="../alphabetical_options.html">table of options</a>.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Capture screen output in log file
+						The <code>-threshold</code> option tells QCTOOL to compute thresholded genotype calls from genotype probabilities found in the input. For example:
 					</div>
 					<div class="task_command_line">
-						$ qctool [other options] -log log.txt
+						$ qctool -g input.gen -threshold 0.9 -og thresholded.vcf
+					</div>
+					<div class="task_notes">
+						This will read genotype probabilities (e.g. from imputation) from the input file, and for each sample at each variant will
+						compute a genotype call (if one of the probabilities is above the threshold) or a missing call (if none are).
+					</div>
+					<div class="task_notes">
+						In the example above, the output VCF file will contain two FORMAT fields, namely GT (the threshholded call) and GP (the original
+						imputed probabilities).  More generally, <code>-threshold</code> makes the thresholded call the primary analysis genotype,
+						thus for example in the command:
+					</div>
+					<div class="task_command_line">
+						$ qctool -g input.gen -threshold 0.9 -snp-stats -osnp &lt;output file&gt;
+					</div>
+					<div class="task_notes">
+						the output will reflect summary statistics computed on the thresholded calls.
 					</div>
 				</div>
+			</div>
 		</section>
 
 		<nav class="button_bar">
@@ -94,8 +78,8 @@
 					<li><a href="../../documentation/examples/basic.html">Basic usage</a></li>
 					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
 					<li><a href="../../documentation/examples/converting_genotypes.html">Thresholding genotypes</a></li>
-					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
-					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
+<li><a href="([a-zA-Z/.]*)sorting.html">Sorting and reordering data</a></li>
+				<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
 <li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
@@ -118,7 +102,7 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</nav>
+		</div>
 		
 	</body>
 </html>
