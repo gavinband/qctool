@@ -30,6 +30,7 @@ namespace metro {
 	bool operator< ( SampleRange const& left, SampleRange const& right ) ;
 	
 	std::ostream& operator<<( std::ostream& out, SampleRange const& range ) ;
+	std::ostream& operator<<( std::ostream& out, std::vector< SampleRange > const& range ) ;
 }
 
 #endif
