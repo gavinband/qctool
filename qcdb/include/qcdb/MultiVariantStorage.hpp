@@ -18,9 +18,8 @@
 #include "qcdb/DBOutputter.hpp"
 
 namespace qcdb {
-	struct Storage {
-		typedef std::auto_ptr< Storage > UniquePtr ;
-		typedef boost::shared_ptr< Storage > SharedPtr ;
+	struct MultiVariantStorage {
+		typedef std::auto_ptr< PairwiseVariantStorage > UniquePtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
 		
 		static UniquePtr create(
@@ -31,15 +30,16 @@ namespace qcdb {
 			std::string const& compare_by = "position,alleles"
 		) ;
 		
-		virtual ~Storage() {} ;
+		virtual ~PairwiseVariantStorage() {} ;
 
 		virtual void add_variable(
 			std::string const& 
 		) = 0 ;
-
-		virtual void create_new_variant( genfile::VariantIdentifyingData const& ) = 0 ;
+		virtual void create_new_key(
+			std::vector< genfile::VariantIdentifyingData > const& variants
+		) = 0 ;
 		virtual void store_per_variant_data(
-			genfile::VariantIdentifyingData const& snp,
+			std::vector< genfile::VariantIdentifyingData > variants,
 			std::string const& variable,
 			genfile::VariantEntry const& value
 		) = 0 ;
