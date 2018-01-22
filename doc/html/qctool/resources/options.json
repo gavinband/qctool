@@ -989,7 +989,7 @@
     "values_per_use": 1,
     "default": [ "0" ]
   },
-  "-threshhold": {
+  "-threshold": {
     "group": "",
     "description": "Threshhold genotype call probabilities.  This means replace call probabilities >= threshold with 1 and those < threshhold with 0.",
     "is_required": 0,
