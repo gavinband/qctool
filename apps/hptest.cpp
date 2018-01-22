@@ -19,6 +19,8 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
+#include "qcdb/Storage.hpp"
+#include "qcdb/FlatTableDBOutputter.hpp"
 #include <Eigen/Core>
 #include <Eigen/QR>
 
@@ -78,6 +80,12 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
+
+	    options[ "-o" ]
+	        .set_description( "Output file" )
+			.set_takes_values( 1 )
+			.set_minimum_multiplicity( 1 )
+			.set_maximum_multiplicity( 1 ) ;
 		
 		options.declare_group( "Model options" ) ;
 		options[ "-model" ]
@@ -85,6 +93,37 @@ public:
 			.set_takes_values(1)
 			.set_default_value( "gp ~ gh" )
 		;
+
+		options[ "-tolerance" ]
+			.set_description( "Tolerance" )
+			.set_takes_values(1)
+			.set_default_value( 0.001 )
+		;
+
+		options[ "-max-iterations" ]
+			.set_description( "Maximum fitting iterations" )
+			.set_takes_values(1)
+			.set_default_value( 100 )
+		;
+		
+		options.declare_group( "Misc options" ) ;
+		
+		options[ "-compare-variants-by" ]
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
+				" (position, rsid, snpid, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,alleles,ids" ) ;
+		options[ "-analysis-name" ]
+			.set_description( "Specify a name to label results from this analysis with." )
+			.set_takes_single_value()
+			.set_default_value( "qctool analysis" ) ;
+		options[ "-analysis-chunk" ]
+			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
+			.set_takes_single_value()
+			.set_default_value( genfile::MissingValue() ) ;
 	}
 } ;
 
@@ -345,7 +384,14 @@ private:
 		
 		write_preamble( *host, *para, *samples ) ;
 		
-		test( *host, *para, *samples ) ;
+		qcdb::Storage::UniquePtr storage = qcdb::Storage::create(
+			options().get< std::string > ( "-o" ),
+			options().get< std::string > ( "-analysis-name" ),
+			options().get< std::string > ( "-analysis-chunk" ),
+			options().get_values_as_map()
+		) ;
+		
+		test( *host, *para, *samples, *storage ) ;
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources( std::string const& filename ) {
@@ -376,7 +422,8 @@ private:
 	void test(
 		genfile::SNPDataSource& host,
 		genfile::SNPDataSource& para,
-		genfile::CohortIndividualSource const& samples
+		genfile::CohortIndividualSource const& samples,
+		qcdb::Storage& output
 	) {
 		typedef metro::regression::Design::Matrix Matrix ;
 		// We model the predictor as a fixed covariate
@@ -408,9 +455,10 @@ private:
 		Vector predictor_ploidy = Vector::Zero( samples.size() ) ;
 		while( predictor_source->get_snp_identifying_data( &pv )) {
 			ProbSetter hostSetter( &predictor_probabilities, &predictor_nonmissingness, &predictor_ploidy ) ;
-			predictor_source->read_variant_data()->get( "GT", genfile::to_GP_unphased( hostSetter )) ;
+			predictor_source->read_variant_data()->get( "GP", genfile::to_GP_unphased( hostSetter )) ;
 			design->set_predictor_levels( predictor_levels, predictor_probabilities, design->globally_included_samples() ) ;
 
+			outcome_source->reset_to_start() ;
 			get_ui_context().logger()
 				<< "Predictors:\n"
 				<< predictor_probabilities.block(0,0, std::min( 10, int( predictor_probabilities.rows() )), predictor_probabilities.cols() )
@@ -444,25 +492,38 @@ private:
 
 				std::cerr << "Included samples = " << design->globally_included_samples() << ".\n" ;
 				
-				// Let's optimise...
-				{
-					Snptest25StoppingCondition< regression::BinomialLogistic > stopping_condition(
-						*ll, 0.001, 2, &get_ui_context().logger()
-					) ;
-					typedef metro::regression::Design::Matrix Matrix ;
-					Eigen::ColPivHouseholderQR< Matrix > solver ;
-					Eigen::VectorXd parameters = Eigen::VectorXd::Zero(2) ;
-					parameters = maximise_by_newton_raphson(
-						*ll, parameters, stopping_condition, solver
-					) ;
-					
-					get_ui_context().logger()
-						<< "parameters: " << parameters.transpose() << ".\n" ;
-					
-				}
+				Eigen::VectorXd const parameters = fitit( *ll ) ;
 				
+				{
+					double const fpv
+						= ((2 * predictor_probabilities.col(2).sum() ) + predictor_probabilities.col(1).sum())
+						/ (2 * predictor_probabilities.sum() ) ;
+					double const fov = outcome.col(1).sum() / outcome.sum() ;
+			
+					get_ui_context().logger()
+						<< "###\n"
+						<< "++ predictor variant: " << pv << ", frequency " << fpv << "\n"
+						<< "++   outcome variant: " << ov << ", frequency " << fov << "\n"
+						<< "++        parameters: " << parameters.transpose() << ".\n" ;
+				}
 			}
 		}
+	}
+	
+	Eigen::VectorXd fitit( metro::regression::LogLikelihood& ll ) {
+		// Let's optimise...
+		using namespace metro ;
+		Snptest25StoppingCondition< regression::LogLikelihood > stopping_condition(
+			ll,
+			options().get< double >( "-tolerance" ),
+			options().get< std::size_t >( "-max-iterations" ),
+			&get_ui_context().logger()
+		) ;
+		typedef metro::regression::Design::Matrix Matrix ;
+		Eigen::ColPivHouseholderQR< Matrix > solver ;
+		//Eigen::VectorXd parameters = Eigen::VectorXd::Zero(2) ;
+		Eigen::VectorXd parameters = Eigen::VectorXd::Zero(2) ;
+		return maximise_by_newton_raphson( ll, parameters, stopping_condition, solver ) ;
 	}
 } ;
 
