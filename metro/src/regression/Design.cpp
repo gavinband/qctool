@@ -13,6 +13,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/bind.hpp>
 #include "metro/regression/Design.hpp"
+#include "metro/intersect_ranges.hpp"
 
 // #define DEBUG_REGRESSIONDESIGN 1
 
@@ -38,35 +39,41 @@ namespace metro {
 
 		Design::Design(
 			Matrix const& outcome, NonmissingnessMatrix const& phenotype_nonmissingness,  std::vector< std::string > const& outcome_names,
-			Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
+			Matrix const& covariates, NonmissingnessMatrix const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
 			std::vector< std::string > const& predictor_names,
 			Transform transform,
 			std::vector< int > const& interacting_covariates
 		):
+			// outcome variables
 		 	m_outcome( outcome ),
-		 	m_nonmissing_outcome( phenotype_nonmissingness ),
-			m_number_of_predictors( predictor_names.size() ),
 			m_outcome_names( outcome_names ),
-			m_covariate_names( covariate_names ),
+		 	m_nonmissing_outcome( phenotype_nonmissingness ),
+			// predictor variables
+			m_predictor_level_probabilities( Matrix::Zero( outcome.rows(), 0 )),
+			m_predictor_levels( Matrix::Zero( 0, predictor_names.size() )),
 			m_predictor_names( predictor_names ),
-			m_transform( transform ),
-			m_globally_included_samples( compute_included_samples( phenotype_nonmissingness, covariate_nonmissingness ) ),
-			m_predictor_level_probabilities( Matrix::Zero( 0, m_number_of_predictors )),
-			m_number_of_predictor_levels(0)
+			m_nonmissing_predictors( SampleRanges() ),
+			// predictor variables
+			m_covariate_names( covariate_names ),
+			m_nonmissing_covariates( nonmissing_covariates ),
+			// Design matrix column transform
+			m_transform( transform )
 		{
 			assert( covariates.rows() == m_outcome.rows() ) ;
 			assert( m_outcome_names.size() == m_outcome.cols() ) ;
 			calculate_design_matrix(
 				m_outcome.rows(),
-				covariates, covariate_nonmissingness,
-				m_number_of_predictors,
+				covariates, nonmissing_covariates,
+				m_predictor_levels.cols(),
 				interacting_covariates,
 				&m_design_matrix,
-				&m_design_matrix_nonmissingness,
 				&m_design_matrix_interaction_columns,
 				&m_design_matrix_column_names
 			) ;
-
+			// 
+			m_nonmissing_samples = compute_nonmissing_samples(
+				m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates
+			) ;
 			assert( m_design_matrix_column_names.size() == m_design_matrix.cols() ) ;
 		}
 
@@ -87,7 +94,7 @@ namespace metro {
 
 			int const N = matrix().rows() ;
 			int const D = matrix().cols() ;
-			int const P = number_of_uncertain_predictors() ;
+			int const P = number_of_predictors() ;
 	
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
@@ -141,11 +148,12 @@ namespace metro {
 			return out.str() ;
 		}
 
-		std::vector< metro::SampleRange > Design::compute_included_samples(
+		Design::SampleRanges Design::compute_nonmissing_samples(
 			NonmissingnessMatrix const& nonmissing_outcome,
+			SampleRanges const& nonmissing_predictors,
 			NonmissingnessMatrix const& nonmissing_covariates
 		) const {
-			std::vector< metro::SampleRange > result ;
+			SampleRanges result ;
 			int inclusion_range_start = 0 ;
 			bool in_inclusion_range = true ;
 			for( int i = 0; i < m_outcome.rows(); ++i ) {
@@ -166,6 +174,7 @@ namespace metro {
 			if( in_inclusion_range ) {
 				result.push_back( metro::SampleRange( inclusion_range_start, int( m_outcome.rows() ))) ;
 			}
+			result = impl::intersect_ranges( result, nonmissing_predictors ) ;
 			return result ;
 		}
 
@@ -174,7 +183,7 @@ namespace metro {
 			Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
 			int const number_of_predictors,
 			std::vector< int > const& interacting_covariates,
-			Matrix* result, NonmissingnessMatrix* result_nonmissingness,
+			Matrix* result,
 			std::vector< int >* design_matrix_interaction_cols,
 			std::vector< std::string >* design_matrix_column_names
 		) const {
@@ -191,7 +200,6 @@ namespace metro {
 				1 + number_of_predictors * ( 1 + interacting_covariates.size() )
 				+ covariates.cols()
 			) ;
-			result_nonmissingness->setConstant( result->rows(), result->cols(), 1 ) ;
 			result->leftCols( 1 ).setOnes() ;
 			design_matrix_column_names->push_back( "baseline" ) ;
 			design_matrix_column_names->insert(
@@ -211,7 +219,6 @@ namespace metro {
 
 			if( covariates.cols() > 0 ) {
 				result->rightCols( covariates.cols() ) = covariates ;
-				result_nonmissingness->rightCols( covariates.cols() ) = covariate_nonmissingness ;
 				design_matrix_column_names->insert(
 					design_matrix_column_names->end(),
 					m_covariate_names.begin(),
@@ -235,74 +242,70 @@ namespace metro {
 			assert( outcome.rows() == m_design_matrix.rows() ) ;
 			assert( nonmissingness.size() == outcome.rows() ) ;
 			assert( names.size() == outcome.cols() ) ;
-			m_outcome_names = names ;
+
 			m_outcome = outcome ;
+			m_outcome_names = names ;
 			if( nonmissingness != m_nonmissing_outcome ) {
 				m_nonmissing_outcome = nonmissingness ;
-				m_globally_included_samples = compute_included_samples( m_nonmissing_outcome, m_nonmissing_covariates ) ;
+				m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
 			}
 			return *this ;
 		}
 	
-		Design& Design::set_covariates(
-			Matrix const& covariates,
-			Matrix const& covariate_nonmissingness,
-			int start_column
-		) {
-			assert( covariates.rows() == m_design_matrix.rows() ) ;
-			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
-			int const startOfCovariates = number_of_predictors_and_interactions + 1 ;
-			assert( startOfCovariates + start_column + covariates.cols() <= m_design_matrix.cols() ) ;
-			m_design_matrix.block( 0, startOfCovariates + start_column, m_design_matrix.rows(), covariates.cols() ) = covariates ;
-			m_design_matrix_nonmissingness.block( 0, startOfCovariates + start_column, m_design_matrix.rows(), covariates.cols() ) = covariate_nonmissingness ;
-			m_globally_included_samples = compute_included_samples( m_nonmissing_outcome, covariate_nonmissingness ) ;
-			return *this ;
-		}
-	
-		Design& Design::set_predictor_levels(
+		Design& Design::set_predictors(
 			Matrix const& levels,
 			Matrix const& probabilities,
-			std::vector< metro::SampleRange > const& included_samples
+			std::vector< metro::SampleRange > const& nonmissingness
 		) {
-			assert( levels.cols() == m_number_of_predictors ) ;
+			assert( levels.cols() == m_predictor_levels.cols() ) ;
 			assert( probabilities.cols() == levels.rows() ) ;
 			assert( probabilities.rows() == m_design_matrix.rows() ) ;
 
-			// Put predictor levels in a large matrix
-			// N x (number of predictors) x number of levels, the latter separated into different columns.
-			int const N = probabilities.rows() ;
-			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
-			m_predictor_levels = Matrix::Zero( N, number_of_predictors_and_interactions * levels.rows() ) ;
+			// Set probabilities
+			m_predictor_level_probabilities = probabilities ;
 
-			// Lay this out as follows.
-			// For predictor level level_i, we fill in the block of m_predictor_levels with indices
-			// [0,N) x [ level_i*npi,(level_i+1)*npi )
-			// where npi is the total number of predictor and interaction terms.
-			for( int level_i = 0; level_i < levels.rows(); ++level_i ) {
-				m_predictor_levels.block(
-					0, level_i * number_of_predictors_and_interactions,
-					N, levels.cols()
-				).rowwise() = levels.row(level_i) ;
-				for( std::size_t i = 0; i < m_design_matrix_interaction_columns.size(); ++i ) {
+			// Set levels
+			{
+				// This is complexified by the need to handle possible interactions. 
+				// There is one column per predictor and one column per predictor per interacting covariate.
+				// The levels go in a matrix of dimension N x ((#predictors & interactions) x (#levels)).
+				int const N = probabilities.rows() ;
+				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
+				m_predictor_levels = Matrix::Zero( N, number_of_predictors_and_interactions * levels.rows() ) ;
+
+				// Lay this out as follows.
+				// For predictor level level_i, we fill in the block of m_predictor_levels with indices
+				// [0,N) x [ level_i*npi,(level_i+1)*npi )
+				// where npi is the total number of predictor and interaction terms.
+				for( int level_i = 0; level_i < levels.rows(); ++level_i ) {
 					m_predictor_levels.block(
-						0, level_i * number_of_predictors_and_interactions + (i+1)*m_number_of_predictors,
-						N, m_number_of_predictors
-					) = m_design_matrix.col( m_design_matrix_interaction_columns[i] ) * levels.row(level_i) ;
+						0, level_i * number_of_predictors_and_interactions,
+						N, levels.cols()
+					).rowwise() = levels.row(level_i) ;
+					for( std::size_t i = 0; i < m_design_matrix_interaction_columns.size(); ++i ) {
+						m_predictor_levels.block(
+							0, level_i * number_of_predictors_and_interactions + (i+1)*m_predictor_levels.cols(),
+							N, m_predictor_levels.cols()
+						) = m_design_matrix.col( m_design_matrix_interaction_columns[i] ) * levels.row(level_i) ;
+					}
+				}
+				
+				if( m_transform == eMeanCentre ) {
+					mean_centre_predictor_levels(
+						m_predictor_level_probabilities,
+						&m_predictor_levels,
+						nonmissingness
+					) ;
 				}
 			}
 
-			m_predictor_level_probabilities = probabilities ;
-			m_predictor_included_samples = included_samples ;
-			m_number_of_predictor_levels = levels.rows() ;
-
-			if( m_transform == eMeanCentre ) {
-				mean_centre_predictor_levels(
-					m_predictor_level_probabilities,
-					&m_predictor_levels,
-					included_samples
-				) ;
+			// Set nonmissingness if necessary
+			if( nonmissingness != m_nonmissing_predictors ) {
+				m_nonmissing_predictors = nonmissingness ;
+				m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
 			}
-		
+
+			
 			return *this ;
 		}
 
@@ -311,15 +314,15 @@ namespace metro {
 			Matrix* predictor_levels,
 			SampleRanges const& included_samples
 		) const {
-			assert( probs.cols() == m_number_of_predictor_levels ) ;
+			assert( probs.cols() == m_predictor_levels.rows() ) ;
 		
-			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
+			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
 			RowVector means = RowVector::Zero( number_of_predictors_and_interactions ) ;
 			double total = 0 ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				int const start = included_samples[i].begin() ;
 				int const end = included_samples[i].end() ;
-				for( int level_i = 0; level_i < m_number_of_predictor_levels; ++level_i ) {
+				for( int level_i = 0; level_i < m_predictor_levels.rows(); ++level_i ) {
 					means += (
 						( probs.col( level_i ).segment( start, end - start ) ).asDiagonal()
 						* predictor_levels->block(
@@ -332,7 +335,7 @@ namespace metro {
 				total += probs.block( start, 0, end - start, probs.cols() ).sum() ;
 			}
 			means /= total ;
-			for( int level_i = 0; level_i < m_number_of_predictor_levels; ++level_i ) {
+			for( int level_i = 0; level_i < m_predictor_levels.rows(); ++level_i ) {
 				predictor_levels->block(
 					0, number_of_predictors_and_interactions * level_i,
 					predictor_levels->rows(), number_of_predictors_and_interactions
@@ -341,8 +344,8 @@ namespace metro {
 		}
 
 		Design& Design::set_predictor_level( int level ) {
-			if( m_number_of_predictors > 0 ) {
-				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_number_of_predictors ;
+			if( m_predictor_levels.cols() > 0 ) {
+				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
 				m_design_matrix.block(
 					0, 1,
 					m_design_matrix.rows(), number_of_predictors_and_interactions

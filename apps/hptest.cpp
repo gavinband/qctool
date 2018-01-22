@@ -19,7 +19,7 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
-#include "qcdb/Storage.hpp"
+#include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include <Eigen/Core>
 #include <Eigen/QR>
@@ -81,6 +81,7 @@ public:
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 
+		options.declare_group( "Output file options" ) ;
 	    options[ "-o" ]
 	        .set_description( "Output file" )
 			.set_takes_values( 1 )
@@ -384,14 +385,18 @@ private:
 		
 		write_preamble( *host, *para, *samples ) ;
 		
-		qcdb::Storage::UniquePtr storage = qcdb::Storage::create(
-			options().get< std::string > ( "-o" ),
-			options().get< std::string > ( "-analysis-name" ),
-			options().get< std::string > ( "-analysis-chunk" ),
-			options().get_values_as_map()
-		) ;
-		
-		test( *host, *para, *samples, *storage ) ;
+		{
+			qcdb::MultiVariantStorage::UniquePtr storage = qcdb::MultiVariantStorage::create(
+				options().get< std::string > ( "-o" ),
+				2,
+				options().get< std::string > ( "-analysis-name" ),
+				options().get< std::string > ( "-analysis-chunk" ),
+				options().get_values_as_map()
+			) ;
+			storage->set_variant_names( std::vector< std::string >({ "predictor", "outcome" })) ;
+			test( *host, *para, *samples, *storage ) ;
+			storage->finalise() ;
+		}
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_snp_data_sources( std::string const& filename ) {
@@ -423,40 +428,48 @@ private:
 		genfile::SNPDataSource& host,
 		genfile::SNPDataSource& para,
 		genfile::CohortIndividualSource const& samples,
-		qcdb::Storage& output
+		qcdb::MultiVariantStorage& output
 	) {
 		typedef metro::regression::Design::Matrix Matrix ;
-		// We model the predictor as a fixed covariate
-		std::vector< std::string > covariate_names ;
-		std::vector< std::string > predictor_names ;
-		assert( options().get< std::string >( "-model" ) == "gp ~ gh" ) ;
-		predictor_names.push_back( "gh" ) ;
-
 		using namespace metro ;
-		regression::Design::UniquePtr design = regression::Design::create(
-			Vector::Zero( samples.size() ), Vector::Constant( samples.size(), 1.0 ), std::vector< std::string >( 1, "gp" ),
-			Matrix::Zero( samples.size(), 0 ), Matrix::Zero( samples.size(), 0 ), covariate_names,
-			predictor_names
-		) ;
-			
-		Matrix predictor_levels = Matrix::Zero( 3, 1 ) ;
-		predictor_levels.col(0) = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
-			
-		genfile::SNPDataSource* const predictor_source = &host ;
-		genfile::SNPDataSource* const outcome_source = &para ;
-		
-		// Make the predictor the inner loop
-		genfile::VariantIdentifyingData ov, pv ;
+
+		// Put together data needed for setting up regression design
+		assert( options().get< std::string >( "-model" ) == "gp ~ gh" ) ;
+
+		std::vector< std::string > const outcome_names({ "gp=1", "gp=0" }) ;
 		Matrix outcome = Matrix::Zero( samples.size(), 2 ) ;
 		Vector outcome_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
 		Vector outcome_ploidy = Vector::Zero( samples.size() ) ;
+
+		std::vector< std::string > covariate_names({}) ;
+		Matrix covariates = Matrix::Zero( samples.size(), 0 ) ;
+		Vector covariate_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
+
+		std::vector< std::string > predictor_names({ "gh" }) ;
 		Matrix predictor_probabilities = Matrix::Zero( samples.size(), 2 ) ;
 		Vector predictor_nonmissingness = Vector::Constant( samples.size(), 1.0 ) ;
 		Vector predictor_ploidy = Vector::Zero( samples.size() ) ;
+		Matrix predictor_levels = Matrix::Zero( 3, 1 ) ;
+		predictor_levels.col(0) = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
+
+		regression::Design::UniquePtr design = regression::Design::create(
+			outcome, outcome_nonmissingness, outcome_names,
+			covariates, covariate_nonmissingness, covariate_names,
+			predictor_names
+		) ;
+		
+		genfile::SNPDataSource* const predictor_source = &host ;
+		genfile::SNPDataSource* const outcome_source = &para ;
+
+		// Reserve some space for our variants
+		std::vector< genfile::VariantIdentifyingData > variants( 2 ) ;
+		genfile::VariantIdentifyingData& pv = variants[0] ;
+		genfile::VariantIdentifyingData& ov = variants[1] ;
+
 		while( predictor_source->get_snp_identifying_data( &pv )) {
 			ProbSetter hostSetter( &predictor_probabilities, &predictor_nonmissingness, &predictor_ploidy ) ;
 			predictor_source->read_variant_data()->get( "GP", genfile::to_GP_unphased( hostSetter )) ;
-			design->set_predictor_levels( predictor_levels, predictor_probabilities, design->globally_included_samples() ) ;
+			design->set_predictors( predictor_levels, predictor_probabilities, design->nonmissing_samples() ) ;
 
 			outcome_source->reset_to_start() ;
 			get_ui_context().logger()
@@ -490,7 +503,7 @@ private:
 						<< ll->get_summary() << "\n" ;
 				;
 
-				std::cerr << "Included samples = " << design->globally_included_samples() << ".\n" ;
+				std::cerr << "Included samples = " << design->nonmissing_samples() << ".\n" ;
 				
 				Eigen::VectorXd const parameters = fitit( *ll ) ;
 				
@@ -505,7 +518,16 @@ private:
 						<< "++ predictor variant: " << pv << ", frequency " << fpv << "\n"
 						<< "++   outcome variant: " << ov << ", frequency " << fov << "\n"
 						<< "++        parameters: " << parameters.transpose() << ".\n" ;
+					
+					output.create_new_key( variants ) ;
+					output.store_data_for_key(
+						variants, "predictor_frequency", fpv
+					) ;
+					output.store_data_for_key(
+						variants, "outcome_frequency", fov
+					) ;
 				}
+				
 			}
 		}
 	}

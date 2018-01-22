@@ -40,13 +40,7 @@ namespace metro {
 			Logistic( Design::UniquePtr ) ;
 			~Logistic() ;
 			
-			regression::Design& get_design() const { return *m_design ; }
-			void set_predictor_levels(
-				Matrix const& levels,
-				Matrix const& probabilities,
-				std::vector< metro::SampleRange > const& included_samples
-			) ;
-		
+			regression::Design& design() const { return *m_design ; }
 			void set_parameter_naming_scheme( GetParameterName ) ;
 			std::string get_parameter_name( std::size_t i ) const ;
 	

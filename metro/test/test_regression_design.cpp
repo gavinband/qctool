@@ -38,7 +38,7 @@ AUTO_TEST_CASE( test_construction ) {
 					std::vector< std::string >( nPredictors, "predictor" )
 				) ;
 			
-				design.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+				design.set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
 
 				// check the outcome
 				BOOST_CHECK_EQUAL( design.outcome().rows(), nSamples ) ;
@@ -109,7 +109,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 			}
 
 			Matrix predictor_probabilities = Matrix::Constant( nSamples, nPredictorLevels, 1 / double( nPredictorLevels ) ) ;
-			design.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			design.set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
 			
 			for( int iLevel = 0; iLevel < nPredictorLevels; ++iLevel ) {
 				Matrix const& matrix = design.set_predictor_level( iLevel ).matrix() ;

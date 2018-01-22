@@ -65,7 +65,7 @@ AUTO_TEST_CASE( test_logistic_regression_one_sample ) {
 			// Set up a single predictor, equal to 1 with certainty.
 			Matrix predictor_probabilities = Matrix::Zero( 1, 2 ) ;
 			predictor_probabilities(0, 0) = 1.0 ;
-			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
 
 			int const nParameters = 2 * ( nOutcomes - 1 ) ;
 			int const M = nOutcomes - 1 ;
@@ -270,7 +270,7 @@ AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 
 		std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
 		
-		ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+		ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
 		
 		{
 			Vector parameters = Vector::Zero( 2 ) ;
@@ -422,7 +422,7 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 			
 			std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
 		
-			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
 		
 			// Ok we have our likelihood.  Now compute with it.
 			{

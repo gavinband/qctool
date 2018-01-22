@@ -29,7 +29,7 @@ namespace metro {
 			typedef Eigen::Matrix< int, Eigen::Dynamic, Eigen::Dynamic > IntegerMatrix ;
 		public:
 			virtual ~LogLikelihood() ;
-			virtual regression::Design& get_design() const = 0 ;
+			virtual regression::Design& design() const = 0 ;
 			virtual std::string get_parameter_name( std::size_t i ) const = 0 ;
 
 			// Return a lx2 matrix identifying the l parameters.

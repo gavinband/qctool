@@ -53,7 +53,7 @@ namespace metro {
 		
 			Design( Design const& other ) ;
 
-			int const number_of_uncertain_predictors() const { return m_number_of_predictors * ( 1 + m_design_matrix_interaction_columns.size() ); }
+			int const number_of_predictors() const { return m_predictor_levels.cols() * ( 1 + m_design_matrix_interaction_columns.size() ); }
 
 			std::string const& get_predictor_name( std::size_t i ) const ;
 			std::vector< std::string > const& design_matrix_column_names() const ;
@@ -72,56 +72,60 @@ namespace metro {
 			// K = number of different possible levels of the predictors
 			// and d = number of predictors.
 			// The interpretation is that individual n has predictor levels given by the kth row of levels with probability probabilities(n,k)
-			Design& set_predictor_levels(
+			Design& set_predictors(
 				Matrix const& levels,
 				Matrix const& probabilities,
 				std::vector< metro::SampleRange > const& included_samples
-			) ;
-
-			Design& set_covariates(
-				Matrix const& covariates,
-				Matrix const& covariate_nonmissingness,
-				int start_column = 0
 			) ;
 
 			Matrix const& matrix() const { return m_design_matrix ; }
 			Design& set_predictor_level( int level ) ;
 		
 			Matrix const& get_predictor_level_probabilities() const { return m_predictor_level_probabilities ; }
-			int const get_number_of_predictor_levels() const { return m_number_of_predictor_levels ; }
+			int const get_number_of_predictor_levels() const { return m_predictor_levels.rows() ; }
 			// Matrix const& get_predictor_levels() const { return m_predictor_levels ; }
 		
 			Matrix const& outcome() const { return m_outcome ; }
-			std::vector< metro::SampleRange > const& globally_included_samples() const { return m_globally_included_samples ; }
-			std::vector< metro::SampleRange > const& per_predictor_included_samples() const { return m_predictor_included_samples ; }
-			Vector const& sample_weights() const { return m_sample_weights ; }
+
+			SampleRanges const& nonmissing_samples() const { return m_nonmissing_samples ; }
 
 			std::string get_summary() const ;
 		private:
+			// Outcome variables
 			Matrix m_outcome ;
-			NonmissingnessMatrix m_nonmissing_outcome ;
-			Matrix m_nonmissing_covariates ;
-			int const m_number_of_predictors ;
 			std::vector< std::string > m_outcome_names ;
-			std::vector< std::string > const m_covariate_names ;
+			NonmissingnessMatrix m_nonmissing_outcome ;
+
+			// Predictor variables
+			Matrix m_predictor_level_probabilities ;
+			Matrix m_predictor_levels ;
 			std::vector< std::string > const m_predictor_names ;
+			SampleRanges m_nonmissing_predictors ;
+
+			// Covariate variables
+			std::vector< std::string > const m_covariate_names ;
+			Matrix m_nonmissing_covariates ;
+
+			// Design matrix column transform - e.g. mean centre.
 			Transform const m_transform ;
 
-			Vector m_sample_weights ;
-			SampleRanges m_globally_included_samples ;
-			SampleRanges m_predictor_included_samples ;
+			// The current design matrix that holds current predictor values and covariates.
 			Matrix m_design_matrix ;
+
+			// SampleRange that tracks samples that have no nonmissing data
+			// in outcome, covariates, or predictors
+			// Invariant: this the intersection of nonmissing samples implied
+			// by m_nonmissing_outcome, m_nonmissing_predictors, and m_nonmissing_covariates.
+			SampleRanges m_nonmissing_samples ;
+			
 			NonmissingnessMatrix m_design_matrix_nonmissingness ;
 			std::vector< int > m_design_matrix_interaction_columns ;
 			std::vector< std::string > m_design_matrix_column_names ;
 
-			Matrix m_predictor_level_probabilities ;
-			Matrix m_predictor_levels ;
-			int m_number_of_predictor_levels ;
-		
 		private:
-			SampleRanges compute_included_samples(
+			SampleRanges compute_nonmissing_samples(
 				NonmissingnessMatrix const& nonmissing_outcome,
+				SampleRanges const& nonmissing_predictors,
 				NonmissingnessMatrix const& nonmissing_covariates
 			) const ;
 			void calculate_design_matrix(
@@ -130,7 +134,6 @@ namespace metro {
 				int const number_of_predictors,
 				std::vector< int > const& interaction_cols,
 				Matrix* result,
-				NonmissingnessMatrix* result_nonmissingness,
 				std::vector< int >* design_matrix_interaction_cols,
 				std::vector< std::string > * design_matrix_column_names
 			) const ;

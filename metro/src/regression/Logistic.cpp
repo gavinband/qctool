@@ -132,24 +132,8 @@ namespace metro {
 			return 2 ;
 		}
 
-		void Logistic::set_predictor_levels(
-			Matrix const& levels,
-			Matrix const& probabilities,
-			std::vector< metro::SampleRange > const& included_samples
-		) {
-			m_design->set_predictor_levels( levels, probabilities, included_samples ) ;
-			m_state = e_Uncomputed ;
-#if DEBUG_LOGLIKELIHOOD
-			std::cerr << "Logistic::set_predictor_probs(): Included samples:" ;
-			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-				std::cerr << " " << included_samples[i].begin() << "-" << included_samples[i].end() ;
-			}
-			std::cerr << "\n" ;
-#endif
-		}
-
 		void Logistic::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
-			evaluate_at_impl( parameters, m_design->per_predictor_included_samples(), numberOfDerivatives ) ;
+			evaluate_at_impl( parameters, m_design->nonmissing_samples(), numberOfDerivatives ) ;
 		}
 
 		void Logistic::evaluate_at_impl(
@@ -161,10 +145,8 @@ namespace metro {
 			assert( parameters.size() == m_design->matrix().cols() ) ;
 			assert( numberOfDerivatives < 3 ) ;
 
-			if( m_parameters != parameters ) {
-				m_state = e_Uncomputed ;
-				m_parameters = parameters ;
-			}
+			m_state = e_Uncomputed ;
+			m_parameters = parameters ;
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << std::fixed << std::setprecision(4) ;

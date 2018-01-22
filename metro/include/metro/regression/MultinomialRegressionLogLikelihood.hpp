@@ -45,7 +45,7 @@ namespace metro {
 		public:
 			MultinomialRegressionLogLikelihood( regression::Design::UniquePtr ) ;
 
-			regression::Design& get_design() const { return *m_design ; }
+			regression::Design& design() const { return *m_design ; }
 			void set_predictor_levels( Matrix const& levels, Matrix const& probabilities, std::vector< metro::SampleRange > const& included_samples ) ;
 		
 			void set_parameter_naming_scheme( GetParameterName ) ;

@@ -61,7 +61,7 @@ namespace metro {
 			Matrix const& probabilities,
 			std::vector< metro::SampleRange > const& included_samples
 		) {
-			m_design->set_predictor_levels( levels, probabilities, included_samples ) ;
+			m_design->set_predictors( levels, probabilities, included_samples ) ;
 
 #if DEBUG_LOGLIKELIHOOD
 			int const print_N = std::min( m_design->outcome().rows(), Vector::Index( 10 ) ) ;
@@ -186,7 +186,7 @@ namespace metro {
 			Vector const& parameters,
 			int const numberOfDerivatives
 		) {
-			std::vector< metro::SampleRange > const& included_samples = m_design->per_predictor_included_samples() ;
+			std::vector< metro::SampleRange > const& included_samples = m_design->nonmissing_samples() ;
 			if( m_parameter_vector == parameters && m_numberOfDerivativesComputed > numberOfDerivatives ) {
 				return ;
 			}

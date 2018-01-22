@@ -40,7 +40,7 @@ namespace metro {
 				Normalisation normalisation = eWithConstantTerm
 			) ;
 			
-			regression::Design& get_design() const { return m_ll->get_design() ; }
+			regression::Design& design() const { return m_ll->design() ; }
 
 			std::string get_parameter_name( std::size_t i ) const ;
 
