@@ -21,6 +21,16 @@
 // #define DEBUG_FLATTABLEDBOUTPUTTER 1
 
 namespace qcdb {
+	namespace {
+		std::vector< std::string > generate_key_entry_names( std::size_t n ) {
+			std::vector< std::string > result(n) ;
+			for( std::size_t i = 0; i < n; ++i ) {
+				result[i] = (boost::format( "variant%d" ) % (i+1)).str() ;
+			}
+			return result ;
+		}
+	}
+
 	FlatTableMultiVariantDBOutputter::UniquePtr FlatTableMultiVariantDBOutputter::create(
 		std::string const& filename,
 		std::size_t number_of_key_fields,
@@ -43,7 +53,7 @@ namespace qcdb {
 		std::string const& snp_match_fields
 	):
 		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
-		m_number_of_key_fields( number_of_key_fields ),
+		m_key_entry_names( generate_key_entry_names( number_of_key_fields )),
 		m_table_name( "analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_variants_per_block( 1000 )
 	{}
@@ -70,7 +80,7 @@ namespace qcdb {
 		if( options & qcdb::eCreateIndices ) {
 			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			std::string sql = "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON `" + m_table_name + "` (";
-			for( std::size_t i = 0; i < m_number_of_key_fields; ++i ) {
+			for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
 				sql += (i>0 ? ", " : " " ) + (boost::format( "variant%d_id" ) % (i+1)).str() ;
 			}
 			m_outputter.connection().run_statement( sql ) ;
@@ -79,6 +89,17 @@ namespace qcdb {
 		m_outputter.finalise( options ) ;
 	}
 
+	void FlatTableMultiVariantDBOutputter::set_variant_names( std::vector< std::string > const& names ) {
+		// Ensure we don't change names once we have begun writing data
+		if( names != m_key_entry_names && m_insert_data_sql.get() ) {
+			throw genfile::BadArgumentError(
+				"qcdb::FlatTableMultiVariantDBOutputter::set_variant_names()",
+				"names",
+				"Can't change table column names because data has already been written."
+			) ;
+ 		}
+		m_key_entry_names = names ;
+	}
 	void FlatTableMultiVariantDBOutputter::add_variable( std::string const& variable ) {
 		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
 		if( where == m_variables.left.end() ) {
@@ -97,14 +118,14 @@ namespace qcdb {
 	void FlatTableMultiVariantDBOutputter::create_new_key(
 		Key const& key
 	 ) {
-		if( key.size() > m_number_of_key_fields ) {
+		if( key.size() > m_key_entry_names.size() ) {
 			throw genfile::BadArgumentError(
 				"qcdb::FlatTableMultiVariantDBOutputter::create_new_key()",
 				"key",
 				(
 					boost::format(
 						"number of fields is larger than expected (%d, expected at most %d)"
-					) % key.size() % m_number_of_key_fields
+					) % key.size() % m_key_entry_names.size()
 				).str()
 			) ;
 		}
@@ -178,9 +199,9 @@ namespace qcdb {
 			<< " ( "
 			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
 				;
-		for( std::size_t i = 0; i < m_number_of_key_fields; ++i ) {
+		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
 			schema_sql << (i>0 ? ", " : " " )
-				+ (boost::format( "variant%d_id INT NOT NULL REFERENCES Variant( id )" ) % (i+1)).str() ;
+				<< "`" << m_key_entry_names[i] << "_id` INT NOT NULL REFERENCES Variant( id )" ;
 		}
 		
 		insert_data_sql << "INSERT INTO "
@@ -188,8 +209,8 @@ namespace qcdb {
 		insert_data_sql_columns << "( analysis_id" ;
 		insert_data_sql_values << "VALUES( ?1" ;
 
-		for( std::size_t i = 0; i < m_number_of_key_fields; ++i ) {
-			insert_data_sql_columns << (boost::format( ", variant%d_id" ) % (i+1)).str() ;
+		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
+			insert_data_sql_columns << ", `" << m_key_entry_names[i] << "_id`" ;
 			insert_data_sql_values << boost::format( ", ?%d") % (i+2) ;
 		}
 		insert_data_sql_columns << ")" ;
@@ -199,7 +220,7 @@ namespace qcdb {
 			var_i = m_variables.right.begin(),
 			end_var_i = m_variables.right.end() ;
 
-		for( std::size_t bind_i = m_number_of_key_fields+2; var_i != end_var_i; ++var_i, ++bind_i ) {
+		for( std::size_t bind_i = m_key_entry_names.size()+2; var_i != end_var_i; ++var_i, ++bind_i ) {
 			schema_sql << ", " ;
 			insert_data_sql_columns << ", " ;
 			insert_data_sql_values << ", " ;
@@ -227,15 +248,21 @@ namespace qcdb {
 
 		std::ostringstream view_sql ;	
 		view_sql
-			<< "CREATE VIEW IF NOT EXISTS `" << table_name << "View` AS SELECT A.name AS analysis, "
+			<< "CREATE VIEW IF NOT EXISTS `" << table_name << "View` AS SELECT A.name AS `analysis`, "
 		;
-		for( std::size_t i = 0; i < m_number_of_key_fields; ++i ) {
-			view_sql << boost::format( " V%d.rsid AS variant%d_rsid, V%d.chromosome AS variant%d_chromosome, V%d.position AS variant%d_position," )
-				% (i+1) % (i+1) % (i+1) % (i+1) % (i+1) % (i+1) ;
+		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
+			view_sql << boost::format( " V%d.rsid AS `%s_rsid`, V%d.chromosome AS `%s_chromosome`, V%d.position AS `%s_position`," )
+				% (i+1)
+				% m_key_entry_names[i]
+				% (i+1)
+				% m_key_entry_names[i]
+				% (i+1)
+				% m_key_entry_names[i]
+			;
 		}
 		view_sql  << "T.* FROM `"
 			<< table_name << "` T " ;
-		for( std::size_t i = 0; i < m_number_of_key_fields; ++i ) {
+		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
 			view_sql << (boost::format( "INNER JOIN Variant V%d ON V%d.id = T.variant%d_id " )
 				% (i+1) % (i+1) % (i+1)) ;
 		}

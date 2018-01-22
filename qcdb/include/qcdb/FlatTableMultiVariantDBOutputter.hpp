@@ -17,15 +17,15 @@
 #include "genfile/VariantEntry.hpp"
 #include "db/Connection.hpp"
 #include "db/SQLStatement.hpp"
-#include "qcdb/Storage.hpp"
+#include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/DBOutputter.hpp"
 
 namespace qcdb {
-	struct FlatTableMultiVariantDBOutputter {
+	struct FlatTableMultiVariantDBOutputter: public MultiVariantStorage {
 		typedef std::auto_ptr< FlatTableMultiVariantDBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< FlatTableMultiVariantDBOutputter > SharedPtr ;
-		typedef qcdb::DBOutputter::Metadata Metadata ;
-		typedef qcdb::Storage::AnalysisId AnalysisId ;
+		typedef MultiVariantStorage::Metadata Metadata ;
+		typedef MultiVariantStorage::AnalysisId AnalysisId ;
 		typedef std::vector< genfile::VariantIdentifyingData > Key ;
 			
 		static UniquePtr create(
@@ -50,9 +50,8 @@ namespace qcdb {
 
 		void set_table_name( std::string const& table_name ) ;
 		
-		void add_variable(
-			std::string const& 
-		) ;
+		void set_variant_names( std::vector< std::string > const& names ) ;
+		void add_variable( std::string const& ) ;
 
 		void create_new_key( Key const& key ) ;
 
@@ -68,7 +67,7 @@ namespace qcdb {
 
 	private:
 		qcdb::DBOutputter m_outputter ;
-		std::size_t const m_number_of_key_fields ;
+		std::vector< std::string > m_key_entry_names ;
 		std::string m_table_name ;
 		std::size_t const m_max_variants_per_block ;
 		db::Connection::StatementPtr m_insert_data_sql ;

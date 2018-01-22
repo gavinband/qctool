@@ -22,7 +22,9 @@ namespace qcdb {
 		typedef std::auto_ptr< Storage > UniquePtr ;
 		typedef boost::shared_ptr< Storage > SharedPtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
-		
+
+		static std::vector< std::string > parse_filespec( std::string spec ) ;
+
 		static UniquePtr create(
 			std::string const& filename,
 			std::string const& analysis_name,
