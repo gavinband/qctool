@@ -180,7 +180,7 @@ namespace metro {
 			
 			// Convert from complete data likelihood into expected complete data likelihood
 			// and derivatives
-			m_hx.array() *= m_design->get_predictor_level_probabilities().array()  ;
+			m_hx.array() *= m_design->get_predictor_level_probabilities().array() ;
 			m_normalisedDhx.array() *= m_design->get_predictor_level_probabilities().array() ;
 			m_normalisedDdhx.array() *= m_design->get_predictor_level_probabilities().array() ;
 			

@@ -64,7 +64,7 @@ namespace metro {
 			calculate_design_matrix(
 				m_outcome.rows(),
 				covariates, nonmissing_covariates,
-				m_predictor_levels.cols(),
+				m_predictor_names,
 				interacting_covariates,
 				&m_design_matrix,
 				&m_design_matrix_interaction_columns,
@@ -94,7 +94,7 @@ namespace metro {
 
 			int const N = matrix().rows() ;
 			int const D = matrix().cols() ;
-			int const P = number_of_predictors() ;
+			int const P = number_of_predictors() + number_of_interaction_terms() ;
 	
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
@@ -181,7 +181,7 @@ namespace metro {
 		void Design::calculate_design_matrix(
 			int const number_of_samples,
 			Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
-			int const number_of_predictors,
+			std::vector< std::string > const& predictor_names,
 			std::vector< int > const& interacting_covariates,
 			Matrix* result,
 			std::vector< int >* design_matrix_interaction_cols,
@@ -190,6 +190,7 @@ namespace metro {
 			assert( result != 0 ) ;
 			assert( design_matrix_interaction_cols != 0 ) ;
 			assert( design_matrix_interaction_cols->size() == 0 ) ;
+			std::size_t const number_of_predictors = predictor_names.size() ;
 			// design matrix is layed out as:
 			// baseline column of 1's
 			// columns for predictors with values set later
@@ -211,7 +212,7 @@ namespace metro {
 			if( interacting_covariates.size() > 0 ) {
 				for( std::size_t i = 0; i < interacting_covariates.size(); ++i ) {
 					design_matrix_interaction_cols->push_back( interacting_covariates[i] + result->cols() - covariates.cols() ) ;
-					for( std::size_t predictor = 0; predictor < m_predictor_names.size(); ++predictor ) {
+					for( std::size_t predictor = 0; predictor < number_of_predictors; ++predictor ) {
 						design_matrix_column_names->push_back( m_predictor_names[predictor] + "x" + m_covariate_names[interacting_covariates[i]] ) ;
 					}
 				}
@@ -257,7 +258,7 @@ namespace metro {
 			Matrix const& probabilities,
 			std::vector< metro::SampleRange > const& nonmissingness
 		) {
-			assert( levels.cols() == m_predictor_levels.cols() ) ;
+			assert( levels.cols() == number_of_predictors() ) ;
 			assert( probabilities.cols() == levels.rows() ) ;
 			assert( probabilities.rows() == m_design_matrix.rows() ) ;
 
@@ -270,7 +271,7 @@ namespace metro {
 				// There is one column per predictor and one column per predictor per interacting covariate.
 				// The levels go in a matrix of dimension N x ((#predictors & interactions) x (#levels)).
 				int const N = probabilities.rows() ;
-				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
+				int const number_of_predictors_and_interactions = number_of_predictors() + number_of_interaction_terms() ;
 				m_predictor_levels = Matrix::Zero( N, number_of_predictors_and_interactions * levels.rows() ) ;
 
 				// Lay this out as follows.
@@ -280,12 +281,12 @@ namespace metro {
 				for( int level_i = 0; level_i < levels.rows(); ++level_i ) {
 					m_predictor_levels.block(
 						0, level_i * number_of_predictors_and_interactions,
-						N, levels.cols()
+						N, number_of_predictors()
 					).rowwise() = levels.row(level_i) ;
 					for( std::size_t i = 0; i < m_design_matrix_interaction_columns.size(); ++i ) {
 						m_predictor_levels.block(
-							0, level_i * number_of_predictors_and_interactions + (i+1)*m_predictor_levels.cols(),
-							N, m_predictor_levels.cols()
+							0, level_i * number_of_predictors_and_interactions + (i+1) * number_of_predictors(),
+							N, number_of_predictors()
 						) = m_design_matrix.col( m_design_matrix_interaction_columns[i] ) * levels.row(level_i) ;
 					}
 				}
@@ -316,7 +317,7 @@ namespace metro {
 		) const {
 			assert( probs.cols() == m_predictor_levels.rows() ) ;
 		
-			int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
+			int const number_of_predictors_and_interactions = number_of_predictors() + number_of_interaction_terms() ;
 			RowVector means = RowVector::Zero( number_of_predictors_and_interactions ) ;
 			double total = 0 ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
@@ -345,7 +346,7 @@ namespace metro {
 
 		Design& Design::set_predictor_level( int level ) {
 			if( m_predictor_levels.cols() > 0 ) {
-				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * m_predictor_levels.cols() ;
+				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * number_of_predictors() ;
 				m_design_matrix.block(
 					0, 1,
 					m_design_matrix.rows(), number_of_predictors_and_interactions

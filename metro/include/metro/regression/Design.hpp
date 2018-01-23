@@ -53,7 +53,8 @@ namespace metro {
 		
 			Design( Design const& other ) ;
 
-			int const number_of_predictors() const { return m_predictor_levels.cols() * ( 1 + m_design_matrix_interaction_columns.size() ); }
+			int const number_of_predictors() const { return m_predictor_names.size() ; }
+			int const number_of_interaction_terms() const { return number_of_predictors() * m_design_matrix_interaction_columns.size() ; }
 
 			std::string const& get_predictor_name( std::size_t i ) const ;
 			std::vector< std::string > const& design_matrix_column_names() const ;
@@ -82,7 +83,7 @@ namespace metro {
 			Design& set_predictor_level( int level ) ;
 		
 			Matrix const& get_predictor_level_probabilities() const { return m_predictor_level_probabilities ; }
-			int const get_number_of_predictor_levels() const { return m_predictor_levels.rows() ; }
+			int const get_number_of_predictor_levels() const { return m_predictor_level_probabilities.cols() ; }
 			// Matrix const& get_predictor_levels() const { return m_predictor_levels ; }
 		
 			Matrix const& outcome() const { return m_outcome ; }
@@ -118,7 +119,6 @@ namespace metro {
 			// by m_nonmissing_outcome, m_nonmissing_predictors, and m_nonmissing_covariates.
 			SampleRanges m_nonmissing_samples ;
 			
-			NonmissingnessMatrix m_design_matrix_nonmissingness ;
 			std::vector< int > m_design_matrix_interaction_columns ;
 			std::vector< std::string > m_design_matrix_column_names ;
 
@@ -131,7 +131,7 @@ namespace metro {
 			void calculate_design_matrix(
 				int const,
 				Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
-				int const number_of_predictors,
+				std::vector< std::string > const& predictor_names,
 				std::vector< int > const& interaction_cols,
 				Matrix* result,
 				std::vector< int >* design_matrix_interaction_cols,

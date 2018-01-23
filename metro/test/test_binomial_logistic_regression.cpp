@@ -120,7 +120,6 @@ AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
 			for( int j = 0; j < nOutcomes; ++j ) {
 				outcome_names.push_back( "outcome" + std::to_string( j )) ;
 			}
-
 			BinomialLogistic ll(
 				Design::create(
 					outcome, outcome_nonmissingness, outcome_names,
@@ -128,6 +127,11 @@ AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
 					Names( 1, "predictor" )
 				)
 			) ;
+		
+#if DEBUG_TESTS
+			std::cerr << "nSamples = " << nSamples << ", nMissing = " << nMissing << ", nOutcomes = " << nOutcomes << ".\n" ;
+			std::cerr << "ll =\n" << ll.get_summary() << "\n" ;
+#endif
 		
 			Matrix predictor_probabilities = Matrix::Zero( nSamples, 2 ) ;
 			predictor_probabilities.col(1).setConstant( 1.0 ) ;
@@ -254,7 +258,7 @@ AUTO_TEST_CASE( test_binomial_logistic_regression_one_sample ) {
 				std::cerr << "(successes, trials) = " << successes << ", " << trials << "\n" ;
 				std::cerr << "parameters = " << parameters.transpose() << ".\n" ;
 				std::cerr << "outcome = " << outcome.transpose() << ".\n" ;
-				std::cerr << "design = " << ll.get_design().matrix() << ".\n" ;
+				std::cerr << "design = " << ll.design().matrix() << ".\n" ;
 #endif
 				check_likelihood_etc_for_design1(
 					trials, successes,
@@ -288,7 +292,7 @@ AUTO_TEST_CASE( test_binomial_logistic_regression_one_sample ) {
 				std::cerr << "nonzero = " << nonzero_i << ".\n" ;
 				std::cerr << "parameters = " << parameters.transpose() << ".\n" ;
 				std::cerr << "outcome = " << outcome.transpose() << ".\n" ;
-				std::cerr << "design = " << ll.get_design().matrix() << ".\n" ;
+				std::cerr << "design = " << ll.design().matrix() << ".\n" ;
 #endif
 				check_likelihood_etc_for_design1(
 					trials, successes,
