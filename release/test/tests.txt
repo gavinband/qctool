@@ -50,10 +50,10 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
 Threshholds Genotypes
-	RunsCommandWithExactOutput	{ "g": [ "data/tothreshhold.gen" ], "s": [ "data/tothreshhold.sample" ], "og": "<tmp>", "threshhold": "0.9", "ofiletype": "dosage" }	data/tothreshhold.dosage
+	RunsCommandWithExactOutput	{ "g": [ "data/tothreshhold.gen" ], "s": [ "data/tothreshhold.sample" ], "og": "<tmp>", "threshold": "0.9", "ofiletype": "dosage" }	data/tothreshhold.dosage
 
 Infers Ploidy
-	RunsCommandWithExactOutput	{ "g": [ "data/diploid.gen" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "threshhold": "0.9", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/diploid.gen" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "threshold": "0.9", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
 	RunsCommandWithExactOutput	{ "g": [ "data/diploid.vcf" ], "s": [ "data/diploid.sample" ], "og": "<tmp>", "ofiletype": "vcf", "infer-ploidy-from": "sex" }	data/diploid.converted.vcf
 
 Reorders Samples
