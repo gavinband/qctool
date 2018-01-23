@@ -764,20 +764,44 @@ namespace genfile {
 				// data - the place to read bits into
 				// size - the current number of bits stored in data
 				// bits - the number of bits required.
-				byte_t const* read_bits_from_buffer(
+				// For this implementation we require that bits <= 56.
+				inline byte_t const* read_bits_from_buffer(
 					byte_t const* buffer,
 					byte_t const* const end,
 					uint64_t* data,
 					int* size,
 					uint8_t const bits
-				) ;
+				) {
+					//assert( bits <= 64 - 8 ) ;
+					while( (*size) < bits && buffer < end ) {
+						(*data) |= uint64_t( *(reinterpret_cast< byte_t const* >( buffer++ ))) << (*size) ;
+						(*size) += 8 ;
+					}
+					if( (*size) < bits ) {
+						throw BGenError() ;
+					}
+					return buffer ;
+				}
 
-				double parse_bit_representation(
+				// Consume the given number of bits from the the least significant end
+				// of a data field (encoded as a uint64_t) and interpret them as a
+				// floating-point number in the range 0...1
+				// This implementation assumes that bits, the bitMask, and the
+				// denominator (2^b)-1 are all precomputed
+				inline double parse_and_consume_bits(
 					uint64_t* data,
 					int* size,
-					int const bits
-				) ;
-					
+					int const bits,
+					uint64_t const bitMask,
+					double const denominator
+				) {
+					//assert( bits <= 32 ) ;
+					double const result = ( *data & bitMask ) / denominator ;
+					(*size) -= bits ;
+					(*data) >>= bits ;
+					return result ;
+				}
+
 				// Round a point on the unit simplex (expressed as n floating-point probabilities)
 				// to a point representable with the given number of bits.
 				// precondition: p points to n doubles between 0 and 1 that sum to 1
@@ -887,6 +911,9 @@ namespace genfile {
 				Context const& context,
 				Setter& setter
 			) {
+				// These values are specific bit combinations and should not be changed.
+				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
+				
 				GenotypeDataBlock pack( context, buffer, end ) ;
 
 				int const bits = int( pack.bits ) ;
@@ -894,6 +921,9 @@ namespace genfile {
 				buffer = pack.buffer ;
 				assert( end == pack.end ) ;
 				
+				uint64_t const bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
+				double const denominator = double( bitMask ) ;
+
 	#if DEBUG_BGEN_FORMAT
 				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
 					<< ", phased = " << phased << ".\n" ;
@@ -902,75 +932,115 @@ namespace genfile {
 	#endif
 
 				setter.initialise( pack.numberOfSamples, uint32_t( pack.numberOfAlleles ) ) ;
-				call_set_min_max_ploidy( setter, uint32_t( pack.ploidyExtent[0] ), uint32_t( pack.ploidyExtent[1] ), pack.numberOfAlleles, pack.phased ) ;
+				call_set_min_max_ploidy(
+					setter,
+					uint32_t( pack.ploidyExtent[0] ),
+					uint32_t( pack.ploidyExtent[1] ),
+					pack.numberOfAlleles,
+					pack.phased
+				) ;
 				
 				{
 					uint64_t data = 0 ;
 					int size = 0 ;
-					for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
-						uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
-						bool const missing = (*ploidy_p & 0x80) ;
-						uint32_t const valueCount
-							= pack.phased
-							? (ploidy * pack.numberOfAlleles)
-							: genfile::bgen::impl::n_choose_k( uint32_t( ploidy + pack.numberOfAlleles - 1 ), uint32_t( pack.numberOfAlleles - 1 )) ;
+					if( pack.phased ) {
+						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
+							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
+							bool const missing = (*ploidy_p & 0x80) ;
+							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
 
-						uint32_t const storedValueCount = valueCount - ( pack.phased ? ploidy : 1 ) ;
-					
-	#if DEBUG_BGEN_FORMAT > 1
-						std::cerr << "parse_probability_data_v12(): sample " << i
-							<< ", ploidy = " << ploidy
-							<< ", missing = " << missing
-							<< ", valueCount = " << valueCount
-							<< ", storedValueCount = " << storedValueCount
-							<< ", data = " << bgen::impl::to_hex( buffer, end )
-							<< ".\n" ;
-	#endif
-						if( setter.set_sample( i ) ) {
-							setter.set_number_of_entries(
-								ploidy,
-								valueCount,
-								pack.phased ? ePerPhasedHaplotypePerAllele : ePerUnorderedGenotype,
-								eProbability
-							) ;
-							if( missing ) {
-								// Consume dummy zero values, emit missing values.
-								for( uint32_t h = 0; h < storedValueCount; ++h ) {
+							uint32_t const valueCount = (ploidy * pack.numberOfAlleles) ;
+							uint32_t const storedValueCount = (valueCount - ploidy) ;
+
+							if( sample_status & 0x1 ) {
+								setter.set_number_of_entries(
+									ploidy,
+									valueCount,
+									ePerPhasedHaplotypePerAllele,
+									eProbability
+								) ;
+							}
+							
+							// Consume values and interpret them.
+							double sum = 0.0 ;
+							uint32_t reportedValueCount = 0 ;
+							for( uint32_t hap = 0; hap < ploidy; ++hap ) {
+								for( uint32_t allele = 0; allele < (pack.numberOfAlleles-1); ++allele ) {
 									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-									(void) impl::parse_bit_representation( &data, &size, bits ) ;
-								}
-								for( uint32_t h = 0; h < valueCount; ++h ) {
-									setter.set_value( h, genfile::MissingValue() ) ;
-								}
-							} else {
-								// Consume values and interpret them.
-								double sum = 0.0 ;
-								uint32_t reportedValueCount = 0 ;
-								for( uint32_t h = 0; h < storedValueCount; ++h ) {
-									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-									double const value = impl::parse_bit_representation( &data, &size, bits ) ;
-									setter.set_value( reportedValueCount++, value ) ;
-									sum += value ;
-	#if DEBUG_BGEN_FORMAT
-									std::cerr << "parse_probability_data_v12(): i = " << i << ", h = " << h << ", size = " << size << ", bits = " << bits << ", parsed value = " << value
-										<< ", sum = " << sum << ".\n" ;
-	#endif
-								
-									if(
-										( pack.phased && ((h+1) % (pack.numberOfAlleles-1) ) == 0 )
-										|| ((!pack.phased) && (h+1) == storedValueCount )
-									) {
-										assert( sum <= 1.00000001 ) ;
-										setter.set_value( reportedValueCount++, 1.0 - sum ) ;
-										sum = 0.0 ;
+									double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+									switch( sample_status ) {
+										case SampleStatus::eIgnore: break ;
+										case SampleStatus::eSetAsMissing:
+											setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
+											break ;
+										case SampleStatus::eSetThisSample:
+											setter.set_value( reportedValueCount++, value ) ;
+											sum += value ;
+											break ;
 									}
 								}
+								
+								// set value for kth allele
+								switch( sample_status ) {
+									case SampleStatus::eIgnore: break ;
+									case SampleStatus::eSetAsMissing:
+										setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
+										break ;
+									case SampleStatus::eSetThisSample:
+										setter.set_value( reportedValueCount++, 1 - sum ) ;
+										sum = 0.0 ;
+										break ;
+								}
 							}
-						} else {
-							// just consume data, don't set anything.
+						}
+					} else {
+						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
+							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
+							bool const missing = (*ploidy_p & 0x80) ;
+							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
+							
+							uint32_t const valueCount
+								= genfile::bgen::impl::n_choose_k(
+									uint32_t( ploidy + pack.numberOfAlleles - 1 ), 
+									uint32_t( pack.numberOfAlleles - 1 )
+								) ;
+							uint32_t const storedValueCount = valueCount - 1 ;
+							
+							if( sample_status & 0x1 ) {
+								setter.set_number_of_entries(
+									ploidy,
+									valueCount,
+									ePerUnorderedGenotype,
+									eProbability
+								) ;
+							}
+							
+							double sum = 0.0 ;
+							uint32_t reportedValueCount = 0 ;
 							for( uint32_t h = 0; h < storedValueCount; ++h ) {
 								buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-								impl::parse_bit_representation( &data, &size, bits ) ;
+								double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+								switch( sample_status ) {
+									case SampleStatus::eIgnore: break ;
+									case SampleStatus::eSetAsMissing:
+										setter.set_value( h, genfile::MissingValue() ) ;
+										break ;
+									case SampleStatus::eSetThisSample:
+										setter.set_value( reportedValueCount++, value ) ;
+										sum += value ;
+										break ;
+								}
+							}
+							
+							// set final value
+							switch( sample_status ) {
+								case SampleStatus::eIgnore: break ;
+								case SampleStatus::eSetAsMissing:
+									setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
+									break ;
+								case SampleStatus::eSetThisSample:
+									setter.set_value( reportedValueCount++, 1.0 - sum ) ;
+									break ;
 							}
 						}
 					}
