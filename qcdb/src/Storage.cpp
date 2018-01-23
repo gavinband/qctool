@@ -12,7 +12,7 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "qcdb/StorageOptions.hpp"
 #include "qcdb/Storage.hpp"
-#include "qcdb/FlatTableDBoutputter.hpp"
+#include "qcdb/FlatTableDBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 
 namespace qcdb {
