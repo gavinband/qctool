@@ -31,7 +31,7 @@ namespace {
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 		}
 
-		bool set_sample( std::size_t n ) {
+		inline bool set_sample( std::size_t n ) {
 			m_sample_i = n ;
 			return true ;
 		}
@@ -45,7 +45,7 @@ namespace {
 			assert( n <= 10 ) ;
 		}
 
-		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
+		inline void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
 			// nothing to do
 		}
 
@@ -53,7 +53,7 @@ namespace {
 			m_ints[ m_sample_i ][ entry_i ] = value ;
 		}
 
-		void set_value( std::size_t entry_i, double const value ) {
+		inline void set_value( std::size_t entry_i, double const value ) {
 			m_doubles[ m_sample_i ][ entry_i ] = value ;
 		}
 
