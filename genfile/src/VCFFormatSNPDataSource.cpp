@@ -216,7 +216,15 @@ namespace genfile {
 	
 	namespace impl {
 		void read_element( std::istream& stream, std::string& elt, char delim, std::size_t column ) {
+			// work around GCC 5 bug in which C++11 ABI and C++98 ABI interact
+			// Preventing catching the exception.
+			std::ios_base::iostate const state = stream.exceptions() ;
+			stream.exceptions( std::ios_base::iostate(0) ) ;
 			std::getline( stream, elt, delim ) ;
+			if( !stream ) {
+				throw std::ios_base::failure( "Unable to read line" ) ;
+			}
+			stream.exceptions( state ) ;
 			// ensure element contains no whitespace.
 			if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
 				throw MalformedInputError( "(unnamed stream)", 0, column ) ;
