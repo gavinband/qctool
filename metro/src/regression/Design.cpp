@@ -20,16 +20,16 @@
 namespace metro {
 	namespace regression {
 		Design::UniquePtr Design::create(
-			Matrix const& outcome, NonmissingnessMatrix const& phenotype_nonmissingness, std::vector< std::string > const& outcome_names,
-			Matrix const& covariates, Matrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
+			Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+			Matrix const& covariates, SampleRanges const& nonmissing_covariate, std::vector< std::string > const& covariate_names,
 			std::vector< std::string > const& predictor_names,
 			Transform transform,
 			std::vector< int > const& interacting_covariates
 		) {
 			return Design::UniquePtr(
 				new Design(
-					outcome, phenotype_nonmissingness, outcome_names,
-					covariates, covariate_nonmissingness, covariate_names,
+					outcome, nonmissing_outcome, outcome_names,
+					covariates, nonmissing_covariate, covariate_names,
 					predictor_names,
 					transform,
 					interacting_covariates
@@ -38,8 +38,8 @@ namespace metro {
 		}
 
 		Design::Design(
-			Matrix const& outcome, NonmissingnessMatrix const& phenotype_nonmissingness,  std::vector< std::string > const& outcome_names,
-			Matrix const& covariates, NonmissingnessMatrix const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
+			Matrix const& outcome, SampleRanges const& nonmissing_outcome,  std::vector< std::string > const& outcome_names,
+			Matrix const& covariates, SampleRanges const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
 			std::vector< std::string > const& predictor_names,
 			Transform transform,
 			std::vector< int > const& interacting_covariates
@@ -47,7 +47,7 @@ namespace metro {
 			// outcome variables
 		 	m_outcome( outcome ),
 			m_outcome_names( outcome_names ),
-		 	m_nonmissing_outcome( phenotype_nonmissingness ),
+		 	m_nonmissing_outcome( nonmissing_outcome ),
 			// predictor variables
 			m_predictor_level_probabilities( Matrix::Zero( outcome.rows(), 0 )),
 			m_predictor_levels( Matrix::Zero( 0, predictor_names.size() )),
@@ -63,7 +63,7 @@ namespace metro {
 			assert( m_outcome_names.size() == m_outcome.cols() ) ;
 			calculate_design_matrix(
 				m_outcome.rows(),
-				covariates, nonmissing_covariates,
+				covariates,
 				m_predictor_names,
 				interacting_covariates,
 				&m_design_matrix,
@@ -98,7 +98,7 @@ namespace metro {
 	
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
-			out << "        phenotype   " ;
+			out << "         outcome   " ;
 			for( int j = 0; j < D; ++j ) {
 				std::string const name = m_design_matrix_column_names[j]  ;
 				widths[j+1] = std::max( name.size(), 5ul ) ;
@@ -149,38 +149,17 @@ namespace metro {
 		}
 
 		Design::SampleRanges Design::compute_nonmissing_samples(
-			NonmissingnessMatrix const& nonmissing_outcome,
+			SampleRanges const& nonmissing_outcome,
 			SampleRanges const& nonmissing_predictors,
-			NonmissingnessMatrix const& nonmissing_covariates
+			SampleRanges const& nonmissing_covariates
 		) const {
-			SampleRanges result ;
-			int inclusion_range_start = 0 ;
-			bool in_inclusion_range = true ;
-			for( int i = 0; i < m_outcome.rows(); ++i ) {
-				if(
-					nonmissing_outcome.row(i).minCoeff() == 0
-					|| ( nonmissing_covariates.cols() > 0 && nonmissing_covariates.row( i ).minCoeff() == 0 )
-				) {
-					// missing outcome or covariates => end the current range of nonmissing samples
-					if( in_inclusion_range ) {
-						result.push_back( metro::SampleRange( inclusion_range_start, i ) ) ;
-					}
-					in_inclusion_range = false ;
-					inclusion_range_start = i + 1 ;
-				} else {
-					in_inclusion_range = true ;
-				}
-			}
-			if( in_inclusion_range ) {
-				result.push_back( metro::SampleRange( inclusion_range_start, int( m_outcome.rows() ))) ;
-			}
-			result = impl::intersect_ranges( result, nonmissing_predictors ) ;
-			return result ;
+			SampleRanges result = impl::intersect_ranges( nonmissing_outcome, nonmissing_predictors ) ;
+			return impl::intersect_ranges( result, nonmissing_covariates ) ;
 		}
 
 		void Design::calculate_design_matrix(
 			int const number_of_samples,
-			Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
+			Matrix const& covariates,
 			std::vector< std::string > const& predictor_names,
 			std::vector< int > const& interacting_covariates,
 			Matrix* result,
@@ -237,11 +216,10 @@ namespace metro {
 	
 		Design& Design::set_outcome(
 			Matrix const& outcome,
-			NonmissingnessMatrix const& nonmissingness,
+			SampleRanges const& nonmissingness,
 			std::vector< std::string > const& names
 		) {
 			assert( outcome.rows() == m_design_matrix.rows() ) ;
-			assert( nonmissingness.size() == outcome.rows() ) ;
 			assert( names.size() == outcome.cols() ) ;
 
 			m_outcome = outcome ;

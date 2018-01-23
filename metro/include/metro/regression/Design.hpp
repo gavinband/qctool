@@ -36,16 +36,16 @@ namespace metro {
 		public:
 		
 			static UniquePtr create(
-				Matrix const& outcome, NonmissingnessMatrix const& outcome_nonmissingness, std::vector< std::string > const& outcome_names,
-				Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
+				Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+				Matrix const& covariates, SampleRanges const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
 				std::vector< std::string > const& predictor_names,
 				Transform transform = eIdentity,
 				std::vector< int > const& interacting_covariates = std::vector< int >()
 			) ;
 
 			Design(
-				Matrix const& outcome, NonmissingnessMatrix const& phenotype_nonmissingness, std::vector< std::string > const& outcome_names,
-				Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness, std::vector< std::string > const& covariate_names,
+				Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+				Matrix const& covariates, SampleRanges const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
 				std::vector< std::string > const& predictor_names,
 				Transform transform = eIdentity,
 				std::vector< int > const& interacting_covariates = std::vector< int >()
@@ -62,7 +62,7 @@ namespace metro {
 
 			Design& set_outcome(
 				Matrix const& outcome,
-				NonmissingnessMatrix const& nonmissingness,
+				SampleRanges const& nonmissingness,
 				std::vector< std::string > const& names
 			) ;
 
@@ -76,7 +76,7 @@ namespace metro {
 			Design& set_predictors(
 				Matrix const& levels,
 				Matrix const& probabilities,
-				std::vector< metro::SampleRange > const& included_samples
+				SampleRanges const& included_samples
 			) ;
 
 			Matrix const& matrix() const { return m_design_matrix ; }
@@ -95,7 +95,7 @@ namespace metro {
 			// Outcome variables
 			Matrix m_outcome ;
 			std::vector< std::string > m_outcome_names ;
-			NonmissingnessMatrix m_nonmissing_outcome ;
+			SampleRanges m_nonmissing_outcome ;
 
 			// Predictor variables
 			Matrix m_predictor_level_probabilities ;
@@ -105,7 +105,7 @@ namespace metro {
 
 			// Covariate variables
 			std::vector< std::string > const m_covariate_names ;
-			Matrix m_nonmissing_covariates ;
+			SampleRanges m_nonmissing_covariates ;
 
 			// Design matrix column transform - e.g. mean centre.
 			Transform const m_transform ;
@@ -124,13 +124,13 @@ namespace metro {
 
 		private:
 			SampleRanges compute_nonmissing_samples(
-				NonmissingnessMatrix const& nonmissing_outcome,
+				SampleRanges const& nonmissing_outcome,
 				SampleRanges const& nonmissing_predictors,
-				NonmissingnessMatrix const& nonmissing_covariates
+				SampleRanges const& nonmissing_covariates
 			) const ;
 			void calculate_design_matrix(
 				int const,
-				Matrix const& covariates, NonmissingnessMatrix const& covariate_nonmissingness,
+				Matrix const& covariates,
 				std::vector< std::string > const& predictor_names,
 				std::vector< int > const& interaction_cols,
 				Matrix* result,

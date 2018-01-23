@@ -102,28 +102,31 @@ using std::log ;
 
 // Test that when all samples are missing, the answer is zero.
 AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
-	std::vector< metro::SampleRange > included_samples ;
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+
+	SampleRanges included_samples ;
 	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
 	predictor_levels(0,0) = 1 ;
 	predictor_levels(1,0) = 2 ;
 	int const nOutcomes = 2 ;
 	for( int nSamples = 0; nSamples < 100; ++nSamples ) {
+		SampleRanges const all_samples( SampleRanges( 1, metro::SampleRange( 0, nSamples ))) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
 		for( int nMissing = 0; nMissing < nSamples; ++nMissing ) {
 			Matrix outcome = Matrix::Zero( nSamples, nOutcomes ) ;
 			outcome.col(0).setConstant(1) ;
 			outcome.col(1).setZero() ;
-			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 0.0 ) ;
+			SampleRanges nonmissing_samples ;
+			nonmissing_samples.push_back( metro::SampleRange( nMissing, nSamples )) ;
 			Names outcome_names ;
 			for( int j = 0; j < nOutcomes; ++j ) {
 				outcome_names.push_back( "outcome" + std::to_string( j )) ;
 			}
 			BinomialLogistic ll(
 				Design::create(
-					outcome, outcome_nonmissingness, outcome_names,
-					covariates, covariate_nonmissingness, Names(),
+					outcome, nonmissing_samples, outcome_names,
+					covariates, all_samples, Names(),
 					Names( 1, "predictor" )
 				)
 			) ;
@@ -163,9 +166,7 @@ AUTO_TEST_CASE( test_binomial_logisticregression_zero_samples ) {
 		outcome.col(0).setConstant(1) ;
 		outcome.col(1).setZero() ;
 
-		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 		Names outcome_names ;
 		for( int j = 0; j < nOutcomes; ++j ) {
 			outcome_names.push_back( "outcome" + std::to_string( j )) ;
@@ -173,8 +174,8 @@ AUTO_TEST_CASE( test_binomial_logisticregression_zero_samples ) {
 
 		BinomialLogistic ll(
 			Design::create(
-				outcome, outcome_nonmissingness, outcome_names,
-				covariates, covariate_nonmissingness, Names(),
+				outcome, included_samples, outcome_names,
+				covariates, included_samples, Names(),
 				Names( 1, "predictor" )
 			)
 		) ;
@@ -204,7 +205,7 @@ AUTO_TEST_CASE( test_binomial_logistic_regression_one_sample ) {
 	using std::log ;
 	
 	int const nSamples = 1 ;
-	std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, 1 ) ) ;
+	std::vector< metro::SampleRange > all_samples( 1, metro::SampleRange( 0, 1 ) ) ;
 	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
 	predictor_levels(0,0) = 1 ;
 	predictor_levels(1,0) = 2 ;
@@ -225,8 +226,8 @@ AUTO_TEST_CASE( test_binomial_logistic_regression_one_sample ) {
 
 			BinomialLogistic ll(
 				Design::create(
-					outcome, outcome_nonmissingness, outcome_names,
-					covariates, covariate_nonmissingness, Names(),
+					outcome, all_samples, outcome_names,
+					covariates, all_samples, Names(),
 					Names( 1, "predictor" )
 				)
 			) ;
@@ -234,7 +235,7 @@ AUTO_TEST_CASE( test_binomial_logistic_regression_one_sample ) {
 			// Set up a single predictor, equal to 1 with certainty.
 			Matrix predictor_probabilities = Matrix::Zero( 1, 2 ) ;
 			predictor_probabilities(0, 0) = 1.0 ;
-			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 
 			int const nParameters = 2 * ( nOutcomes - 1 ) ;
 			// Now test values.
@@ -317,20 +318,21 @@ AUTO_TEST_CASE( test_binomial_logisticregression_two_samples ) {
 	using std::exp ;
 	using std::log ;
 	
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+	SampleRanges const all_samples( 1, metro::SampleRange( 0, 2 )) ;
+	
 	{
 		int const nSamples = 2 ;
 		Matrix outcome = Matrix::Zero(nSamples, 2) ;
 		outcome <<
 			1, 0,
 			0, 1 ;
-		Matrix outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
 		BinomialLogistic ll(
 			Design::create(
-				outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
-				covariates, covariate_nonmissingness, Names(),
+				outcome, all_samples, Names({"outcome=0", "outcome=1"}),
+				covariates, all_samples, Names(),
 				Names({"predictor"})
 			)
 		) ;
@@ -344,9 +346,7 @@ AUTO_TEST_CASE( test_binomial_logisticregression_two_samples ) {
 		predictor_probabilities( 0, 0 ) = 1.0 ;
 		predictor_probabilities( 1, 1 ) = 1.0 ;
 
-		std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-		ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+		ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 		{
 			Vector parameters = Vector::Zero( 2 ) ;
@@ -434,6 +434,7 @@ AUTO_TEST_CASE( test_binomial_logisticregression_certain_predictors ) {
 	using metro::regression::Design ;
 	typedef Design::Matrix Matrix ;
 	typedef Design::Vector Vector ;
+	typedef std::vector< metro::SampleRange > SampleRanges ;
 	using std::exp ;
 	using std::log ;
 	
@@ -456,6 +457,8 @@ AUTO_TEST_CASE( test_binomial_logisticregression_certain_predictors ) {
 #endif
 			int nSamples = nCases + nControls ;
 
+			SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
+
 			// contruct outcome
 			Matrix outcome = Matrix::Zero(nSamples,2) ;
 			{
@@ -467,15 +470,13 @@ AUTO_TEST_CASE( test_binomial_logisticregression_certain_predictors ) {
 					outcome(i,0) = 1 ;
 				}
 			}
-			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, 2, 1.0 ) ;
 
 			Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-			Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
 			BinomialLogistic ll(
 				Design::create(
-					outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
-					covariates, covariate_nonmissingness, std::vector< std::string >(),
+					outcome, all_samples, Names({"outcome=0", "outcome=1"}),
+					covariates, all_samples, std::vector< std::string >(),
 					std::vector< std::string >( 1, "predictor" )
 				)
 			) ;
@@ -496,9 +497,7 @@ AUTO_TEST_CASE( test_binomial_logisticregression_certain_predictors ) {
 				}
 			}
 			
-			std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 			// Ok we have our likelihood.  Now compute with it.
 			{

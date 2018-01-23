@@ -22,8 +22,8 @@ AUTO_TEST_CASE( test_construction ) {
 			outcome(i) = 1 ;
 		}
 		
-		std::vector< metro::SampleRange > included_samples ;
-		included_samples.push_back( metro::SampleRange( 0, nSamples )) ;
+		std::vector< metro::SampleRange > all_samples ;
+		all_samples.push_back( metro::SampleRange( 0, nSamples )) ;
 	
 		for( int nCovariates = 0; nCovariates < 10; ++nCovariates ) {
 			Matrix const covariates = Matrix::Constant( nSamples, nCovariates, 1001.0 ) ;
@@ -33,12 +33,12 @@ AUTO_TEST_CASE( test_construction ) {
 				Matrix predictor_probabilities = Matrix::Constant( nSamples, 1, 1.0 ) ;
 			
 				Design design(
-					outcome, outcome_nonmissingness, std::vector< std::string >( 1, "outcome" ),
-					covariates, covariate_nonmissingness, std::vector< std::string >( nCovariates, "cov" ),
+					outcome, all_samples, std::vector< std::string >( 1, "outcome" ),
+					covariates, all_samples, std::vector< std::string >( nCovariates, "cov" ),
 					std::vector< std::string >( nPredictors, "predictor" )
 				) ;
 			
-				design.set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+				design.set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 
 				// check the outcome
 				BOOST_CHECK_EQUAL( design.outcome().rows(), nSamples ) ;
@@ -80,23 +80,21 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 
 	int nSamples = 10;
 	int nCovariates = 0 ;
+
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+	SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
 	
-	Vector const outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
 	Vector outcome = Vector::Zero( nSamples ) ;
 	for( int i = 0; i < nSamples; i += 2 ) {
 		outcome(i) = 1 ;
 	}
 	
-	std::vector< metro::SampleRange > included_samples ;
-	included_samples.push_back( metro::SampleRange( 0, nSamples )) ;
-	
 	Matrix const covariates = Matrix::Constant( nSamples, nCovariates, 1001.0 ) ;
-	Matrix const covariate_nonmissingness = Matrix::Constant( nSamples, nCovariates, 1.0 ) ;
 
 	for( int nPredictors = 0; nPredictors < 10; ++nPredictors ) {
 		Design design(
-			outcome, outcome_nonmissingness, std::vector< std::string >( 1, "outcome" ),
-			covariates, covariate_nonmissingness, std::vector< std::string >( nCovariates, "cov" ),
+			outcome, all_samples, std::vector< std::string >( 1, "outcome" ),
+			covariates, all_samples, std::vector< std::string >( nCovariates, "cov" ),
 			std::vector< std::string >( nPredictors, "predictor" )
 		) ;
 
@@ -109,7 +107,7 @@ AUTO_TEST_CASE( test_predictor_levels ) {
 			}
 
 			Matrix predictor_probabilities = Matrix::Constant( nSamples, nPredictorLevels, 1 / double( nPredictorLevels ) ) ;
-			design.set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+			design.set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 			
 			for( int iLevel = 0; iLevel < nPredictorLevels; ++iLevel ) {
 				Matrix const& matrix = design.set_predictor_level( iLevel ).matrix() ;
@@ -129,6 +127,10 @@ AUTO_TEST_CASE( test_names ) {
 	using metro::SampleRange ;
 	using metro::regression::Design ;
 
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+	int const nSamples = 5 ;
+	SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
+
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;
 		for( int i = 0; i < numberOfPredictors; ++i ) {
@@ -136,8 +138,8 @@ AUTO_TEST_CASE( test_names ) {
 		}
 		
 		for( int numberOfCovariates = 0; numberOfCovariates < 10; ++numberOfCovariates ) {
-			Eigen::VectorXd outcome = Eigen::VectorXd::Zero( 5 ), outcome_nm = Eigen::VectorXd::Constant(5, 1) ;
-			Eigen::MatrixXd cov = Eigen::MatrixXd::Constant( 5, numberOfCovariates, 2 ), cov_nm = Eigen::MatrixXd::Constant(5, numberOfCovariates, 1 ) ;
+			Eigen::VectorXd outcome = Eigen::VectorXd::Zero( 5 ) ;
+			Eigen::MatrixXd cov = Eigen::MatrixXd::Constant( 5, numberOfCovariates, 2 ) ;
 
 			std::vector< std::string > cov_names( numberOfCovariates ) ;
 			for( int i = 0; i < numberOfCovariates; ++i ) {
@@ -146,8 +148,8 @@ AUTO_TEST_CASE( test_names ) {
 			}
 		
 			Design design(
-				outcome, outcome_nm, std::vector< std::string >( 1, "outcome" ),
-				cov, cov_nm, cov_names,
+				outcome, all_samples, std::vector< std::string >( 1, "outcome" ),
+				cov, all_samples, cov_names,
 				predictor_names
 			) ;
 			std::vector< std::string > names = design.design_matrix_column_names() ;
@@ -172,6 +174,10 @@ AUTO_TEST_CASE( test_names_interaction ) {
 	using metro::SampleRange ;
 	using metro::regression::Design ;
 
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+	int const nSamples = 5 ;
+	SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
+
 	for( int numberOfPredictors = 0; numberOfPredictors < 10; ++numberOfPredictors ) {
 		std::vector< std::string > predictor_names( numberOfPredictors ) ;
 		for( int i = 0; i < numberOfPredictors; ++i ) {
@@ -179,8 +185,8 @@ AUTO_TEST_CASE( test_names_interaction ) {
 		}
 		
 		for( int numberOfCovariates = 0; numberOfCovariates < 10; ++numberOfCovariates ) {
-			Eigen::VectorXd outcome = Eigen::VectorXd::Zero( 5 ), outcome_nm = Eigen::VectorXd::Constant(5, 1) ;
-			Eigen::MatrixXd cov = Eigen::MatrixXd::Constant( 5, numberOfCovariates, 2 ), cov_nm = Eigen::MatrixXd::Constant(5, numberOfCovariates, 1 ) ;
+			Eigen::VectorXd outcome = Eigen::VectorXd::Zero( 5 ) ;
+			Eigen::MatrixXd cov = Eigen::MatrixXd::Constant( 5, numberOfCovariates, 2 ) ;
 
 			std::vector< std::string > cov_names( numberOfCovariates ) ;
 			for( int i = 0; i < numberOfCovariates; ++i ) {
@@ -194,8 +200,8 @@ AUTO_TEST_CASE( test_names_interaction ) {
 			}
 		
 			Design design(
-				outcome, outcome_nm, std::vector< std::string >( 1, "outcome" ),
-				cov, cov_nm, cov_names,
+				outcome, all_samples, std::vector< std::string >( 1, "outcome" ),
+				cov, all_samples, cov_names,
 				predictor_names,
 				Design::eIdentity,
 				interactions

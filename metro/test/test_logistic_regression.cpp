@@ -34,16 +34,15 @@ AUTO_TEST_CASE( test_logistic_regression_one_sample ) {
 	using std::log ;
 	
 	int const nSamples = 1 ;
-	std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, 1 ) ) ;
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+	SampleRanges all_samples( 1, metro::SampleRange( 0, 1 ) ) ;
 	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
 	predictor_levels(0,0) = 1 ;
 	predictor_levels(1,0) = 2 ;
 	int const nOutcomes = 2 ;
 	{
 		Matrix outcome = Matrix::Zero(nSamples, nOutcomes) ;
-		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 		Names outcome_names ;
 		for( int j = 0; j < nOutcomes; ++j ) {
 			outcome_names.push_back( "outcome" + std::to_string( j )) ;
@@ -56,8 +55,8 @@ AUTO_TEST_CASE( test_logistic_regression_one_sample ) {
 			
 			Logistic ll(
 				Design::create(
-					outcome, outcome_nonmissingness, outcome_names,
-					covariates, covariate_nonmissingness, Names(),
+					outcome, all_samples, outcome_names,
+					covariates, all_samples, Names(),
 					Names( 1, "predictor" )
 				)
 			) ;
@@ -65,7 +64,7 @@ AUTO_TEST_CASE( test_logistic_regression_one_sample ) {
 			// Set up a single predictor, equal to 1 with certainty.
 			Matrix predictor_probabilities = Matrix::Zero( 1, 2 ) ;
 			predictor_probabilities(0, 0) = 1.0 ;
-			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 
 			int const nParameters = 2 * ( nOutcomes - 1 ) ;
 			int const M = nOutcomes - 1 ;
@@ -238,8 +237,11 @@ AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 	using metro::regression::Design ;
 	typedef Design::Matrix Matrix ;
 	typedef Design::Vector Vector ;
+	typedef std::vector< metro::SampleRange > SampleRanges ;
 	using std::exp ;
 	using std::log ;
+	
+	SampleRanges all_samples( 1, metro::SampleRange( 0, 2 )) ;
 	
 	{
 		int const nSamples = 2 ;
@@ -247,14 +249,12 @@ AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 		outcome <<
 			1, 0,
 			0, 1 ;
-		Matrix outcome_nonmissingness = Vector::Constant( nSamples, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
 		Logistic ll(
 			Design::create(
-				outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
-				covariates, covariate_nonmissingness, Names(),
+				outcome, all_samples, Names({"outcome=0", "outcome=1"}),
+				covariates, all_samples, Names(),
 				Names({"predictor"})
 			)
 		) ;
@@ -268,9 +268,7 @@ AUTO_TEST_CASE( test_logisticregression_two_samples ) {
 		predictor_probabilities( 0, 0 ) = 1.0 ;
 		predictor_probabilities( 1, 1 ) = 1.0 ;
 
-		std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-		ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+		ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 		{
 			Vector parameters = Vector::Zero( 2 ) ;
@@ -358,6 +356,8 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 	using metro::regression::Design ;
 	typedef Design::Matrix Matrix ;
 	typedef Design::Vector Vector ;
+	typedef std::vector< metro::SampleRange > SampleRanges ;
+
 	using std::exp ;
 	using std::log ;
 	
@@ -380,6 +380,7 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 #endif
 			int nSamples = nCases + nControls ;
 
+			SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
 			// contruct outcome
 			Matrix outcome = Matrix::Zero(nSamples,2) ;
 			{
@@ -398,8 +399,8 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 
 			Logistic ll(
 				Design::create(
-					outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
-					covariates, covariate_nonmissingness, std::vector< std::string >(),
+					outcome, all_samples, Names({"outcome=0", "outcome=1"}),
+					covariates, all_samples, std::vector< std::string >(),
 					std::vector< std::string >( 1, "predictor" )
 				)
 			) ;
@@ -420,9 +421,7 @@ AUTO_TEST_CASE( test_logisticregression_certain_predictors ) {
 				}
 			}
 			
-			std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-			ll.design().set_predictors( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.design().set_predictors( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 			// Ok we have our likelihood.  Now compute with it.
 			{

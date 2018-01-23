@@ -35,16 +35,14 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 	using std::log ;
 	
 	int const nSamples = 1 ;
-	std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, 1 ) ) ;
+	std::vector< metro::SampleRange > all_samples( 1, metro::SampleRange( 0, 1 ) ) ;
 	Matrix predictor_levels = Matrix::Zero( 2, 1 ) ;
 	predictor_levels(0,0) = 1 ;
 	predictor_levels(1,0) = 2 ;
 
 	for( int nOutcomes = 3; nOutcomes < 5; ++nOutcomes ) {
 		Matrix outcome = Matrix::Zero(nSamples, nOutcomes) ;
-		Matrix outcome_nonmissingness = Matrix::Constant( nSamples, nOutcomes, 1.0 ) ;
 		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-		Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 		Names outcome_names ;
 		for( int j = 0; j < nOutcomes; ++j ) {
 			outcome_names.push_back( "outcome" + std::to_string( j )) ;
@@ -57,8 +55,8 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 			
 			MultinomialRegressionLogLikelihood ll(
 				Design::create(
-					outcome, outcome_nonmissingness, outcome_names,
-					covariates, covariate_nonmissingness, Names(),
+					outcome, all_samples, outcome_names,
+					covariates, all_samples, Names(),
 					Names( 1, "predictor" )
 				)
 			) ;
@@ -66,7 +64,7 @@ AUTO_TEST_CASE( test_multinomialregression_one_sample ) {
 			// Set up a single predictor, equal to 1 with certainty.
 			Matrix predictor_probabilities = Matrix::Zero( 1, 2 ) ;
 			predictor_probabilities(0, 0) = 1.0 ;
-			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.set_predictor_levels( predictor_levels, predictor_probabilities, all_samples ) ;
 
 			int const nParameters = 2 * ( nOutcomes - 1 ) ;
 			int const M = nOutcomes - 1 ;
@@ -240,8 +238,12 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 	using std::exp ;
 	using std::log ;
 	
+	
 	{
 		int const nSamples = 2 ;
+
+		typedef std::vector< metro::SampleRange > SampleRanges ;
+		SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
 		Matrix outcome = Matrix::Zero(nSamples,2) ;
 		outcome(0,0) = 1 ;
 		outcome(1,1) = 1 ;
@@ -251,8 +253,8 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 		
 		MultinomialRegressionLogLikelihood ll(
 			Design::create(
-				outcome, outcome_nonmissingness, Names({"outcome=0","outcome=1"}),
-				covariates, covariate_nonmissingness, std::vector< std::string >(),
+				outcome, all_samples, Names({"outcome=0","outcome=1"}),
+				covariates, all_samples, Names(),
 				Names({"predictor"})
 			)
 		) ;
@@ -266,9 +268,7 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_two_samples ) {
 		predictor_probabilities( 0, 0 ) = 1.0 ;
 		predictor_probabilities( 1, 1 ) = 1.0 ;
 
-		std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-		ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+		ll.set_predictor_levels( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 		{
 			Vector parameters = Vector::Zero( 2 ) ;
@@ -397,6 +397,9 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 		for( int nControls = 0; nControls < 20; ++nControls ) {
 			int nSamples = nCases + nControls ;
 
+			typedef std::vector< metro::SampleRange > SampleRanges ;
+			SampleRanges const all_samples( 1, metro::SampleRange( 0, nSamples )) ;
+
 			// contruct outcome
 			Matrix outcome = Matrix::Zero(nSamples,2) ;
 			{
@@ -408,14 +411,12 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 					outcome(i,0) = 1 ;
 				}
 			}
-			Matrix outcome_nonmissingness = Matrix::Constant( nSamples, 2, 1.0 ) ;
 			Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
-			Matrix covariate_nonmissingness = Matrix::Constant( nSamples, 0, 1.0 ) ;
 
 			MultinomialRegressionLogLikelihood ll(
 				Design::create(
-					outcome, outcome_nonmissingness, Names({"outcome=0", "outcome=1"}),
-					covariates, covariate_nonmissingness, Names(),
+					outcome, all_samples, Names({"outcome=0", "outcome=1"}),
+					covariates, all_samples, Names(),
 					Names({"predictor"})
 				)
 			) ;
@@ -436,9 +437,7 @@ AUTO_TEST_CASE( test_multinomialregression_two_outcomes_certain_predictors ) {
 				}
 			}
 			
-			std::vector< metro::SampleRange > const included_samples = std::vector< metro::SampleRange >( 1, metro::SampleRange( 0, nSamples ) ) ;
-		
-			ll.set_predictor_levels( predictor_levels, predictor_probabilities, included_samples ) ;
+			ll.set_predictor_levels( predictor_levels, predictor_probabilities, all_samples ) ;
 		
 			// Ok we have our likelihood.  Now compute with it.
 			{
