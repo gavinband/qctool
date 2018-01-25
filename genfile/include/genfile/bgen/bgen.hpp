@@ -8,6 +8,7 @@
 #define BGEN_REFERENCE_IMPLEMENTATION_HPP
 
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <cassert>
 #include <cmath>
@@ -950,7 +951,6 @@ namespace genfile {
 							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
 
 							uint32_t const valueCount = (ploidy * pack.numberOfAlleles) ;
-							uint32_t const storedValueCount = (valueCount - ploidy) ;
 
 							if( sample_status & 0x1 ) {
 								setter.set_number_of_entries(
@@ -1023,7 +1023,7 @@ namespace genfile {
 								switch( sample_status ) {
 									case SampleStatus::eIgnore: break ;
 									case SampleStatus::eSetAsMissing:
-										setter.set_value( h, genfile::MissingValue() ) ;
+										setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 										break ;
 									case SampleStatus::eSetThisSample:
 										setter.set_value( reportedValueCount++, value ) ;
@@ -1060,10 +1060,12 @@ namespace genfile {
 				
 				ProbabilityDataWriter(
 					uint8_t const number_of_bits,
-					double const tolerance = 1.01
+					double const max_rounding_error_per_prob = 0.0005
 				):
 					m_number_of_bits( number_of_bits ),
-					m_tolerance( tolerance ),
+					// Actually likely rounding error is rounding error from limit precision
+					// number, plus error in floating point representation (which is at most epsilon).
+					m_max_error_per_prob( max_rounding_error_per_prob + std::numeric_limits< double >::epsilon() ),
 					m_state( eUninitialised ),
 					m_order_type( eUnknownOrderType ),
 					m_number_of_samples(0),
@@ -1184,14 +1186,12 @@ namespace genfile {
 #if DEBUG_BGEN_FORMAT
 					std::cerr << "set_value( " << entry_i << ", " << value << "); m_entry_i = " << m_entry_i << "\n" ;
 #endif
-					// Any sane input values will sum to 1 ± somerounding error, which should be small.
-					if( ( m_sum != m_sum ) || (m_sum > m_tolerance)) {
-#if DEBUG_BGEN_FORMAT
-						std::cerr << "First " << entry_i << " input values sum to " << m_sum << ".\n" ;
-#endif
+					if( value != value || value < 0.0 || value > (1.0+m_max_error_per_prob) ) {
+						std::cerr << "Sample " << m_sample_i << ", value " << entry_i << " is "
+							<< std::setprecision(17) << value
+							<< ", expected within bounds 0 - " << (1.0+m_max_error_per_prob) << ".\n" ;
 						throw BGenError() ;
 					}
-
 					if( value != 0.0 ) {
 						m_missing = eNotMissing ;
 					}
@@ -1259,7 +1259,7 @@ namespace genfile {
 				byte_t* m_p ;
 				byte_t* m_end ;
 				uint8_t const m_number_of_bits ;
-				double const m_tolerance ;
+				double const m_max_error_per_prob ;
 				State m_state ;
 				uint8_t m_ploidyExtent[2] ;
 				OrderType m_order_type ;
@@ -1292,8 +1292,10 @@ namespace genfile {
 						// flag this sample as missing.
 						m_buffer[ePloidyBytes + m_sample_i] |= 0x80 ;
 					} else {
-						if( ( sum != sum ) || (sum > m_tolerance) || (sum < (1.0/m_tolerance))) {
-							std::cerr << "These " << count << " values sum to " << sum << ".\n" ;
+						double const max_error_in_sum = (count * m_max_error_per_prob) ;
+						if( ( sum != sum ) || (sum > (1.0+max_error_in_sum)) || (sum < (1.0-max_error_in_sum))) {
+							std::cerr << "These " << count << " values sum to " << std::fixed << std::setprecision(17) << sum << ", "
+								<< "I expected the sum to be in the range " << (1.0-max_error_in_sum) << " - " << (1.0+max_error_in_sum) << ".\n" ;
 							throw BGenError() ;
 						}
 						// We project onto the unit simplex before computing the approximation.
