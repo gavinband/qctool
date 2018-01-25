@@ -1408,7 +1408,8 @@ namespace genfile {
 				std::vector< byte_t >* buffer1,
 				std::vector< byte_t >* buffer2,
 				Context const& context,
-				int const number_of_bits
+				int const number_of_bits,
+				double permitted_rounding_error = 0.0005
 			):
 				m_buffer1( buffer1 ),
 				m_buffer2( buffer2 ),
@@ -1416,7 +1417,7 @@ namespace genfile {
 				m_layout( m_context.flags & e_Layout ),
 				m_number_of_bits( number_of_bits ),
 				m_layout1_writer(),
-				m_layout2_writer( number_of_bits ),
+				m_layout2_writer( number_of_bits, permitted_rounding_error ),
 				m_writer(0)
 			{
 				assert( m_buffer1 != 0 && m_buffer2 != 0 ) ;

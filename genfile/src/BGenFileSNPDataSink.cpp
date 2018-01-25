@@ -22,13 +22,16 @@ namespace genfile {
 		CompressionType compression_type,
 		bgen::uint32_t flags,
 		int const number_of_bits
+		
 	)
 	: 	m_filename( filename ),
 		m_metadata( metadata ),
 		m_offset(0),
 		m_stream_ptr( open_binary_file_for_output( m_filename, compression_type ) ),
 		m_have_written_header( false ),
-		m_number_of_bits( number_of_bits )
+		m_number_of_bits( number_of_bits ),
+		// assume stored probabilities are accurate to 3dps by default
+		m_permitted_rounding_error( 0.0005 ) 
 	{
 		m_bgen_context.flags = flags ;
 		m_bgen_context.free_data = serialise( metadata ) ;
@@ -48,7 +51,9 @@ namespace genfile {
 		m_offset(0),
 		m_stream_ptr( stream_ptr ),
 		m_have_written_header( false ),
-		m_number_of_bits( number_of_bits )
+		m_number_of_bits( number_of_bits ),
+		// assume stored probabilities are accurate to 3dps by default
+		m_permitted_rounding_error( 0.0005 ) 
 	{
 		m_bgen_context.flags = flags ;
 		m_bgen_context.free_data = serialise( metadata ) ;
@@ -75,6 +80,11 @@ namespace genfile {
 				"Unrecognised compression type"
 			) ;
 		}
+	}
+	
+	void BasicBGenFileSNPDataSink::set_permitted_input_rounding_error( double const accuracy ) {
+		assert( accuracy >= 0 ) ;
+		m_permitted_rounding_error = accuracy ;
 	}
 
 	SNPDataSink::SinkPos BasicBGenFileSNPDataSink::get_stream_pos() const {
@@ -122,7 +132,8 @@ namespace genfile {
 			bgen::GenotypeDataBlockWriter writer(
 				&m_buffer1, &m_buffer2,
 				m_bgen_context,
-				m_number_of_bits
+				m_number_of_bits,
+				m_permitted_rounding_error
 			) ;
 			
 			data_reader.get( ":genotypes:", to_GP( writer ) ) ;

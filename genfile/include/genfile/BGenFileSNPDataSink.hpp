@@ -55,6 +55,7 @@ namespace genfile {
 
 		void set_number_of_bits( int const bits ) ;
 		void set_compression_type( std::string const& compression_type ) ;
+		void set_permitted_input_rounding_error( double const accuracy ) ;
 		void set_free_data( std::string const& free_data ) ;
 		void set_write_sample_identifier_block( bool write ) ;
 
@@ -79,6 +80,7 @@ namespace genfile {
 		std::auto_ptr< std::ostream > m_stream_ptr ;
 		bool m_have_written_header ;
 		int m_number_of_bits ;
+		double m_permitted_rounding_error ;
 		
 		std::vector< byte_t > m_buffer1 ;
 		std::vector< byte_t > m_buffer2 ;

@@ -432,6 +432,19 @@ public:
 			.set_default_value( "zlib" )
 			.set_takes_single_value()
 		;
+		options[ "-bgen-permitted-input-rounding-error" ]
+			.set_description(
+				"Specify the maximum error that will be tolerated in input probability values when writing a BGEN file. "
+				"E.g. if data is accurate to 3 decimal places, the default value of 0.0005 should work here, while if "
+				"your data is less accurate you may "
+				"need to relax this.  BGEN v1.2 format rescales genotype probabilities so that they sum to 1; this implies "
+				"a scaling factor of up to (1 ± (n × error)), where n is the number of "
+				"probability values for the sample. "
+				"(BGEN encoding also incurs additional error of up to 1/(2^bits-1) per probability)."
+			)
+			.set_takes_single_value()
+			.set_default_value( 0.0005 )
+		;
 		options[ "-bgen-omit-sample-identifier-block" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
@@ -2123,14 +2136,12 @@ private:
 					{
 						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
 						if( bgen_sink ) {
-							if( m_options.check( "-bgen-bits" )) {
-								bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
-							}
+							bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
+							bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
+							bgen_sink->set_permitted_input_rounding_error( m_options.get< double >( "-bgen-permitted-input-rounding-error" ) ) ;
+
 							if( m_options.check( "-bgen-free-data" )) {
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
-							}
-							if( m_options.check( "-bgen-compression" )) {
-								bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
 							}
 							
 							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
