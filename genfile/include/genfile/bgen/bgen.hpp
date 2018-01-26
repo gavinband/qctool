@@ -943,7 +943,6 @@ namespace genfile {
 				Setter& setter
 			) {
 				
-				std::cerr << "BIALLELIC!\n" ;
 				assert( pack.numberOfAlleles == 2 ) ;
 				assert( pack.ploidyExtent[0] == 2 ) ;
 				assert( pack.ploidyExtent[1] == 2 ) ;
