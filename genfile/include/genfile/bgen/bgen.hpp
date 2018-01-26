@@ -912,11 +912,139 @@ namespace genfile {
 				Context const& context,
 				Setter& setter
 			) {
+				GenotypeDataBlock pack( context, buffer, end ) ;
+
+				// optimise the common case
+				if( pack.ploidyExtent[0] == 2 && pack.ploidyExtent[1] == 2 && pack.numberOfAlleles == 2 ) {
+					parse_probability_data_diploid_biallelic(
+						pack,
+						buffer,
+						end,
+						context,
+						setter
+					) ;
+				} else {
+					parse_probability_data_general(
+						pack,
+						buffer,
+						end,
+						context,
+						setter
+					) ;
+				}
+			}
+
+			template< typename Setter >
+			void parse_probability_data_diploid_biallelic(
+				GenotypeDataBlock const& pack,
+				byte_t const* buffer,
+				byte_t const* const end,
+				Context const& context,
+				Setter& setter
+			) {
+				
+				std::cerr << "BIALLELIC!\n" ;
+				assert( pack.numberOfAlleles == 2 ) ;
+				assert( pack.ploidyExtent[0] == 2 ) ;
+				assert( pack.ploidyExtent[1] == 2 ) ;
+
 				// These values are specific bit combinations and should not be changed.
 				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
 				
-				GenotypeDataBlock pack( context, buffer, end ) ;
+				int const bits = int( pack.bits ) ;
+				byte_t const* ploidy_p = pack.ploidy ;
+				buffer = pack.buffer ;
+				assert( end == pack.end ) ;
+				
+				uint64_t const bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
+				double const denominator = double( bitMask ) ;
 
+	#if DEBUG_BGEN_FORMAT
+				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
+					<< ", phased = " << phased << ".\n" ;
+				std::cerr << "parse_probability_data_v12(): *buffer: "
+					<< bgen::impl::to_hex( buffer, end ) << ".\n" ;
+	#endif
+
+				setter.initialise( pack.numberOfSamples, uint32_t( 2 ) ) ;
+				call_set_min_max_ploidy( setter, uint32_t( 2 ), uint32_t( 2 ), 2, pack.phased ) ;
+				
+				{
+					uint64_t data = 0 ;
+					int size = 0 ;
+					if( pack.phased ) {
+						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
+							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
+							bool const missing = (*ploidy_p & 0x80) ;
+							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
+
+							if( sample_status & 0x1 ) {
+								setter.set_number_of_entries( 2, 4, ePerPhasedHaplotypePerAllele, eProbability ) ;
+							}
+							
+							// Consume values and interpret them.
+							for( uint32_t hap = 0; hap < 2; ++hap ) {
+								buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
+								double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+								switch( sample_status ) {
+									case SampleStatus::eIgnore: break ;
+									case SampleStatus::eSetAsMissing:
+										setter.set_value( 2*hap + 0, genfile::MissingValue() ) ;
+										setter.set_value( 2*hap + 1, genfile::MissingValue() ) ;
+										break ;
+									case SampleStatus::eSetThisSample:
+										setter.set_value( 2*hap + 0, value ) ;
+										setter.set_value( 2*hap + 1, 1.0 - value ) ;
+										break ;
+								}
+							}
+						}
+					} else {
+						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
+							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
+							bool const missing = (*ploidy_p & 0x80) ;
+							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
+							
+							if( sample_status & 0x1 ) {
+								setter.set_number_of_entries( 2, 3, ePerUnorderedGenotype, eProbability ) ;
+							}
+							
+							buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
+							double const value1 = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+
+							buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
+							double const value2 = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+
+							switch( sample_status ) {
+								case SampleStatus::eIgnore: break ;
+								case SampleStatus::eSetAsMissing:
+									setter.set_value( 0, genfile::MissingValue() ) ;
+									setter.set_value( 1, genfile::MissingValue() ) ;
+									setter.set_value( 2, genfile::MissingValue() ) ;
+									break ;
+								case SampleStatus::eSetThisSample:
+									setter.set_value( 0, value1 ) ;
+									setter.set_value( 1, value2 ) ;
+									setter.set_value( 2, 1.0 - value1 - value2 ) ;
+									break ;
+							}
+						}
+					}
+				}
+				call_finalise( setter ) ;
+			}
+
+			template< typename Setter >
+			void parse_probability_data_general(
+				GenotypeDataBlock const& pack,
+				byte_t const* buffer,
+				byte_t const* const end,
+				Context const& context,
+				Setter& setter
+			) {
+				// These values are specific bit combinations and should not be changed.
+				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
+				
 				int const bits = int( pack.bits ) ;
 				byte_t const* ploidy_p = pack.ploidy ;
 				buffer = pack.buffer ;
