@@ -1167,8 +1167,6 @@ namespace genfile {
 				call_set_min_max_ploidy( setter, uint32_t( 2 ), uint32_t( 2 ), 2, pack.phased ) ;
 				
 				{
-					uint64_t workspace_data = 0 ;
-					int workspace_size = 0 ;
 					if( pack.phased ) {
 						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
 							bool const missing = (*ploidy_p & 0x80) ;
@@ -1260,8 +1258,6 @@ namespace genfile {
 				) ;
 				
 				{
-					uint64_t workspace_data = 0 ;
-					int workspace_size = 0 ;
 					if( pack.phased ) {
 						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
 							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
