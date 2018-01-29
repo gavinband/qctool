@@ -742,13 +742,14 @@ namespace genfile {
 				call_set_min_max_ploidy( setter, 2ul, 2ul, 2ul, false ) ;
 				double const probability_conversion_factor = impl::get_probability_conversion_factor( context.flags ) ;
 				for ( uint32_t i = 0 ; i < context.number_of_samples ; ++i ) {
-					setter.set_sample( i ) ;
-					setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
-					assert( end >= buffer + 6 ) ;
-					for( std::size_t g = 0; g < 3; ++g ) {
-						uint16_t prob ;
-						buffer = read_little_endian_integer( buffer, end, &prob ) ;
-						setter.set_value( g, impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+					if( setter.set_sample( i ) ) {
+						setter.set_number_of_entries( ploidy, 3, ePerUnorderedGenotype, eProbability ) ;
+						assert( end >= buffer + 6 ) ;
+						for( std::size_t g = 0; g < 3; ++g ) {
+							uint16_t prob ;
+							buffer = read_little_endian_integer( buffer, end, &prob ) ;
+							setter.set_value( g, impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
+						}
 					}
 				}
 				call_finalise( setter ) ;
@@ -757,52 +758,192 @@ namespace genfile {
 
 		namespace v12{
 			namespace impl {
-				// utility function to fill a 64-bit integer
-				// with bits from the buffer, consuming a specified number of
-				// bits at a time.
-				// arguments are:
-				// buffer, end - the buffer to read from
-				// data - the place to read bits into
-				// size - the current number of bits stored in data
-				// bits - the number of bits required.
-				// For this implementation we require that bits <= 56.
-				inline byte_t const* read_bits_from_buffer(
-					byte_t const* buffer,
-					byte_t const* const end,
-					uint64_t* data,
-					int* size,
-					uint8_t const bits
-				) {
-					//assert( bits <= 64 - 8 ) ;
-					while( (*size) < bits && buffer < end ) {
-						(*data) |= uint64_t( *(reinterpret_cast< byte_t const* >( buffer++ ))) << (*size) ;
-						(*size) += 8 ;
-					}
-					if( (*size) < bits ) {
-						throw BGenError() ;
-					}
-					return buffer ;
-				}
+				
+				struct BitParser {
+					BitParser(
+						byte_t const* buffer,
+						byte_t const* const end,
+						int const bits
+					):
+						m_buffer( buffer ),
+						m_end( end ),
+						m_bits( bits ),
+						m_bitMask( (0xFFFFFFFFFFFFFFFF >> ( 64 - bits ))),
+						m_denominator( m_bitMask ),
+						m_working_data(0),
+						m_working_size(0)
+					{}
 
-				// Consume the given number of bits from the the least significant end
-				// of a data field (encoded as a uint64_t) and interpret them as a
-				// floating-point number in the range 0...1
-				// This implementation assumes that bits, the bitMask, and the
-				// denominator (2^b)-1 are all precomputed
-				inline double parse_and_consume_bits(
-					uint64_t* data,
-					int* size,
-					int const bits,
-					uint64_t const bitMask,
-					double const denominator
-				) {
-					//assert( bits <= 32 ) ;
-					double const result = ( *data & bitMask ) / denominator ;
-					(*size) -= bits ;
-					(*data) >>= bits ;
-					return result ;
-				}
+					// check we can consume n more values
+					bool check( std::size_t n ) const {
+						// We have m_working_size bits in m_working_data
+						// And then as many more bits as we can get from the buffer.
+						std::size_t const bitsNeeded = n * m_bits ;
+						if( m_working_size >= bitsNeeded ) {
+							return true ;
+						}
+						std::size_t const bytesNeededFromBuffer = (bitsNeeded - m_working_size + 7)/8 ;
+						return (m_buffer + bytesNeededFromBuffer) <= m_end ;
+					}
 
+					// consume and return next value
+					double next() {
+						// fill working data if needed
+						while( m_working_size < m_bits && m_buffer < m_end ) {
+							m_working_data |= uint64_t( *(reinterpret_cast< byte_t const* >( m_buffer++ ))) << m_working_size ;
+							m_working_size += 8 ;
+						}
+						// parse value
+						double const result = ( m_working_data & m_bitMask ) / m_denominator ;
+						m_working_size -= m_bits ;
+						m_working_data >>= m_bits ;
+						return result ;
+					}
+
+				private:
+					byte_t const* m_buffer ;
+					byte_t const* const m_end ;
+					int const m_bits ;
+					uint64_t const m_bitMask ;
+					double const m_denominator ;
+					
+					// Since # bits may be coprime to 8, we use
+					// a working buffer of 8 bytes to keep track of currently read & parsed bits.
+					uint64_t m_working_data ;
+					int m_working_size ;
+				} ;
+
+				// Optimised bit parser implementations
+				template<int bits>
+				struct SpecialisedBitParser ;
+
+				// Specialisation for 8 bit data
+				template<>
+				struct SpecialisedBitParser<8> {
+					SpecialisedBitParser(
+						byte_t const* buffer,
+						byte_t const* const end
+					):
+						m_buffer( buffer ),
+						m_end( end )
+					{}
+
+					// check we can consume n more values
+					bool check( std::size_t n ) const {
+						return (m_buffer + n) <= m_end ;
+					}
+
+					double next() {
+						return double(
+							(*reinterpret_cast< uint8_t const* >( m_buffer++ )) & 0xFF
+						) / 255.0;
+					}
+
+				private:
+					byte_t const* m_buffer ;
+					byte_t const* const m_end ;
+				} ;
+
+				// Specialisation for 16 bit data
+				template<>
+				struct SpecialisedBitParser<16> {
+					SpecialisedBitParser(
+						byte_t const* buffer,
+						byte_t const* const end
+					):
+						m_buffer( buffer ),
+						m_end( end )
+					{}	
+
+					// check we can consume n more values
+					bool check( std::size_t n ) const {
+						return (m_buffer + 2*n) <= m_end ;
+					}
+
+					double next() {
+						double const value = double(
+							(*reinterpret_cast< uint16_t const* >( m_buffer )) & 0xFFFF
+						) / 65535.0 ;
+						m_buffer += 2 ;
+						return value ;
+					}
+
+				private:
+					byte_t const* m_buffer ;
+					byte_t const* const m_end ;
+				} ;
+
+				// Specialisation for 24 bit data
+				template<>
+				struct SpecialisedBitParser<24> {
+					SpecialisedBitParser(
+						byte_t const* buffer,
+						byte_t const* const end
+					):
+						m_buffer( buffer ),
+						m_end( end )
+					{}
+
+					// check we can consume n more values
+					bool check( std::size_t n ) const {
+						return (m_buffer + 3*n) <= m_end ;
+					}
+
+					double next() {
+						double const value = double(
+							(*reinterpret_cast< uint32_t const* >( m_buffer )) & 0xFFFFFF
+						) / 16777215.0 ;
+						m_buffer += 3 ;
+						return value ;
+					}
+
+				private:
+					byte_t const* m_buffer ;
+					byte_t const* const m_end ;
+				} ;
+
+				// Specialisation for 4 bit data
+				template<>
+				struct SpecialisedBitParser<4> {
+					SpecialisedBitParser(
+						byte_t const* buffer,
+						byte_t const* const end
+					):
+						m_buffer( buffer ),
+						m_end( end ),
+						m_highOrLow( 0 )
+					{}
+
+					// check we can consume n more values
+					bool check( std::size_t n ) const {
+						return (m_buffer + ((n + 1 + m_highOrLow)/2)) <= m_end ;
+					}
+
+					double next() {
+						double result ;
+						switch( m_highOrLow ) {
+							case 0:
+								result = double(
+									(*reinterpret_cast< uint8_t const* >( m_buffer )) & 0xF
+								) / 15.0 ;
+								m_highOrLow = 1 ;
+								break ;
+							case 1:
+								result = double(
+									((*reinterpret_cast< uint8_t const* >( m_buffer++ )) & 0xF0) >> 4
+								) / 15.0 ;
+								m_highOrLow = 0 ;
+							break ;
+						}
+						return result ;
+					}
+
+				private:
+					byte_t const* m_buffer ;
+					byte_t const* const m_end ;
+					int m_highOrLow ;
+				} ;
+				
 				// Round a point on the unit simplex (expressed as n floating-point probabilities)
 				// to a point representable with the given number of bits.
 				// precondition: p points to n doubles between 0 and 1 that sum to 1
@@ -914,66 +1055,122 @@ namespace genfile {
 			) {
 				GenotypeDataBlock pack( context, buffer, end ) ;
 
-				// optimise the common case
+#if 0
+				parse_probability_data_general(
+					pack,
+					impl::BitParser( pack.buffer, pack.end, pack.bits ),
+					context,
+					setter
+				) ;
+#else
+	
+
+				// We optimise the most common and simplest-to- parse cases.
+				// These are the case where all samples are diploid, and/or where
+				// the number of bits is a multiple of 8.
+				// This if statement chooses an appropriate implementation.
 				if( pack.ploidyExtent[0] == 2 && pack.ploidyExtent[1] == 2 && pack.numberOfAlleles == 2 ) {
-					parse_probability_data_diploid_biallelic(
-						pack,
-						buffer,
-						end,
-						context,
-						setter
-					) ;
+					switch( pack.bits ) {
+						case 4:
+							parse_probability_data_diploid_biallelic(
+								pack,
+								impl::SpecialisedBitParser<4>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						case 8:
+							parse_probability_data_diploid_biallelic(
+								pack,
+								impl::SpecialisedBitParser<8>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						case 16:
+							parse_probability_data_diploid_biallelic(
+								pack,
+								impl::SpecialisedBitParser<16>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						default:
+							parse_probability_data_diploid_biallelic(
+								pack,
+								impl::BitParser( pack.buffer, pack.end, pack.bits ),
+								context,
+								setter
+							) ;
+							break ;
+					}
 				} else {
-					parse_probability_data_general(
-						pack,
-						buffer,
-						end,
-						context,
-						setter
-					) ;
+					switch( pack.bits ) {
+						case 4:
+							parse_probability_data_general(
+								pack,
+								impl::SpecialisedBitParser<4>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						case 8:
+							parse_probability_data_general(
+								pack,
+								impl::SpecialisedBitParser<8>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						case 16:
+							parse_probability_data_general(
+								pack,
+								impl::SpecialisedBitParser<16>( pack.buffer, pack.end ),
+								context,
+								setter
+							) ;
+							break ;
+						default:
+							parse_probability_data_general(
+								pack,
+								impl::BitParser( pack.buffer, pack.end, pack.bits ),
+								context,
+								setter
+							) ;
+							break ;
+					}
 				}
+#endif
 			}
 
-			template< typename Setter >
+			template< typename Setter, typename BitParser >
 			void parse_probability_data_diploid_biallelic(
 				GenotypeDataBlock const& pack,
-				byte_t const* buffer,
-				byte_t const* const end,
+				BitParser valueConsumer,
 				Context const& context,
 				Setter& setter
 			) {
-				
 				assert( pack.numberOfAlleles == 2 ) ;
 				assert( pack.ploidyExtent[0] == 2 ) ;
 				assert( pack.ploidyExtent[1] == 2 ) ;
 
 				// These values are specific bit combinations and should not be changed.
 				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
-				
-				int const bits = int( pack.bits ) ;
 				byte_t const* ploidy_p = pack.ploidy ;
-				buffer = pack.buffer ;
-				assert( end == pack.end ) ;
-				
-				uint64_t const bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
-				double const denominator = double( bitMask ) ;
 
 	#if DEBUG_BGEN_FORMAT
 				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
 					<< ", phased = " << phased << ".\n" ;
-				std::cerr << "parse_probability_data_v12(): *buffer: "
-					<< bgen::impl::to_hex( buffer, end ) << ".\n" ;
 	#endif
 
 				setter.initialise( pack.numberOfSamples, uint32_t( 2 ) ) ;
 				call_set_min_max_ploidy( setter, uint32_t( 2 ), uint32_t( 2 ), 2, pack.phased ) ;
 				
 				{
-					uint64_t data = 0 ;
-					int size = 0 ;
+					uint64_t workspace_data = 0 ;
+					int workspace_size = 0 ;
 					if( pack.phased ) {
 						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
-							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
 							bool const missing = (*ploidy_p & 0x80) ;
 							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
 
@@ -981,10 +1178,13 @@ namespace genfile {
 								setter.set_number_of_entries( 2, 4, ePerPhasedHaplotypePerAllele, eProbability ) ;
 							}
 							
+							
+							if( !valueConsumer.check( 2 )) {
+								throw BGenError() ;
+							}
 							// Consume values and interpret them.
 							for( uint32_t hap = 0; hap < 2; ++hap ) {
-								buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-								double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+								double const value = valueConsumer.next() ;
 								switch( sample_status ) {
 									case SampleStatus::eIgnore: break ;
 									case SampleStatus::eSetAsMissing:
@@ -1000,19 +1200,17 @@ namespace genfile {
 						}
 					} else {
 						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
-							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
 							bool const missing = (*ploidy_p & 0x80) ;
 							int const sample_status = (setter.set_sample( i ) * 0x1) + (missing * 0x2);
 							
 							if( sample_status & 0x1 ) {
 								setter.set_number_of_entries( 2, 3, ePerUnorderedGenotype, eProbability ) ;
 							}
-							
-							buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-							double const value1 = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
-
-							buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-							double const value2 = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+							if( !valueConsumer.check( 2 )) {
+								throw BGenError() ;
+							}
+							double const value1 = valueConsumer.next() ;
+							double const value2 = valueConsumer.next() ;
 
 							switch( sample_status ) {
 								case SampleStatus::eIgnore: break ;
@@ -1033,25 +1231,18 @@ namespace genfile {
 				call_finalise( setter ) ;
 			}
 
-			template< typename Setter >
+			template< typename Setter, typename BitParser >
 			void parse_probability_data_general(
 				GenotypeDataBlock const& pack,
-				byte_t const* buffer,
-				byte_t const* const end,
+				BitParser valueConsumer,
 				Context const& context,
 				Setter& setter
 			) {
 				// These values are specific bit combinations and should not be changed.
 				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
 				
-				int const bits = int( pack.bits ) ;
 				byte_t const* ploidy_p = pack.ploidy ;
-				buffer = pack.buffer ;
-				assert( end == pack.end ) ;
 				
-				uint64_t const bitMask = (0xFFFFFFFFFFFFFFFF >> ( 64 - bits )) ;
-				double const denominator = double( bitMask ) ;
-
 	#if DEBUG_BGEN_FORMAT
 				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
 					<< ", phased = " << phased << ".\n" ;
@@ -1069,8 +1260,8 @@ namespace genfile {
 				) ;
 				
 				{
-					uint64_t data = 0 ;
-					int size = 0 ;
+					uint64_t workspace_data = 0 ;
+					int workspace_size = 0 ;
 					if( pack.phased ) {
 						for( uint32_t i = 0; i < pack.numberOfSamples; ++i, ++ploidy_p ) {
 							uint32_t const ploidy = uint32_t(*ploidy_p & 0x3F) ;
@@ -1091,10 +1282,12 @@ namespace genfile {
 							// Consume values and interpret them.
 							double sum = 0.0 ;
 							uint32_t reportedValueCount = 0 ;
+							if( !valueConsumer.check( ploidy * (pack.numberOfAlleles-1) )) {
+								throw BGenError() ;
+							}
 							for( uint32_t hap = 0; hap < ploidy; ++hap ) {
 								for( uint32_t allele = 0; allele < (pack.numberOfAlleles-1); ++allele ) {
-									buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-									double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+									double const value = valueConsumer.next() ;
 									switch( sample_status ) {
 										case SampleStatus::eIgnore: break ;
 										case SampleStatus::eSetAsMissing:
@@ -1142,11 +1335,14 @@ namespace genfile {
 								) ;
 							}
 							
+							if( !valueConsumer.check( storedValueCount )) {
+								throw BGenError() ;
+							}
+							
 							double sum = 0.0 ;
 							uint32_t reportedValueCount = 0 ;
 							for( uint32_t h = 0; h < storedValueCount; ++h ) {
-								buffer = impl::read_bits_from_buffer( buffer, end, &data, &size, bits ) ;
-								double const value = impl::parse_and_consume_bits( &data, &size, bits, bitMask, denominator ) ;
+								double const value = valueConsumer.next() ;
 								switch( sample_status ) {
 									case SampleStatus::eIgnore: break ;
 									case SampleStatus::eSetAsMissing:
