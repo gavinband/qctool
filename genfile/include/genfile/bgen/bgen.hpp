@@ -1055,16 +1055,6 @@ namespace genfile {
 			) {
 				GenotypeDataBlock pack( context, buffer, end ) ;
 
-#if 0
-				parse_probability_data_general(
-					pack,
-					impl::BitParser( pack.buffer, pack.end, pack.bits ),
-					context,
-					setter
-				) ;
-#else
-	
-
 				// We optimise the most common and simplest-to- parse cases.
 				// These are the case where all samples are diploid, and/or where
 				// the number of bits is a multiple of 8.
@@ -1140,7 +1130,6 @@ namespace genfile {
 							break ;
 					}
 				}
-#endif
 			}
 
 			template< typename Setter, typename BitParser >
