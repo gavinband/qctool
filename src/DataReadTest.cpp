@@ -25,18 +25,12 @@ namespace {
 			m_ploidy( ploidy ),
 			m_doubles( doubles ),
 			m_ints( ints ),
-			m_strings( strings )
+			m_strings( strings ),
+			m_data_i( 0 )
 		{}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			m_number_of_samples = nSamples ;
-		}
-
-		void set_min_max_ploidy( uint32_t minPloidy, uint32_t maxPloidy, uint32_t minEntries, uint32_t maxEntries ) {
-			assert( maxEntries < 10 ) ; // avoid massive allocations
-			m_doubles.resize( m_number_of_samples * maxEntries ) ;
-			m_ints.resize( m_number_of_samples * maxEntries ) ;
-			m_strings.resize( m_number_of_samples * maxEntries ) ;
 			m_data_i = 0 ;
 		}
 
