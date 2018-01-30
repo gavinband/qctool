@@ -313,16 +313,51 @@ namespace genfile {
 // IMPLEMENTATION
 ///////////////////////////////////////////////////////////////////////////////////////////
 
+#if (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN) \
+	|| defined(__BIG_ENDIAN) \
+	|| defined(__ARMEB) \
+	|| defined(__THUMBEB__) \
+	|| defined(__AARCH64EB__) \
+	|| defined(_MIPSEB) \
+	|| defined(__MIPSEB) \
+	|| defined(__MIPSEB__) \
+	|| (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) \
+	|| (defined(__FLOAT_WORD_ORDER__) && (__FLOAT_WORD_ORDER__ == __ORDER_BIG_ENDIAN__ ))
+#define BGEN_BIG_ENDIAN 1
+#define BGEN_LITTLE_ENDIAN 0
+#elif (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) \
+	|| defined(__LITTLE_ENDIAN) \
+	|| defined(__ARMEL) \
+	|| defined(__THUMBEL__) \
+	|| defined(__AARCH64EL__) \
+	|| defined(_MIPSEL) \
+	|| defined(__MIPSEL) \
+	|| defined(__MIPSEL__) \
+	|| (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) \
+	|| (defined(__FLOAT_WORD_ORDER__) && (__FLOAT_WORD_ORDER__ == __ORDER_LITTLE_ENDIAN__ ))
+#define BGEN_BIG_ENDIAN 0
+#define BGEN_LITTLE_ENDIAN 1
+#else
+#error "Unable to determine architecture endian-ness"
+#endif
+
 namespace genfile {
 	namespace bgen {
 		// Read an integer stored in little-endian format into an integer stored in memory.
 		template< typename IntegerType >
-		byte_t const* read_little_endian_integer( byte_t const* buffer, byte_t const* const end, IntegerType* integer_ptr ) {
+		inline byte_t const* read_little_endian_integer( byte_t const* buffer, byte_t const* const end, IntegerType* integer_ptr ) {
 			assert( end >= buffer + sizeof( IntegerType )) ;
+#if BGEN_LITTLE_ENDIAN
+			*integer_ptr = IntegerType( *reinterpret_cast< IntegerType const* >( buffer )) ;
+			buffer += sizeof( IntegerType ) ;
+#elif BGEN_BIG_ENDIAN
 			*integer_ptr = 0 ;
 			for( std::size_t byte_i = 0; byte_i < sizeof( IntegerType ); ++byte_i ) {
 				(*integer_ptr) |= IntegerType( *reinterpret_cast< byte_t const* >( buffer++ )) << ( 8 * byte_i ) ;
 			}
+#else
+#error "unknown endianness"
+#endif
 			return buffer ;
 		}
 
@@ -758,7 +793,6 @@ namespace genfile {
 
 		namespace v12{
 			namespace impl {
-				
 				struct BitParser {
 					BitParser(
 						byte_t const* buffer,
@@ -768,36 +802,54 @@ namespace genfile {
 						m_buffer( buffer ),
 						m_end( end ),
 						m_bits( bits ),
-						m_bitMask( (0xFFFFFFFFFFFFFFFF >> ( 64 - bits ))),
+						m_bitMask( (uint64_t(0xFFFFFFFFFFFFFFFF) >> ( 64 - bits ))),
 						m_denominator( m_bitMask ),
-						m_working_data(0),
-						m_working_size(0)
-					{}
+						m_shift(0)
+					{
+						assert( bits > 0 && bits <= 32 ) ;
+#if BGEN_BIG_ENDIAN
+						read_little_endian_integer( buffer, end, &m_data ) ;
+#endif
+					}
 
 					// check we can consume n more values
 					bool check( std::size_t n ) const {
-						// We have m_working_size bits in m_working_data
-						// And then as many more bits as we can get from the buffer.
-						std::size_t const bitsNeeded = n * m_bits ;
-						if( m_working_size >= bitsNeeded ) {
-							return true ;
-						}
-						std::size_t const bytesNeededFromBuffer = (bitsNeeded - m_working_size + 7)/8 ;
+						// We need enough bytes to deal with the current shift value
+						// plus enough to deal with the requested bits.
+						std::size_t const bitsNeeded = n * m_bits + m_shift ;
+						std::size_t const bytesNeededFromBuffer = (bitsNeeded + 7)/8 ;
 						return (m_buffer + bytesNeededFromBuffer) <= m_end ;
 					}
 
 					// consume and return next value
 					double next() {
-						// fill working data if needed
-						while( m_working_size < m_bits && m_buffer < m_end ) {
-							m_working_data |= uint64_t( *(reinterpret_cast< byte_t const* >( m_buffer++ ))) << m_working_size ;
-							m_working_size += 8 ;
+#if BGEN_LITTLE_ENDIAN
+						// Machine endianness matches stored endianness so no
+						// reordering of bytes is needed.
+						// We travel through the data 32 bits at a time
+						// Each time we use a shift to get the appropriate bits from
+						// the current 32-bit word.
+						double value = (
+							( *reinterpret_cast< uint64_t const* >( m_buffer ) >> m_shift ) & m_bitMask
+						) / m_denominator ;
+#else // BGEN_BIG_ENDIAN
+						double value = (
+							(m_data >> m_shift) & m_bitMask
+						) / m_denominator ;
+#endif
+						m_shift += m_bits ;
+						if( m_shift > 31 ) {
+							// m_bits is at most 32
+							// so m_shift can now be a maximum of 63.
+							//std::cerr << "m_shift = " << m_shift << ", moving buffer.\n" ;
+							m_buffer += 4 ;
+							m_shift -= 32 ;
+#if BGEN_BIG_ENDIAN
+							// marshal data through a uint64.
+							read_little_endian_integer( buffer, end, &m_data ) ;
+#endif
 						}
-						// parse value
-						double const result = ( m_working_data & m_bitMask ) / m_denominator ;
-						m_working_size -= m_bits ;
-						m_working_data >>= m_bits ;
-						return result ;
+						return value ;
 					}
 
 				private:
@@ -806,13 +858,12 @@ namespace genfile {
 					int const m_bits ;
 					uint64_t const m_bitMask ;
 					double const m_denominator ;
-					
-					// Since # bits may be coprime to 8, we use
-					// a working buffer of 8 bytes to keep track of currently read & parsed bits.
-					uint64_t m_working_data ;
-					int m_working_size ;
+					int m_shift ;
+#if BGEN_BIG_ENDIAN
+					uint64_t m_data ;
+#endif
 				} ;
-
+				
 				// Optimised bit parser implementations
 				template<int bits>
 				struct SpecialisedBitParser ;
@@ -835,7 +886,7 @@ namespace genfile {
 
 					double next() {
 						return double(
-							(*reinterpret_cast< uint8_t const* >( m_buffer++ )) & 0xFF
+							(*reinterpret_cast< uint8_t const* >( m_buffer++ ))
 						) / 255.0;
 					}
 
@@ -861,9 +912,15 @@ namespace genfile {
 					}
 
 					double next() {
+#if BGEN_LITTLE_ENDIAN
 						double const value = double(
-							(*reinterpret_cast< uint16_t const* >( m_buffer )) & 0xFFFF
+							*reinterpret_cast< uint16_t const* >( m_buffer )
 						) / 65535.0 ;
+#else // BGEN_BIG_ENDIAN
+						// machine is big-endian, get bytes in right order.
+						uint16_t data = uin16_t(*m_buffer) | uint16_t(*(m_buffer+1)) << 8 ;
+						double const value = double(data) / 65535.0 ;
+#endif
 						m_buffer += 2 ;
 						return value ;
 					}
@@ -873,77 +930,6 @@ namespace genfile {
 					byte_t const* const m_end ;
 				} ;
 
-				// Specialisation for 24 bit data
-				template<>
-				struct SpecialisedBitParser<24> {
-					SpecialisedBitParser(
-						byte_t const* buffer,
-						byte_t const* const end
-					):
-						m_buffer( buffer ),
-						m_end( end )
-					{}
-
-					// check we can consume n more values
-					bool check( std::size_t n ) const {
-						return (m_buffer + 3*n) <= m_end ;
-					}
-
-					double next() {
-						double const value = double(
-							(*reinterpret_cast< uint32_t const* >( m_buffer )) & 0xFFFFFF
-						) / 16777215.0 ;
-						m_buffer += 3 ;
-						return value ;
-					}
-
-				private:
-					byte_t const* m_buffer ;
-					byte_t const* const m_end ;
-				} ;
-
-				// Specialisation for 4 bit data
-				template<>
-				struct SpecialisedBitParser<4> {
-					SpecialisedBitParser(
-						byte_t const* buffer,
-						byte_t const* const end
-					):
-						m_buffer( buffer ),
-						m_end( end ),
-						m_highOrLow( 0 )
-					{}
-
-					// check we can consume n more values
-					bool check( std::size_t n ) const {
-						return (m_buffer + ((n + 1 + m_highOrLow)/2)) <= m_end ;
-					}
-
-					double next() {
-						double result ;
-						switch( m_highOrLow ) {
-							case 0:
-								result = double(
-									(*reinterpret_cast< uint8_t const* >( m_buffer )) & 0xF
-								) / 15.0 ;
-								m_highOrLow = 1 ;
-								break ;
-							case 1:
-								result = double(
-									((*reinterpret_cast< uint8_t const* >( m_buffer++ )) & 0xF0) >> 4
-								) / 15.0 ;
-								m_highOrLow = 0 ;
-							break ;
-						}
-						return result ;
-					}
-
-				private:
-					byte_t const* m_buffer ;
-					byte_t const* const m_end ;
-					int m_highOrLow ;
-				} ;
-				
 				// Round a point on the unit simplex (expressed as n floating-point probabilities)
 				// to a point representable with the given number of bits.
 				// precondition: p points to n doubles between 0 and 1 that sum to 1
@@ -1061,14 +1047,6 @@ namespace genfile {
 				// This if statement chooses an appropriate implementation.
 				if( pack.ploidyExtent[0] == 2 && pack.ploidyExtent[1] == 2 && pack.numberOfAlleles == 2 ) {
 					switch( pack.bits ) {
-						case 4:
-							parse_probability_data_diploid_biallelic(
-								pack,
-								impl::SpecialisedBitParser<4>( pack.buffer, pack.end ),
-								context,
-								setter
-							) ;
-							break ;
 						case 8:
 							parse_probability_data_diploid_biallelic(
 								pack,
@@ -1096,14 +1074,6 @@ namespace genfile {
 					}
 				} else {
 					switch( pack.bits ) {
-						case 4:
-							parse_probability_data_general(
-								pack,
-								impl::SpecialisedBitParser<4>( pack.buffer, pack.end ),
-								context,
-								setter
-							) ;
-							break ;
 						case 8:
 							parse_probability_data_general(
 								pack,
@@ -1146,7 +1116,6 @@ namespace genfile {
 				// These values are specific bit combinations and should not be changed.
 				enum SampleStatus { eIgnore = 0, eSetThisSample = 1, eSetAsMissing = 3 } ;
 				byte_t const* ploidy_p = pack.ploidy ;
-
 	#if DEBUG_BGEN_FORMAT
 				std::cerr << "parse_probability_data_v12(): numberOfSamples = " << numberOfSamples
 					<< ", phased = " << phased << ".\n" ;
@@ -1209,7 +1178,8 @@ namespace genfile {
 								case SampleStatus::eSetThisSample:
 									setter.set_value( 0, value1 ) ;
 									setter.set_value( 1, value2 ) ;
-									setter.set_value( 2, 1.0 - value1 - value2 ) ;
+									// Clamp the value to 0 to avoid small -ve values
+									setter.set_value( 2, std::max( 1.0 - value1 - value2, 0.0 ) ) ;
 									break ;
 							}
 						}
