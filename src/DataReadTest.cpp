@@ -17,9 +17,9 @@ namespace {
 	struct DataSetter: public genfile::VariantDataReader::PerSampleSetter {
 		DataSetter(
 			std::vector< uint32_t >& ploidy,
-			std::vector< std::vector< double > >& doubles,
-			std::vector< std::vector< int64_t > >& ints,
-			std::vector< std::vector< std::string > >& strings
+			std::vector< double >& doubles,
+			std::vector< int64_t >& ints,
+			std::vector< std::string >& strings
 		):
 			m_sample_i(0),
 			m_ploidy( ploidy ),
@@ -29,6 +29,15 @@ namespace {
 		{}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
+			m_number_of_samples = nSamples ;
+		}
+
+		void set_min_max_ploidy( uint32_t minPloidy, uint32_t maxPloidy, uint32_t minEntries, uint32_t maxEntries ) {
+			assert( maxEntries < 10 ) ; // avoid massive allocations
+			m_doubles.resize( m_number_of_samples * maxEntries ) ;
+			m_ints.resize( m_number_of_samples * maxEntries ) ;
+			m_strings.resize( m_number_of_samples * maxEntries ) ;
+			m_data_i = 0 ;
 		}
 
 		inline bool set_sample( std::size_t n ) {
@@ -50,11 +59,11 @@ namespace {
 		}
 
 		inline void set_value( std::size_t entry_i, Integer const value ) {
-			m_ints[ m_sample_i ][ entry_i ] = value ;
+			m_ints[ m_data_i++ ] = value ;
 		}
 
 		inline void set_value( std::size_t entry_i, double const value ) {
-			m_doubles[ m_sample_i ][ entry_i ] = value ;
+			m_doubles[ m_data_i++ ] = value ;
 		}
 
 		void finalise() {
@@ -62,11 +71,13 @@ namespace {
 		}
 		
 	private:
+		std::size_t m_number_of_samples ;
 		std::size_t m_sample_i ;
+		std::size_t m_data_i ;
 		std::vector< uint32_t >& m_ploidy ;
-		std::vector< std::vector< double > >& m_doubles ;
-		std::vector< std::vector< int64_t > >& m_ints ;
-		std::vector< std::vector< std::string > >& m_strings ;
+		std::vector< double >& m_doubles ;
+		std::vector< int64_t >& m_ints ;
+		std::vector< std::string >& m_strings ;
 	} ;
 }
 
@@ -81,15 +92,10 @@ DataReadTest::DataReadTest() {}
 void DataReadTest::begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) {
 	m_number_of_samples = number_of_samples ;
 	m_number_of_snps_read = 0 ;
-	m_ploidy.resize( number_of_samples ) ;
-	m_doubles.resize( number_of_samples ) ;
-	m_ints.resize( number_of_samples ) ;
-	m_strings.resize( number_of_samples ) ;
-	for( std::size_t i = 0; i < number_of_samples; ++i ) {
-		m_doubles[i].resize( 10 ) ;
-		m_ints[i].resize( 10 ) ;
-		m_strings[i].resize( 10 ) ;
-	}
+	m_ploidy.resize( number_of_samples * 10 ) ;
+	m_doubles.resize( number_of_samples * 10 ) ;
+	m_ints.resize( number_of_samples * 10 ) ;
+	m_strings.resize( number_of_samples * 10 ) ;
 }
 
 void DataReadTest::processed_snp( genfile::VariantIdentifyingData const& snp, genfile::VariantDataReader::SharedPtr data_reader ) {
