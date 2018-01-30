@@ -24,9 +24,9 @@ private:
 	std::size_t m_number_of_samples ;
 	std::size_t m_number_of_snps_read ;
 	std::vector< uint32_t > m_ploidy ;
-	std::vector< std::vector< double > > m_doubles ;
-	std::vector< std::vector< int64_t > > m_ints ;
-	std::vector< std::vector< std::string > > m_strings ;
+	std::vector< double > m_doubles ;
+	std::vector< int64_t > m_ints ;
+	std::vector< std::string > m_strings ;
 } ;
 
 #endif
