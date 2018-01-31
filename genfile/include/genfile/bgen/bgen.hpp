@@ -313,19 +313,7 @@ namespace genfile {
 // IMPLEMENTATION
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#if (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN) \
-	|| defined(__BIG_ENDIAN) \
-	|| defined(__ARMEB) \
-	|| defined(__THUMBEB__) \
-	|| defined(__AARCH64EB__) \
-	|| defined(_MIPSEB) \
-	|| defined(__MIPSEB) \
-	|| defined(__MIPSEB__) \
-	|| (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) \
-	|| (defined(__FLOAT_WORD_ORDER__) && (__FLOAT_WORD_ORDER__ == __ORDER_BIG_ENDIAN__ ))
-#define BGEN_BIG_ENDIAN 1
-#define BGEN_LITTLE_ENDIAN 0
-#elif (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) \
+#if (defined(__BYTE_ORDER) && __BYTE_ORDER == __LITTLE_ENDIAN) \
 	|| defined(__LITTLE_ENDIAN) \
 	|| defined(__ARMEL) \
 	|| defined(__THUMBEL__) \
@@ -335,10 +323,26 @@ namespace genfile {
 	|| defined(__MIPSEL__) \
 	|| (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)) \
 	|| (defined(__FLOAT_WORD_ORDER__) && (__FLOAT_WORD_ORDER__ == __ORDER_LITTLE_ENDIAN__ ))
-#define BGEN_BIG_ENDIAN 0
-#define BGEN_LITTLE_ENDIAN 1
+	#define BGEN_BIG_ENDIAN 0
+	#define BGEN_LITTLE_ENDIAN 1
+#elif (defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN) \
+	|| defined(__BIG_ENDIAN) \
+	|| defined(__ARMEB) \
+	|| defined(__THUMBEB__) \
+	|| defined(__AARCH64EB__) \
+	|| defined(_MIPSEB) \
+	|| defined(__MIPSEB) \
+	|| defined(__MIPSEB__) \
+	|| (defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)) \
+	|| (defined(__FLOAT_WORD_ORDER__) && (__FLOAT_WORD_ORDER__ == __ORDER_BIG_ENDIAN__ ))
+	#define BGEN_BIG_ENDIAN 1
+	#define BGEN_LITTLE_ENDIAN 0
 #else
 #error "Unable to determine architecture endian-ness"
+#endif
+
+#if !BGEN_LITTLE_ENDIAN
+#error "BGEN support on big endian machines is currently untested.  Please remove this line if you want to try it."
 #endif
 
 namespace genfile {
@@ -918,7 +922,7 @@ namespace genfile {
 						) / 65535.0 ;
 #else // BGEN_BIG_ENDIAN
 						// machine is big-endian, get bytes in right order.
-						uint16_t data = uin16_t(*m_buffer) | uint16_t(*(m_buffer+1)) << 8 ;
+						uint16_t data = uint16_t(*m_buffer) | uint16_t(*(m_buffer+1)) << 8 ;
 						double const value = double(data) / 65535.0 ;
 #endif
 						m_buffer += 2 ;
@@ -1142,12 +1146,12 @@ namespace genfile {
 							for( uint32_t hap = 0; hap < 2; ++hap ) {
 								double const value = valueConsumer.next() ;
 								switch( sample_status ) {
-									case SampleStatus::eIgnore: break ;
-									case SampleStatus::eSetAsMissing:
+									case eIgnore: break ;
+									case eSetAsMissing:
 										setter.set_value( 2*hap + 0, genfile::MissingValue() ) ;
 										setter.set_value( 2*hap + 1, genfile::MissingValue() ) ;
 										break ;
-									case SampleStatus::eSetThisSample:
+									case eSetThisSample:
 										setter.set_value( 2*hap + 0, value ) ;
 										setter.set_value( 2*hap + 1, 1.0 - value ) ;
 										break ;
@@ -1169,13 +1173,13 @@ namespace genfile {
 							double const value2 = valueConsumer.next() ;
 
 							switch( sample_status ) {
-								case SampleStatus::eIgnore: break ;
-								case SampleStatus::eSetAsMissing:
+								case eIgnore: break ;
+								case eSetAsMissing:
 									setter.set_value( 0, genfile::MissingValue() ) ;
 									setter.set_value( 1, genfile::MissingValue() ) ;
 									setter.set_value( 2, genfile::MissingValue() ) ;
 									break ;
-								case SampleStatus::eSetThisSample:
+								case eSetThisSample:
 									setter.set_value( 0, value1 ) ;
 									setter.set_value( 1, value2 ) ;
 									// Clamp the value to 0 to avoid small -ve values
@@ -1244,11 +1248,11 @@ namespace genfile {
 								for( uint32_t allele = 0; allele < (pack.numberOfAlleles-1); ++allele ) {
 									double const value = valueConsumer.next() ;
 									switch( sample_status ) {
-										case SampleStatus::eIgnore: break ;
-										case SampleStatus::eSetAsMissing:
+										case eIgnore: break ;
+										case eSetAsMissing:
 											setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 											break ;
-										case SampleStatus::eSetThisSample:
+										case eSetThisSample:
 											setter.set_value( reportedValueCount++, value ) ;
 											sum += value ;
 											break ;
@@ -1257,11 +1261,11 @@ namespace genfile {
 								
 								// set value for kth allele
 								switch( sample_status ) {
-									case SampleStatus::eIgnore: break ;
-									case SampleStatus::eSetAsMissing:
+									case eIgnore: break ;
+									case eSetAsMissing:
 										setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 										break ;
-									case SampleStatus::eSetThisSample:
+									case eSetThisSample:
 										setter.set_value( reportedValueCount++, 1 - sum ) ;
 										sum = 0.0 ;
 										break ;
@@ -1299,11 +1303,11 @@ namespace genfile {
 							for( uint32_t h = 0; h < storedValueCount; ++h ) {
 								double const value = valueConsumer.next() ;
 								switch( sample_status ) {
-									case SampleStatus::eIgnore: break ;
-									case SampleStatus::eSetAsMissing:
+									case eIgnore: break ;
+									case eSetAsMissing:
 										setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 										break ;
-									case SampleStatus::eSetThisSample:
+									case eSetThisSample:
 										setter.set_value( reportedValueCount++, value ) ;
 										sum += value ;
 										break ;
@@ -1312,11 +1316,11 @@ namespace genfile {
 							
 							// set final value
 							switch( sample_status ) {
-								case SampleStatus::eIgnore: break ;
-								case SampleStatus::eSetAsMissing:
+								case eIgnore: break ;
+								case eSetAsMissing:
 									setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 									break ;
-								case SampleStatus::eSetThisSample:
+								case eSetThisSample:
 									setter.set_value( reportedValueCount++, 1.0 - sum ) ;
 									break ;
 							}
