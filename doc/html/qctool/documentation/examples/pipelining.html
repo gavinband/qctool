@@ -59,16 +59,21 @@
 						Inputting data from stdin
 					</div>
 					<div class="task_notes">
-						QCTOOL has limited support for reading data from stdin.  To do this, specify "-" as the argument to <code>-g</code>.  E.g.:
+						QCTOOL has limited support for reading data from stdin.
+						To do this, specify "-" as the argument to <code>-g</code>, and specify the format of the input data
+						using the <code>-filetype</code> option, e.g.:
 					</div>
 					<div class="task_command_line">
 						$ cat file.bgen | qctool -g - -filetype bgen [other options]
 					</div>
 					<div class="task_notes">
 					  <p>
-							This functionality is currently limited to input in BGEN format.
-							You must specify <code>-filetype bgen</code> to tell QCTOOL a BGEN file is being input.
+							This functionality is currently limited to input data in BGEN format (<code>-filetype bgen</code>)
+							or in VCF format (<code>-filetype vcf</code>).  VCF format data should be streamed uncompressed, e.g.:
 						</p>
+					<div class="task_command_line">
+						$ cat file.vcf.gz | gunzip -c | qctool -g - -filetype vcf [other options]
+					</div>
 					</div>
 				</div>
 				<div class="task">
