@@ -432,6 +432,19 @@ public:
 			.set_default_value( "zlib" )
 			.set_takes_single_value()
 		;
+		options[ "-bgen-permitted-input-rounding-error" ]
+			.set_description(
+				"Specify the maximum error that will be tolerated in input probability values when writing a BGEN file. "
+				"E.g. if data is accurate to 3 decimal places, the default value of 0.0005 should work here, while if "
+				"your data is less accurate you may "
+				"need to relax this.  BGEN v1.2 format rescales genotype probabilities so that they sum to 1; this implies "
+				"a scaling factor of up to (1 ± (n × error)), where n is the number of "
+				"probability values for the sample. "
+				"(BGEN encoding also incurs additional error of up to 1/(2^bits-1) per probability)."
+			)
+			.set_takes_single_value()
+			.set_default_value( 0.0005 )
+		;
 		options[ "-bgen-omit-sample-identifier-block" ]
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
@@ -1724,30 +1737,28 @@ private:
 
 		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
 
-		if( uf.first == "vcf" ) {
-			source = open_vcf_format_snp_data_source( uf ) ;
-		}
-		else {
-			genfile::vcf::MetadataParser::Metadata metadata ;
+		{
+			boost::optional< genfile::vcf::MetadataParser::Metadata > metadata ;
 			if( m_options.check( "-metadata" )) {
 				metadata = genfile::vcf::StrictMetadataParser(
 					m_options.get_value< std::string >( "-metadata" )
 				).get_metadata() ;
 			}
-			if( m_options.check( "-filetype" )) {
-				source = genfile::SNPDataSource::create(
-					filename,
-					chromosome_hint,
-					metadata,
-					m_options.get< std::string >( "-filetype" )
-				) ;
-			} else {
-				source = genfile::SNPDataSource::create(
-					filename,
-					chromosome_hint,
-					metadata
-				) ;
-			}
+			source = genfile::SNPDataSource::create(
+				filename,
+				chromosome_hint,
+				metadata,
+				m_options.get< std::string >( "-filetype" )
+			) ;
+		}
+		
+		// vcf-specific options
+		if( genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ) {
+			std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
+			vcf_source->set_field_mapping( ":genotypes:", genotype_field ) ;
+			std::string intensity_field = m_options.get< std::string >( "-vcf-intensity-field" ) ;
+			vcf_source->set_field_mapping( ":intensities:", intensity_field ) ;
+			vcf_source->set_strict_mode( !m_options.check( "-permissive" )) ;
 		}
 
 		genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
@@ -1790,21 +1801,25 @@ private:
 	genfile::SNPDataSource::UniquePtr
 	open_vcf_format_snp_data_source( std::pair< std::string, std::string > const& uf ) const {
 		genfile::VCFFormatSNPDataSource::UniquePtr source ;
-		if( m_options.check_if_option_was_supplied( "-metadata" )) {
+		genfile::vcf::MetadataParser::Metadata metadata ;
+		if( m_options.check( "-metadata" )) {
+			metadata = genfile::vcf::StrictMetadataParser(
+				m_options.get_value< std::string >( "-metadata" )
+			).get_metadata() ;
+		}
+		
+		if( uf.second == "-" ) {
+			std::cerr << "BOOOOOOD\n" ;
+			std::auto_ptr< std::istream > str( new std::istream( std::cin.rdbuf() ) ) ;
 			source.reset(
 				new genfile::VCFFormatSNPDataSource(
-					uf.second,
-					genfile::vcf::StrictMetadataParser(
-						m_options.get_value< std::string >( "-metadata" )
-					).get_metadata()
+					str,
+					metadata
 				)
 			) ;
-		}
-		else {
+		} else {
 			source.reset(
-				new genfile::VCFFormatSNPDataSource(
-					uf.second
-				)
+				new genfile::VCFFormatSNPDataSource( uf.second )
 			) ;
 		}
 		
@@ -2123,14 +2138,12 @@ private:
 					{
 						genfile::BGenFileSNPDataSink* bgen_sink = dynamic_cast< genfile::BGenFileSNPDataSink* >( sink.get() ) ;
 						if( bgen_sink ) {
-							if( m_options.check( "-bgen-bits" )) {
-								bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
-							}
+							bgen_sink->set_number_of_bits( m_options.get< std::size_t >( "-bgen-bits" )) ;
+							bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
+							bgen_sink->set_permitted_input_rounding_error( m_options.get< double >( "-bgen-permitted-input-rounding-error" ) ) ;
+
 							if( m_options.check( "-bgen-free-data" )) {
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
-							}
-							if( m_options.check( "-bgen-compression" )) {
-								bgen_sink->set_compression_type( m_options.get< std::string >( "-bgen-compression" ) ) ;
 							}
 							
 							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
@@ -2451,7 +2464,12 @@ private:
 
 		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
 			for( std::size_t j = 0; j < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_mangled_options.gen_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
+				if(
+					strings_are_nonempty_and_equal(
+						m_mangled_options.gen_filename_mapper().output_filenames()[j],
+						m_mangled_options.gen_filename_mapper().input_file( i ).filename()
+					) && m_mangled_options.gen_filename_mapper().output_filenames()[j] != "-"
+				) {
 					m_errors.push_back( "Output GEN file \"" + m_mangled_options.gen_filename_mapper().output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}

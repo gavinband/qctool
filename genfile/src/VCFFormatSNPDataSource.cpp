@@ -62,8 +62,6 @@ namespace genfile {
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
-		setup() ;
-		reset_stream() ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -85,8 +83,6 @@ namespace genfile {
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
-		setup() ;
-		reset_stream() ;
 	}
 
 	void VCFFormatSNPDataSource::set_strict_mode( bool value ) {
@@ -216,15 +212,19 @@ namespace genfile {
 	
 	namespace impl {
 		void read_element( std::istream& stream, std::string& elt, char delim, std::size_t column ) {
-			// work around GCC 5 bug in which C++11 ABI and C++98 ABI interact
-			// Preventing catching the exception.
+#if defined __GNUC__ && ( __GNUC__ == 5 || __GNUC__ == 6 )
+			// work around GCC 5 bug in which C++11 ABI and C++98 ABI interact badly,
+			// preventing catching the exception.
 			std::ios_base::iostate const state = stream.exceptions() ;
 			stream.exceptions( std::ios_base::iostate(0) ) ;
+#endif
 			std::getline( stream, elt, delim ) ;
 			if( !stream ) {
 				throw std::ios_base::failure( "Unable to read line" ) ;
 			}
+#if defined __GNUC__ && ( __GNUC__ == 5 || __GNUC__ == 6 )
 			stream.exceptions( state ) ;
+#endif
 			// ensure element contains no whitespace.
 			if( elt.find_first_of( " \t\n\r" ) != std::string::npos ) {
 				throw MalformedInputError( "(unnamed stream)", 0, column ) ;
