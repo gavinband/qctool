@@ -1578,6 +1578,10 @@ namespace genfile {
 						if( ( sum != sum ) || (sum > (1.0+max_error_in_sum)) || (sum < (1.0-max_error_in_sum))) {
 							std::cerr << "These " << count << " values sum to " << std::fixed << std::setprecision(17) << sum << ", "
 								<< "I expected the sum to be in the range " << (1.0-max_error_in_sum) << " - " << (1.0+max_error_in_sum) << ".\n" ;
+							std::cerr << "Values are:\n" ;
+							for( std::size_t i = 0; i < count; ++i ) {
+								std::cerr << values[i] << "\n" ;
+							}
 							throw BGenError() ;
 						}
 						// We project onto the unit simplex before computing the approximation.
