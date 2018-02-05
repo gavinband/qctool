@@ -65,7 +65,12 @@ namespace genfile {
 			}
 		}
 		else if( uf.first == "vcf" ) {
-			return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
+			if( uf.second == "-" ) {
+				std::auto_ptr< std::istream > str( new std::istream( std::cin.rdbuf() ) ) ;
+				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( str, metadata )) ;
+			} else {
+				return SNPDataSource::UniquePtr( new VCFFormatSNPDataSource( uf.second, metadata )) ;
+			}
 		}
 		else if( uf.first == "gen" ) {
 			return std::auto_ptr< SNPDataSource >( new GenFileSNPDataSource( uf.second, chromosome_hint )) ;
