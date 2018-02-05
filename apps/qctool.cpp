@@ -1737,30 +1737,28 @@ private:
 
 		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
 
-		if( uf.first == "vcf" ) {
-			source = open_vcf_format_snp_data_source( uf ) ;
-		}
-		else {
-			genfile::vcf::MetadataParser::Metadata metadata ;
+		{
+			boost::optional< genfile::vcf::MetadataParser::Metadata > metadata ;
 			if( m_options.check( "-metadata" )) {
 				metadata = genfile::vcf::StrictMetadataParser(
 					m_options.get_value< std::string >( "-metadata" )
 				).get_metadata() ;
 			}
-			if( m_options.check( "-filetype" )) {
-				source = genfile::SNPDataSource::create(
-					filename,
-					chromosome_hint,
-					metadata,
-					m_options.get< std::string >( "-filetype" )
-				) ;
-			} else {
-				source = genfile::SNPDataSource::create(
-					filename,
-					chromosome_hint,
-					metadata
-				) ;
-			}
+			source = genfile::SNPDataSource::create(
+				filename,
+				chromosome_hint,
+				metadata,
+				m_options.get< std::string >( "-filetype" )
+			) ;
+		}
+		
+		// vcf-specific options
+		if( genfile::VCFFormatSNPDataSource* vcf_source = dynamic_cast< genfile::VCFFormatSNPDataSource* >( source.get() ) ) {
+			std::string genotype_field = m_options.get< std::string >( "-vcf-genotype-field" ) ;
+			vcf_source->set_field_mapping( ":genotypes:", genotype_field ) ;
+			std::string intensity_field = m_options.get< std::string >( "-vcf-intensity-field" ) ;
+			vcf_source->set_field_mapping( ":intensities:", intensity_field ) ;
+			vcf_source->set_strict_mode( !m_options.check( "-permissive" )) ;
 		}
 
 		genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
@@ -1803,21 +1801,25 @@ private:
 	genfile::SNPDataSource::UniquePtr
 	open_vcf_format_snp_data_source( std::pair< std::string, std::string > const& uf ) const {
 		genfile::VCFFormatSNPDataSource::UniquePtr source ;
-		if( m_options.check_if_option_was_supplied( "-metadata" )) {
+		genfile::vcf::MetadataParser::Metadata metadata ;
+		if( m_options.check( "-metadata" )) {
+			metadata = genfile::vcf::StrictMetadataParser(
+				m_options.get_value< std::string >( "-metadata" )
+			).get_metadata() ;
+		}
+		
+		if( uf.second == "-" ) {
+			std::cerr << "BOOOOOOD\n" ;
+			std::auto_ptr< std::istream > str( new std::istream( std::cin.rdbuf() ) ) ;
 			source.reset(
 				new genfile::VCFFormatSNPDataSource(
-					uf.second,
-					genfile::vcf::StrictMetadataParser(
-						m_options.get_value< std::string >( "-metadata" )
-					).get_metadata()
+					str,
+					metadata
 				)
 			) ;
-		}
-		else {
+		} else {
 			source.reset(
-				new genfile::VCFFormatSNPDataSource(
-					uf.second
-				)
+				new genfile::VCFFormatSNPDataSource( uf.second )
 			) ;
 		}
 		
@@ -2462,7 +2464,12 @@ private:
 
 		for( std::size_t i = 0; i < m_mangled_options.gen_filename_mapper().input_files().size(); ++i ) {
 			for( std::size_t j = 0; j < m_mangled_options.gen_filename_mapper().output_filenames().size(); ++j ) {
-				if( strings_are_nonempty_and_equal( m_mangled_options.gen_filename_mapper().output_filenames()[j], m_mangled_options.gen_filename_mapper().input_file( i ).filename() )) {
+				if(
+					strings_are_nonempty_and_equal(
+						m_mangled_options.gen_filename_mapper().output_filenames()[j],
+						m_mangled_options.gen_filename_mapper().input_file( i ).filename()
+					) && m_mangled_options.gen_filename_mapper().output_filenames()[j] != "-"
+				) {
 					m_errors.push_back( "Output GEN file \"" + m_mangled_options.gen_filename_mapper().output_filenames()[j] +"\" also specified as input GEN file." ) ;
 					break ;
 				}

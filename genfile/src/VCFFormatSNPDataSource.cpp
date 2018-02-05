@@ -62,8 +62,13 @@ namespace genfile {
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
-		setup() ;
-		reset_stream() ;
+		//setup() ;
+		//reset_stream() ;
+		if( metadata ) {
+			std::cerr << "METADATA.\n" ;
+		}
+		std::cerr << "METADATA LINES = " << m_metadata_parser->get_number_of_lines() << ".\n" ;
+		std::cerr << "METADATA SIZE = " << m_metadata.size() << ".\n" ;
 	}
 
 	VCFFormatSNPDataSource::VCFFormatSNPDataSource(
@@ -85,8 +90,8 @@ namespace genfile {
 		m_column_names( read_column_names( *m_stream_ptr )),
 		m_number_of_samples( m_column_names.size() - 9 )
 	{
-		setup() ;
-		reset_stream() ;
+		//setup() ;
+		//reset_stream() ;
 	}
 
 	void VCFFormatSNPDataSource::set_strict_mode( bool value ) {
