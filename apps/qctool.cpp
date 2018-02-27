@@ -2897,6 +2897,8 @@ private:
 } ;
 
 int main( int argc, char** argv ) {
+    // needed for efficient output to standard output streams
+    std::ios_base::sync_with_stdio( false ) ;
     try {
 		QCToolApplication app( argc, argv ) ;
     }
