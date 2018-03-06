@@ -83,7 +83,7 @@ namespace genfile {
 			m_number_of_alleles = number_of_alleles ;
 			m_setter.initialise( number_of_samples, number_of_alleles ) ;
 #if DEBUG_TO_GP
-			std::cerr << "NEW SNP\n" ;
+			std::cerr << "ToGP::initialise(): New variant with " << number_of_samples << " samples, " << number_of_alleles << " alleles.\n" ;
 #endif
 		}
 		
