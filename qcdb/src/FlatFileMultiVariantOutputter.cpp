@@ -156,7 +156,6 @@ namespace qcdb {
 				} else {
 					variant.get_identifiers( boost::bind( &append_to_string, &SNPID, _1 ), 1 ) ;
 				}
-				std::cerr << "VARIANT: " << variant << ".\n" ;
 				(*m_sink) << SNPID << variant.get_primary_id() << variant.get_position().chromosome()
 				<< variant.get_position().position()
 				<< variant.get_allele(0)

@@ -213,8 +213,8 @@ namespace qcdb {
 			insert_data_sql_columns << ", `" << m_key_entry_names[i] << "_id`" ;
 			insert_data_sql_values << boost::format( ", ?%d") % (i+2) ;
 		}
-		insert_data_sql_columns << ")" ;
-		insert_data_sql_values << ")" ;
+		//insert_data_sql_columns << ")" ;
+		//insert_data_sql_values << ")" ;
 
 		VariableMap::right_const_iterator
 			var_i = m_variables.right.begin(),
