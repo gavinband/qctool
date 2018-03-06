@@ -95,7 +95,16 @@ namespace metro {
 			int const N = matrix().rows() ;
 			int const D = matrix().cols() ;
 			int const P = number_of_predictors() + number_of_interaction_terms() ;
-	
+
+			// Compute mean predictors
+			Eigen::MatrixXd mean_predictors = Eigen::MatrixXd::Zero( N, P ) ;
+			{
+				for( int level = 0; level < m_predictor_level_probabilities.cols(); ++level ) {
+					mean_predictors += m_predictor_level_probabilities.col(0).asDiagonal() * m_predictor_levels.block( 0, P*level, N, P ) ;
+				}
+				mean_predictors /= m_predictor_level_probabilities.cols() ;
+			}
+
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
 			out << "         outcome   " ;
@@ -120,7 +129,7 @@ namespace metro {
 					}
 					out << std::setw( widths[j+1] ) ;
 					if( j > 0 & j <= P ) {
-						out << "?" ;
+						out << mean_predictors(i,j-1) ;
 					} else if( matrix()(i,j) == matrix()(i,j) ){
 						out << matrix()(i,j) ;
 					} else {
