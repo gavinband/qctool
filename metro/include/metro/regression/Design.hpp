@@ -51,7 +51,7 @@ namespace metro {
 				std::vector< int > const& interacting_covariates = std::vector< int >()
 			) ;
 		
-			Design( Design const& other ) ;
+			// Design( Design const& other ) ;
 
 			int const number_of_predictors() const { return m_predictor_names.size() ; }
 			int const number_of_interaction_terms() const { return number_of_predictors() * m_design_matrix_interaction_columns.size() ; }
