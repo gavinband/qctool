@@ -94,13 +94,26 @@ namespace metro {
 	
 		std::string IndependentLogFWeightedLogLikelihood::get_summary() const {
 			std::ostringstream ostr ;
-			ostr << "independently-logF-weighted:" << m_ll->get_summary() << "\n" ;
-			ostr << "independently-logF-weighted: using the following prior weights:\n" ;
+			ostr << m_ll->get_summary() << "\n" ;
+			ostr << "  with priors:\n" ;
 			std::size_t max_label_length = 0 ;
 			int const numberOfParameters = m_ll->identify_parameters().rows() ;
 			for( int i = 0; i < numberOfParameters; ++i ) {
 				max_label_length = std::max( max_label_length, m_ll->get_parameter_name(i).size() ) ;
 			}
+
+			for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {
+				int const parameter_index = m_parameter_indices[i] ;
+				ostr
+					<< "  "
+					<< std::setw( max_label_length)
+					<< m_ll->get_parameter_name(parameter_index)
+					<< " ~ logF( "
+					<< (m_alpha[i]*2) << ", " << (m_beta[i]*2)
+					<< " ).\n" ;
+			}
+#if 0			
+			
 			ostr
 				<< std::setw(3) << "" << "  "
 				<< std::setw( max_label_length + 2 ) << ""
@@ -117,6 +130,7 @@ namespace metro {
 						<< " " << std::setw(5) << m_beta[i]
 						<< "\n" ;
 			}
+#endif
 			return ostr.str() ;
 		}
 	}
