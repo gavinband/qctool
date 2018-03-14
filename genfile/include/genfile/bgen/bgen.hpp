@@ -1153,7 +1153,7 @@ namespace genfile {
 										break ;
 									case eSetThisSample:
 										setter.set_value( 2*hap + 0, value ) ;
-										setter.set_value( 2*hap + 1, 1.0 - value ) ;
+										setter.set_value( 2*hap + 1, std::max( 1.0 - value, 0.0 ) ) ;
 										break ;
 								}
 							}
@@ -1266,7 +1266,7 @@ namespace genfile {
 										setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 										break ;
 									case eSetThisSample:
-										setter.set_value( reportedValueCount++, 1 - sum ) ;
+										setter.set_value( reportedValueCount++, std::max( 1.0 - sum, 0.0 ) ) ;
 										sum = 0.0 ;
 										break ;
 								}
@@ -1321,7 +1321,7 @@ namespace genfile {
 									setter.set_value( reportedValueCount++, genfile::MissingValue() ) ;
 									break ;
 								case eSetThisSample:
-									setter.set_value( reportedValueCount++, 1.0 - sum ) ;
+									setter.set_value( reportedValueCount++, std::max( 1.0 - sum, 0.0 ) ) ;
 									break ;
 							}
 						}
