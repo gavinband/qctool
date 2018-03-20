@@ -279,9 +279,9 @@ namespace {
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			if( nAlleles != 2 ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::initialise()",
+					"CallSetter::initialise()",
 					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
-					"Only biallelic variants are currently supported."
+					"I only support biallelic variants"
 				) ;
 			}
 			m_result->clear() ; // ploidy 2
