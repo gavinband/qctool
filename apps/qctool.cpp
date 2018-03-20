@@ -1675,22 +1675,11 @@ private:
 				) ;
 			}
 
-#if 1
 			merge_in_source = genfile::ReorderingSNPDataSource::create(
 				merge_in_source,
 				get_sample_id_mapping( samples, id_columns[0], *merge_in_samples, id_columns[1] )
 			) ;
-#else
-			merge_in_source.reset(
-				new genfile::SampleMappingSNPDataSource(
-					*m_samples,
-					id_columns[0],
-					*merge_in_samples,
-					id_columns[1],
-					merge_in_source
-				)
-			) ;
-#endif		
+
 			// Make the merged-in source respect the filter.
 			genfile::CommonSNPFilter* snp_filter = get_snp_filter() ;
 			if( snp_filter ) {
@@ -2897,6 +2886,8 @@ private:
 } ;
 
 int main( int argc, char** argv ) {
+    // needed for efficient output to standard output streams
+    std::ios_base::sync_with_stdio( false ) ;
     try {
 		QCToolApplication app( argc, argv ) ;
     }
