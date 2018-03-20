@@ -19,3 +19,4 @@ pipelines:
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - mkdir -p test-reports
           - pybot -d test-reports -o NONE -l NONE -r NONE -x xunit.xml ./tests.txt
+

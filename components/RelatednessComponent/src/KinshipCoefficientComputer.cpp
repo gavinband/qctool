@@ -58,12 +58,15 @@ namespace impl {
 					.rankUpdate( data->segment( begin_sample_i, end_sample_i - begin_sample_i ), scale ) ;
 			} else {
 				result
-					->block(  begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j ).noalias()
-					+= scale * (
-						data->segment( begin_sample_i, end_sample_i - begin_sample_i )
-						*
-						data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
-					) ;
+					->block(  begin_sample_i, begin_sample_j, end_sample_i - begin_sample_i, end_sample_j - begin_sample_j )
+					.noalias()
+//					+= scale * // doesn't work any more in Eigen 3.3.4
+//					* data->segment( begin_sample_i, end_sample_i - begin_sample_i )
+//					* data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
+					+= Vector::Constant( end_sample_i - begin_sample_i, scale ).asDiagonal()
+					* data->segment( begin_sample_i, end_sample_i - begin_sample_i )
+					* data->segment( begin_sample_j, end_sample_j - begin_sample_j ).transpose()
+				;
 			}
 		}
 	#endif
