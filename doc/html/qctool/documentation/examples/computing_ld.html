@@ -68,25 +68,37 @@
 							$ sqlite3 -csv -header ld.sqlite "SELECT * FROM LDView LIMIT 10"
 						</div>
 						<div class="task_notes">
-							<p>
 								Will list the first ten LD records in CSV format.  The file can equally be accessed programmatically,
 								for example using the <a href="https://docs.python.org/2/library/sqlite3.html">sqlite3 module</a> in python, or the <a href="https://cran.r-project.org/web/packages/RSQLite/index.html">RSQLite</a> package in R.
-							</p>
-							<p>
 								We may add flat file support in future.
-							</p>
 						</div>
-					</p>
 					</div>
 				</div>
+				<div class="task">
+					<div class="task_name">
+						Controlling what is output
+					</div>
+					<div class="task_notes">
+						Pairwise LD computation can generate a massive amount of data.  To reduce this the <code>-min-r2</code> and <code>-max-ld-distance</code>
+						options can be used, e.g.
+					</div>
+					<div class="task_command_line">
+						$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD -min-r2 0.05 -max-ld-distance 1Mb
+					</div>
+					<div class="task_notes">
+						will output results only for variants estimated to have <em>r<sup>2</sup> > 0.05</em>, and within a megabase of each other.
+						For the latter option, you can also specify distances in base pairs (e.g. <code>-max-ld-distance 1000</code>), in kilobases (e.g. <code>-max-ld-distance 1kb</code>),
+						or in megabases as in the example above.
+					</div>
+				
 				<div class="task">
 					<div class="task_name">
 						Adjusting the degree of shrinkage
 					</div>
 					<div class="task_notes">
 							QCTOOL outputs shrinkage estimates of LD by default.
-							Specifically, haplotype frequencies are estimated under a <em>dirichlet(x,x,x,x)</em> prior,
-							with x=1.25 by default; this is equivalent to adding a quarter of an observation of each of the four haplotypes to the data.
+							Specifically, haplotype frequencies are estimated under a <em>Dirichlet(x,x,x,x)</em> prior,
+							with x=1.25 by default; roughly speaking this is equivalent to adding a quarter of an observation of each of the four haplotypes to the data.
 							Intuitively this corresponds to weak prior assumptions that 1: both variants are polymorphic
 							and 2: there is at least some recombination between them.
 					</div>
@@ -97,7 +109,7 @@
 					$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD -ld-prior-weight &lt;w&gt;
 				</div>
 				<div class="task_notes">
-					estimates LD under a <em>dirichlet(1+1/w,1+1/w,1+1/w,1+1/w)</em> prior; setting <em>w=0</em> removes the prior altogether.
+					estimates LD under a <em>Dirichlet(1+w/4,1+w/4,1+w/4,1+w/4)</em> prior; setting <em>w=0</em> removes the prior altogether.
 				</div>
 				<div class="task_notes">
 					(Note that dosage-based estimates of LD are currently computed without including prior information.)
