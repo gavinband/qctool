@@ -24,7 +24,7 @@
 #include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 
-#define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
+// #define DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT 1
 struct HaplotypeFrequencyLogLikelihood ;
 
 void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& options ) {
@@ -47,9 +47,16 @@ void HaplotypeFrequencyComponent::declare_options( appcontext::OptionProcessor& 
 			"lower than this squared correlation will not be output." )
 		.set_takes_single_value()
 		.set_default_value( "0" ) ;
-	options[ "-no-ld-shrinkage" ]
-		.set_description( "Do not use prior to shrink LD estimates." ) ;
+	options[ "-prior-ld-weight" ]
+		.set_description( "Weight w to place on shrinkage prior in computation of pairwise LD. "
+			"This is interpreted as adding dummy observations of w/4 for each of the four possible haplotypes, "
+			"or equivalently, to placing a Dirichlet(w/4, w/4, w/4, w/4) prior on the vector of haplotype frequencies." )
+		.set_takes_single_value()
+		.set_default_value( 1.0 ) ;
 	options.option_implies_option( "-compute-ld-with", "-old" ) ;
+	options.option_implies_option( "-prior-ld-weight", "-compute-ld-with" ) ;
+	options.option_implies_option( "-max-ld-distance", "-compute-ld-with" ) ;
+	options.option_implies_option( "-min-r2", "-compute-ld-with" ) ;
 }
 
 namespace {
@@ -142,8 +149,14 @@ HaplotypeFrequencyComponent::UniquePtr HaplotypeFrequencyComponent::create(
 	
 	result->set_max_distance( parse_physical_distance( options.get< std::string >( "-max-ld-distance" ))) ;
 	result->set_min_r2( options.get< double >( "-min-r2" )) ;
-	if( options.check( "-no-ld-shrinkage" )) {
-		result->set_prior( Eigen::Matrix2d::Zero() ) ;
+	{
+		double const w = options.get< double >( "-prior-ld-weight" ) ;
+		Eigen::MatrixXd prior(2,2) ;
+		prior
+			<< w/4, w/4,
+			   w/4, w/4
+		;
+		result->set_prior( prior ) ;
 	}
 
 	using namespace genfile::string_utils ;
@@ -191,15 +204,6 @@ HaplotypeFrequencyComponent::HaplotypeFrequencyComponent(
 	m_min_r2( 0.0 ),
 	m_prior( Eigen::Matrix2d::Zero() )
 {
-	// By default we estimate LD under a prior, represented as data augmentation 
-	// that assumes we have previously seen at least one of each haplotype.
-	// That corresponds to the assumptions:
-	// 1: that both variants are polymorphic, and
-	// 2: there is at least some recombination (or difference) between them.
-	m_prior
-		<< 1, 1,
-		   1, 1
-	;
 }
 
 void HaplotypeFrequencyComponent::set_max_distance( uint64_t distance ) {
@@ -273,7 +277,13 @@ namespace {
 		}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
-			assert( nAlleles == 2 ) ;
+			if( nAlleles != 2 ) {
+				throw genfile::BadArgumentError(
+					"Callsetter::initialise()",
+					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
+					"Only biallelic variants are currently supported."
+				) ;
+			}
 			m_result->clear() ; // ploidy 2
 			m_result->resize( nSamples, -1 ) ;
 			m_ploidy->clear() ;
@@ -290,7 +300,13 @@ namespace {
 			genfile::OrderType const order_type,
 			genfile::ValueType const value_type
 		) {
-			assert( ploidy <= 2 ) ;
+			if( ploidy > 2 ) {
+				throw genfile::BadArgumentError(
+					"Callsetter::set_number_of_entries()",
+					"ploidy=" + genfile::string_utils::to_string( ploidy ),
+					"Only haploid or diploid samples are currently supported."
+				) ;
+			}
 			if( value_type != genfile::eAlleleIndex ) {
 				throw genfile::BadArgumentError(
 					"Callsetter::set_number_of_entries()",
@@ -498,8 +514,14 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		Eigen::MatrixXd dosages( source_data_reader.get_number_of_samples(), 2 ) ;
 		Eigen::MatrixXd nonmissingness( source_data_reader.get_number_of_samples(), 2 ) ;
 
-		source_data_reader.get( ":genotypes:", CallSetter( &source_calls, &source_ploidy ) ) ;
-		target_data_reader.get( ":genotypes:", CallSetter( &target_calls, &target_ploidy ) ) ;
+		bool haveCalls = false ;
+		try {
+			source_data_reader.get( ":genotypes:", CallSetter( &source_calls, &source_ploidy ) ) ;
+			target_data_reader.get( ":genotypes:", CallSetter( &target_calls, &target_ploidy ) ) ;
+			haveCalls = true ;
+		} catch( ... ) {
+		}
+
 		{
 			DosageSetter source_setter( &dosages, &nonmissingness, 0 ) ;
 			DosageSetter target_setter( &dosages, &nonmissingness, 1 ) ;
@@ -522,7 +544,8 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			target_calls,
 			target_ploidy,
 			dosages,
-			nonmissingness
+			nonmissingness,
+			haveCalls
 		) ;
 	}
 }
@@ -535,29 +558,34 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 	std::vector< int > const& target_calls,
 	std::vector< uint32_t > const& target_ploidy,
 	Eigen::MatrixXd const& dosages,
-	Eigen::MatrixXd const& nonmissingness
+	Eigen::MatrixXd const& nonmissingness,
+	bool const runEM
 ) {
 	if( m_stratification ) {
+		bool output = (m_min_r2 == 0.0 ) ;
 		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
 			try {
-				bool output = compute_em_ld_measures(
-					source_snp,
-					source_calls,
-					source_ploidy,
-					target_snp,
-					target_calls,
-					target_ploidy,
-					m_stratification->stratum_name(i) + ":",
-					m_stratification->stratum(i)
-				) ;
-
-				compute_dosage_ld_measures(
+				if( runEM ) {
+					output = output || compute_em_ld_measures(
+						source_snp,
+						source_calls,
+						source_ploidy,
+						target_snp,
+						target_calls,
+						target_ploidy,
+						m_stratification->stratum_name(i) + ":",
+						m_stratification->stratum(i),
+						output
+					) ;
+				}
+				output = output || compute_dosage_ld_measures(
 					source_snp,
 					target_snp,
 					dosages,
 					nonmissingness,
 					m_stratification->stratum_name(i) + ":",
-					m_stratification->stratum(i)
+					m_stratification->stratum(i),
+					output
 				) ;
 			} catch( genfile::OperationFailedError const& e ) {
 				m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
@@ -569,21 +597,26 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		}
 	} else {
 		try {
-			compute_em_ld_measures(
-				source_snp,
-				source_calls, source_ploidy,
-				target_snp,
-				target_calls, target_ploidy,
-				"",
-				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) )
-			) ;
+			bool output = (m_min_r2 == 0.0 ) ;
+			if( runEM ) {
+				output = compute_em_ld_measures(
+					source_snp,
+					source_calls, source_ploidy,
+					target_snp,
+					target_calls, target_ploidy,
+					"",
+					std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) ),
+					output
+				) ;
+			}
 			compute_dosage_ld_measures(
 				source_snp,
 				target_snp,
 				dosages,
 				nonmissingness,
 				"",
-				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) )
+				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) ),
+				output
 			) ;
 		} catch( genfile::OperationFailedError const& e ) {
 			m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
@@ -600,9 +633,10 @@ bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 	Eigen::MatrixXd const& dosages,
 	Eigen::MatrixXd const& nonmissingness,
 	std::string const& variable_name_stub,
-	std::vector< genfile::SampleRange > const& sample_set
+	std::vector< genfile::SampleRange > const& sample_set,
+	bool alwaysOutput
 ) {
-	bool includeInOutput = true ;
+	bool includeInOutput = alwaysOutput ;
 	Eigen::RowVectorXd means = Eigen::RowVectorXd::Zero(2) ;
 	Eigen::RowVectorXd totals = Eigen::RowVectorXd::Zero(2) ;
 	for( std::size_t i = 0; i < sample_set.size(); ++i ) {
@@ -641,7 +675,8 @@ bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 	// Compute correlation as:
 	// 
 	double r = covariance(0,1) / std::sqrt( covariance(0,0) * covariance(1,1) ) ;
-	includeInOutput = (r*r >= m_min_r2 ) ;
+
+	includeInOutput = includeInOutput || (r*r >= m_min_r2 ) ;
 
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "means = " << means << ".\n" ;
@@ -664,7 +699,8 @@ bool HaplotypeFrequencyComponent::compute_em_ld_measures(
 	std::vector< int > const& target_calls,
 	std::vector< uint32_t > const& target_ploidy,
 	std::string const& variable_name_stub,
-	std::vector< genfile::SampleRange > const& sample_set
+	std::vector< genfile::SampleRange > const& sample_set,
+	bool alwaysOutput
 ) {
 	// Construct table of genotypes at each SNP.
 	Eigen::Matrix3d diploid_table = Eigen::Matrix3d::Zero() ;
@@ -686,7 +722,7 @@ bool HaplotypeFrequencyComponent::compute_em_ld_measures(
 #endif
 
 	genfile::VariantEntry::Integer const N = diploid_table.sum() + haploid_table.sum() ;
-	bool includeInOutput = (m_min_r2 == 0.0 ) ;
+	bool includeInOutput = alwaysOutput ;
 	genfile::VariantEntry const missing = genfile::MissingValue() ;
 
 	if( includeInOutput ) {

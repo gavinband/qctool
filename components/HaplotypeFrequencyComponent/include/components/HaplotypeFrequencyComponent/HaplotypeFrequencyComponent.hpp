@@ -63,7 +63,8 @@ public:
 		std::vector< int > const& target_calls,
 		std::vector< uint32_t > const& target_ploidy,
 		Eigen::MatrixXd const& dosages,
-		Eigen::MatrixXd const& nonmissingness
+		Eigen::MatrixXd const& nonmissingness,
+		bool const doEM
 	) ;
 
 	bool compute_dosage_ld_measures(
@@ -72,7 +73,8 @@ public:
 		Eigen::MatrixXd const& dosages,
 		Eigen::MatrixXd const& nonmissingness,
 		std::string const& variable_name_stub,
-		std::vector< genfile::SampleRange > const& sample_set
+		std::vector< genfile::SampleRange > const& sample_set,
+		bool const alwaysOutput
 	) ;
 
 	bool compute_em_ld_measures(
@@ -83,7 +85,8 @@ public:
 		std::vector< int > const& target_calls,
 		std::vector< uint32_t > const& target_ploidy,
 		std::string const& variable_name_stub,
-		std::vector< genfile::SampleRange > const& sample_set
+		std::vector< genfile::SampleRange > const& sample_set,
+		bool const alwaysOutput
 	) ;
 
 	void end_processing_snps() ;
