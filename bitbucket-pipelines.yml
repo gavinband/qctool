@@ -10,6 +10,7 @@ pipelines:
     - step:
         script:
           - sudo sh -c 'echo "deb http://cran.rstudio.com/bin/linux/ubuntu vivid/" >> /etc/apt/sources.list'
+          - apt-get update
           - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
           - apt-get install --assume-yes python-pip
           - python -m pip install robotframework
