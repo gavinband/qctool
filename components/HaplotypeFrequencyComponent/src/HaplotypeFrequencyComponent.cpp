@@ -566,7 +566,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
 			try {
 				if( runEM ) {
-					output = output || compute_em_ld_measures(
+					output = compute_em_ld_measures(
 						source_snp,
 						source_calls,
 						source_ploidy,
@@ -576,9 +576,9 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 						m_stratification->stratum_name(i) + ":",
 						m_stratification->stratum(i),
 						output
-					) ;
+					) || output ;
 				}
-				output = output || compute_dosage_ld_measures(
+				output = compute_dosage_ld_measures(
 					source_snp,
 					target_snp,
 					dosages,
@@ -586,7 +586,7 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 					m_stratification->stratum_name(i) + ":",
 					m_stratification->stratum(i),
 					output
-				) ;
+				) || output ;
 			} catch( genfile::OperationFailedError const& e ) {
 				m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
 					<< "stratum " << m_stratification->stratum_name(i) << ": "
@@ -719,6 +719,7 @@ bool HaplotypeFrequencyComponent::compute_em_ld_measures(
 		<< "SNP2: " << target_snp << "\n"
 		<< "diploids: " << diploid_table << ".\n"
 		<< "haploids: " << haploid_table << ".\n" ;
+	std::cerr << "alwaysOutput is " << ( alwaysOutput ? "true" : "false" ) << ".\n" ;
 #endif
 
 	genfile::VariantEntry::Integer const N = diploid_table.sum() + haploid_table.sum() ;
@@ -768,7 +769,7 @@ bool HaplotypeFrequencyComponent::compute_em_ld_measures(
 			std::cerr << "pi = " << pi.transpose() << "\n" ;
 #endif
 			
-			includeInOutput = (r2 >= m_min_r2 ) ;
+			includeInOutput = includeInOutput || (r2 >= m_min_r2 ) ;
 			if( includeInOutput ) {
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi00", pi(0) ) ;
 				m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "pi01", pi(1) ) ;
