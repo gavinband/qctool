@@ -207,7 +207,11 @@ namespace impl {
 		StrataMembers result ;
 		genfile::CohortIndividualSource::ColumnSpec const spec = samples.get_column_spec() ;
 		if( !spec[ variable ].is_discrete() ) {
-			throw genfile::BadArgumentError( "void impl::compute_strata()", "variable=\"" + variable + "\"" ) ;
+			throw genfile::BadArgumentError(
+				"impl::compute_strata()",
+				"variable=\"" + variable + "\"",
+				"Expected \"" + variable + "\" to be a discrete variable (type B or D in the sample file)"
+			) ;
 		}
 
 		for( std::size_t i = 0; i < samples.get_number_of_individuals(); ++i ) {

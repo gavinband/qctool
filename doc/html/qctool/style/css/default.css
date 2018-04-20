@@ -51,7 +51,9 @@ strong {
 }
 
 nav {
-	min-width:900px ;
+	width: 900px ;
+	width: 1000px ;
+	position: absolute;
 	position: absolute;
 	top: 3em;
 	height: 3em;
@@ -60,6 +62,13 @@ nav {
 	font-family: helvetica, sans-serif ;
 	color: #000000;
 	background-color: white ;
+	/*border: 1px solid black ;*/
+}
+
+nav > div {
+	width: 800px ;
+	margin-left: auto ;
+	margin-right: auto ;
 }
 
 .nav_button {
