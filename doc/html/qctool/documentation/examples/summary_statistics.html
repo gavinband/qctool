@@ -138,7 +138,8 @@
 						$ qctool -g example.bgen -s example.sample -snp-stats -osnp snp-stats.txt -stratify &lt;column&gt;
 					</div>
 					<div class="task_notes">
-						<p>The argument must be the name of a column in the sample file.  Summary statistic calculations will
+						<p>The argument must be the name of a column in the sample file containing discrete
+							values (i.e. it must be of type <code>B</code> or <code>D</code>).  Summary statistic calculations will
 						be computed for each subset of samples having the same value in that column.
 						The output will contain the same fields as for <code>-snp-stats</code>, but each column will
 						appear multiple times with a suffix of the form <code>[&lt;column&gt;=&lt;value&gt;]</code>
