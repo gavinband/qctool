@@ -55,35 +55,40 @@ public:
 		genfile::VariantDataReader& target_data_reader
 	) ;
 
-	void compute_ld_measures(
-		genfile::VariantIdentifyingData const& source_snp,
-		std::vector< int > const& source_calls,
-		std::vector< uint32_t > const& source_ploidy,
-		genfile::VariantIdentifyingData const& target_snp,
-		std::vector< int > const& target_calls,
-		std::vector< uint32_t > const& target_ploidy,
-		Eigen::MatrixXd const& dosages,
-		Eigen::MatrixXd const& nonmissingness,
-		bool const doEM
-	) ;
-
 	bool compute_dosage_ld_measures(
 		genfile::VariantIdentifyingData const& source_snp,
+		std::vector< uint32_t > const& source_ploidy,
+		genfile::VariantIdentifyingData const& target_snp,
+		std::vector< uint32_t > const& target_ploidy,
+		Eigen::MatrixXd const& dosages,
+		Eigen::MatrixXd const& nonmissingness
+	) ;
+
+	double compute_dosage_correlation(
+		genfile::VariantIdentifyingData const& source_snp,
 		genfile::VariantIdentifyingData const& target_snp,
 		Eigen::MatrixXd const& dosages,
 		Eigen::MatrixXd const& nonmissingness,
-		std::string const& variable_name_stub,
-		std::vector< genfile::SampleRange > const& sample_set,
-		bool const alwaysOutput
+		std::vector< genfile::SampleRange > const& sample_set
 	) ;
 
 	bool compute_em_ld_measures(
 		genfile::VariantIdentifyingData const& source_snp,
-		std::vector< int > const& source_calls,
 		std::vector< uint32_t > const& source_ploidy,
+		std::vector< int > const& source_calls,
 		genfile::VariantIdentifyingData const& target_snp,
-		std::vector< int > const& target_calls,
 		std::vector< uint32_t > const& target_ploidy,
+		std::vector< int > const& target_calls,
+		Eigen::MatrixXd const& nonmissingness
+	) ;
+
+	bool compute_em_ld_measures(
+		genfile::VariantIdentifyingData const& source_snp,
+		std::vector< uint32_t > const& source_ploidy,
+		std::vector< int > const& source_calls,
+		genfile::VariantIdentifyingData const& target_snp,
+		std::vector< uint32_t > const& target_ploidy,
+		std::vector< int > const& target_calls,
 		std::string const& variable_name_stub,
 		std::vector< genfile::SampleRange > const& sample_set,
 		bool const alwaysOutput
