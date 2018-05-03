@@ -220,11 +220,11 @@ public:
 			.set_default_value( "dom/outcome=1~logf(4,4)" )
 			.set_default_value( "rec/outcome=1~logf(4,4)" )
 		;
-
 		options[ "-no-prior" ]
 			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." )
 		;
 
+		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
@@ -233,6 +233,10 @@ public:
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
+		options[ "-detailed" ]
+			.set_description( "Specify that hptest should produce detailed output for each test." ) ;
+		options[ "-output-all-variants" ]
+			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
 	}
 } ;
 
@@ -441,7 +445,6 @@ namespace {
 				std::size_t i = 0 ;
 				for( ; i < m_genotypes->rows(); ++i ) {
 					if( m_genotypes->row(i).sum() == 0.0 ) {
-						std::cerr << "ZERO!\n" ;
 						if( i > last_nonmissing_sample_i ) {
 							ranges.push_back( metro::SampleRange( last_nonmissing_sample_i, i )) ;
 						}
@@ -727,6 +730,7 @@ private:
 				? (*predictor_source->total_number_of_snps() * *outcome_source->total_number_of_snps())
 				: boost::optional< std::size_t >() ;
 			bool have_summarised_models = false ;
+			bool outputAllVariants = options().check( "-output-all-variants" ) ;
 
 			while( predictor_source->get_snp_identifying_data( &pv )) {
 				ProbSetter hostSetter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
@@ -780,11 +784,13 @@ private:
 #if DEBUG
 					std::cerr << "  OUTCOME INCLUDED SAMPLES: " << nonmissing_outcome << "\n" ;
 #endif
-					output_design( designs[1], variants, designs[1].nonmissing_samples(), output ) ;
+					
+					if( outputAllVariants || (predictorIncluded && outcomeIncluded)) {
+						output_design( designs[1], variants, designs[1].nonmissing_samples(), output ) ;
 
-
-					output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
-					output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
+						output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
+						output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
+					}
 					// Set up ll
 					if( predictorIncluded && outcomeIncluded ) {
 						test( designs, variants, output ) ;
