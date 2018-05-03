@@ -68,6 +68,27 @@ namespace {
 		}
 		return true ;
 	}
+	
+	std::vector< std::string > collect_unique_ids( std::vector< std::string > const& ids_or_filenames ) const {
+		std::vector< std::string > result ;
+		for( auto elt: ids_or_filenames ) {
+			if( bfs::exists( elt )) {
+				std::ifstream f( elt ) ;
+				std::copy(
+					std::istream_iterator< std::string >( f ),
+					std::istream_iterator< std::string >(),
+					std::back_inserter< std::vector< std::string > >( result )
+				) ;
+			} else {
+				result.push_back( elt ) ;
+			}
+		}
+		// now sort and uniqueify them...
+		std::sort( result.begin(), result.end() ) ;
+		std::vector< std::string >::const_iterator newBack = std::unique( result.begin(), result.end() ) ;
+		result.resize( newBack - result.begin() ) ;
+		return result ;
+	}
 }
 
 struct HPTestOptions: public appcontext::CmdLineOptionProcessor
@@ -545,7 +566,7 @@ private:
 		if( options().check( incl_range_option ) || options().check( incl_ids_option ) ) {
 			result.reset( new genfile::CommonSNPFilter() ) ;
 			if( options().check( incl_range_option )) {
-				std::vector< std::string > specs = options().get_values< std::string >( incl_range_option ) ;
+				std::vector< std::string > specs = collect_unique_ids( options().get_values< std::string >( incl_range_option ) ) ;
 				for ( std::size_t i = 0; i < specs.size(); ++i ) {
 					result->include_snps_in_range(
 						genfile::GenomePositionRange::parse( specs[i] )
@@ -553,7 +574,7 @@ private:
 				}
 			}
 			if( options().check( incl_ids_option )) {
-				std::vector< std::string > files = options().get_values< std::string > ( incl_ids_option ) ;
+				std::vector< std::string > files = collect_unique_ids( options().get_values< std::string > ( incl_ids_option ) ) ;
 				BOOST_FOREACH( std::string const& filename, files ) {
 					result->include_snps_in_file(
 						filename,
