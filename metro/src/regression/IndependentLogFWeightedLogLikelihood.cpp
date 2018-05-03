@@ -20,6 +20,21 @@
 
 namespace metro {
 	namespace regression {
+		/*
+		logF density
+		this can be done in R as follows:
+		
+		logistic <- function(x) { exp(x) / (1 + exp(x) )}
+		dlogf <- function( x, nu1 = 1, nu2 = 1 ) {
+			alpha = nu1/2
+			beta = nu2/2
+			l = logistic((x))
+			l^alpha * ( 1-l)^ beta
+		}
+		dlogf.v2 <- function( x, nu1 = 1, nu2 = 1 ) {
+			dbeta( logistic(x), shape1 = 1+nu1/2, shape2 = 1 + nu2/2 )
+		}
+		*/
 		IndependentLogFWeightedLogLikelihood::UniquePtr IndependentLogFWeightedLogLikelihood::create(
 			LogLikelihood::UniquePtr ll,
 			std::vector< int > parameter_indices,
