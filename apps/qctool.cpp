@@ -113,7 +113,7 @@ namespace globals {
 }
 
 namespace impl {
-	void set_vector_entry( std::vector< std::string >* vector, std::size_t i, std::string const& value ) {
+	void set_vector_entry( std::vector< genfile::VariantEntry >* vector, std::size_t i, std::string const& value ) {
 		assert( i < vector->size() ) ;
 		(*vector)[i] = value ;
 	}
@@ -2306,11 +2306,7 @@ private:
 		genfile::SNPDataSource const& snp_data_source
 	) {
 		genfile::CohortIndividualSource::UniquePtr result ;
-		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
-		boost::format fmt( "sample_%d" ) ;
-		for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
-			sample_ids[i] = ( fmt % i ).str() ;
-		}
+		std::vector< genfile::VariantEntry > sample_ids( snp_data_source.number_of_samples(), genfile::MissingValue() ) ;
 		snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
 		result.reset( new genfile::CountingCohortIndividualSource( sample_ids ) ) ;
 		return result ;
