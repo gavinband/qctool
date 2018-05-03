@@ -62,7 +62,7 @@
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/ReorderingSNPDataSource.hpp"
 #include "genfile/ReorderingCohortIndividualSource.hpp"
-#include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
+#include "genfile/VariantIdentifyingDataFilteringSNPDataSource.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
