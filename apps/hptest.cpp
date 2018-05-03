@@ -26,6 +26,7 @@
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
+#include "genfile/ThreshholdingSNPDataSource.hpp"
 #include "genfile/ToGP.hpp"
 #include "genfile/CommonSNPFilter.hpp"
 #include "genfile/VariantIdentifyingDataFilteringSNPDataSource.hpp"
@@ -523,7 +524,8 @@ private:
 			get_filter(
 				"-incl-outcome-range",
 				"-incl-outcome-rsids"
-			)
+			),
+			0.9
 		) ;
 		genfile::CohortIndividualSource::UniquePtr
 			samples = genfile::CohortIndividualSource::create( options().get< std::string >( "-s" ) ) ;
@@ -590,7 +592,8 @@ private:
 	
 	genfile::SNPDataSource::UniquePtr open_genotype_data_sources(
 		std::string const& filename,
-		genfile::CommonSNPFilter::UniquePtr filter
+		genfile::CommonSNPFilter::UniquePtr filter,
+		double threshold = std::numeric_limits< double >::quiet_NaN()
 	) {
 		std::vector< genfile::wildcard::FilenameMatch > filenames
 			= genfile::wildcard::find_files_by_chromosome(
@@ -611,7 +614,11 @@ private:
 				).release()
 			) ;
 		}
-		
+		if( threshold == threshold ) {
+			source.reset(
+				new genfile::ThreshholdingSNPDataSource( source, threshold )
+			) ;
+		}
 		return source ;
 	}
 
