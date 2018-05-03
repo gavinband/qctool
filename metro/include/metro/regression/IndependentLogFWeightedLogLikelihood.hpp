@@ -22,7 +22,7 @@ namespace metro {
 		struct IndependentLogFWeightedLogLikelihood: public LogLikelihood {
 		public:
 			typedef std::auto_ptr< IndependentLogFWeightedLogLikelihood > UniquePtr ;
-			enum Normalisation { ePDF, eOneAtZero } ;
+			enum Normalisation { ePDF, eZeroAtMean } ;
 			static UniquePtr create(
 				LogLikelihood::UniquePtr ll,
 				std::vector< int > parameter_indices,
@@ -53,7 +53,7 @@ namespace metro {
 			}
 
 			double get_value_of_function() const {
-				return m_ll->get_value_of_function() + m_value_of_function + m_constant ;
+				return m_ll->get_value_of_function() + m_value_of_function ;
 			}
 
 			Vector get_value_of_first_derivative() const {

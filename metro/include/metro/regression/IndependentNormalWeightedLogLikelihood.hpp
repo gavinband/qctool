@@ -24,6 +24,7 @@ namespace metro {
 		struct IndependentNormalWeightedLogLikelihood: public LogLikelihood {
 		public:
 			typedef std::auto_ptr< IndependentNormalWeightedLogLikelihood > UniquePtr ;
+			enum Normalisation { ePDF, eZeroAtMean } ;
 			static UniquePtr create(
 				LogLikelihood::UniquePtr ll,
 				std::vector< int > parameter_indices,
@@ -72,6 +73,8 @@ namespace metro {
 			std::vector< int > const m_parameter_indices ;
 			std::vector< double > const m_means ;
 			std::vector< double > const m_variances ;
+			Normalisation const m_normalisation ;
+			double m_constant ;
 			double m_value_of_function ;
 			Vector m_value_of_first_derivative ;
 			Matrix m_value_of_second_derivative ;

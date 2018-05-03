@@ -39,7 +39,7 @@ namespace metro {
 			m_parameter_indices( parameter_indices ),
 			m_alpha( nu1 ),
 			m_beta( nu2 ),
-			m_normalisation( eOneAtZero )
+			m_normalisation( eZeroAtMean )
 		{
 			assert( m_alpha.size() == m_parameter_indices.size() ) ;
 			assert( m_beta.size() == m_parameter_indices.size() ) ;
@@ -48,9 +48,12 @@ namespace metro {
 				m_beta[i] = m_beta[i]/2.0 ;
 			}
 			m_constant = 0.0 ;
-			if( m_normalisation == eOneAtZero ) {
+			if( m_normalisation == eZeroAtMean ) {
+				// At the mean (which is zero), we will compute unnormalised contribution of
+				// log(0.5)*(alpha+beta) for each parameter.
+				m_constant = 0.0  ;
 				for( std::size_t i = 0; i < m_alpha.size(); ++i ) {
-					m_constant = (m_alpha[i] + m_beta[i]) * std::log(0.5) ;
+					m_constant -= (m_alpha[i] + m_beta[i]) * std::log(0.5) ;
 				}
 			} else if( m_normalisation == ePDF ) {
 				assert(0) ; // this might not be correct yet
@@ -76,7 +79,7 @@ namespace metro {
 		
 		void IndependentLogFWeightedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			m_ll->evaluate_at( parameters, numberOfDerivatives ) ;
-			m_value_of_function = 0.0 ;
+			m_value_of_function = m_constant ;
 			m_value_of_first_derivative.setZero( parameters.size() ) ;
 			m_value_of_second_derivative.setZero( parameters.size(), parameters.size() ) ;
 
@@ -86,7 +89,7 @@ namespace metro {
 				double const x = parameters( parameter_index ) ;
 				// logistic function evaluated at this value.
 				double const l = 1.0 / (1.0 + std::exp(-x)) ;
-				m_value_of_function += m_alpha[i] * std::log(l) + m_beta[i] * std::log( 1-l ) ;
+				m_value_of_function += ( m_alpha[i] * std::log(l) + m_beta[i] * std::log( 1-l ) );
 				m_value_of_first_derivative( parameter_index ) = m_alpha[i] - (m_alpha[i] + m_beta[i]) * l ;
 				m_value_of_second_derivative( parameter_index, parameter_index ) = -(m_alpha[i] + m_beta[i]) * l * (1-l) ;
 			}

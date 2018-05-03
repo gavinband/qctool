@@ -37,8 +37,22 @@ namespace metro {
 			m_ll( ll ),
 			m_parameter_indices( parameter_indices ),
 			m_means( means ),
-			m_variances( variances )
-		{}
+			m_variances( variances ),
+			m_normalisation( eZeroAtMean ),
+			m_constant( 0.0 ) // ll when at mean
+		{
+			if( m_normalisation == eZeroAtMean ) {
+				m_constant = 0.0 ;
+			} else if( m_normalisation == ePDF ) {
+				assert(0) ; // This may not be correct yet
+				m_constant = 0.0 ;
+				for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {
+					m_constant -= std::log( std::sqrt( 2.0 * 3.14159265358979323846 * m_variances[i] )) ;
+				}
+			} else {
+				assert(0) ;
+			}
+		}
 
 		std::string IndependentNormalWeightedLogLikelihood::get_parameter_name( std::size_t i ) const {
 			return m_ll->get_parameter_name(i) ;
@@ -66,6 +80,7 @@ namespace metro {
 				m_value_of_second_derivative( parameter_index, parameter_index )
 					= -1.0 / m_variances[i] ;
 			}
+			m_value_of_function += m_constant ;
 		}
 	
 		std::string IndependentNormalWeightedLogLikelihood::get_summary() const {
