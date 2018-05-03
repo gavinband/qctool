@@ -108,6 +108,10 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
+		options[ "-outcome-name" ]
+			.set_description( "Specify a name for the outcome variable" )
+			.set_takes_single_value()
+			.set_default_value( "outcome" ) ;
 		options[ "-incl-outcome-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
 			.set_takes_values_until_next_option()
@@ -150,10 +154,10 @@ public:
 			.set_check( boost::bind( &in_set, _1, _2, std::set< std::string >({"all", "genetic"}) ) ) ;
 		
 		options.declare_group( "Model options" ) ;
-		options[ "-model" ]
-			.set_description( "Model to fit" )
-			.set_takes_values(1)
-			.set_default_value( "gp ~ gh" )
+		options[ "-models" ]
+			.set_description( "Specify models to fit." )
+			.set_takes_values_until_next_option()
+			.set_default_value( "add+het" )
 		;
 
 		options[ "-tolerance" ]
@@ -187,10 +191,16 @@ public:
 				"Currently, logF and gaussian priors are supported."
 			)
 			.set_takes_values_until_next_option()
-			.set_default_value( "add/gp=1~logf(1,1)" )
-			.set_default_value( "het/gp=1~logf(4,4)" )
+			.set_default_value( "add/outcome=1~logf(2,2)" )
+			.set_default_value( "het/outcome=1~logf(4,4)" )
+			.set_default_value( "dom/outcome=1~logf(4,4)" )
+			.set_default_value( "rec/outcome=1~logf(4,4)" )
 		;
-		
+
+		options[ "-no-prior" ]
+			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." )
+		;
+
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
@@ -499,14 +509,14 @@ private:
 		if( host->number_of_samples() != N ) {
 			throw genfile::BadArgumentError(
 				"HPTestApplication::unsafe_process()",
-				"-gh \"" + options().get< std::string >( "-predictor" ) + "\"",
+				"-predictor \"" + options().get< std::string >( "-predictor" ) + "\"",
 				"Wrong number of samples (" + to_string(host->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
 		}
 		if( para->number_of_samples() != N ) {
 			throw genfile::BadArgumentError(
 				"HPTestApplication::unsafe_process()",
-				"-gp \"" + options().get< std::string >( "-outcome" ) + "\"",
+				"-outcome \"" + options().get< std::string >( "-outcome" ) + "\"",
 				"Wrong number of samples (" + to_string(para->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
 		}
@@ -603,8 +613,6 @@ private:
 		typedef std::vector< SampleRange > SampleRanges ;
 
 		// Put together data needed for setting up regression design
-		assert( options().get< std::string >( "-model" ) == "gp ~ gh" ) ;
-
 		typedef std::vector< std::string > Names ;
 
 		SampleRanges const all_samples( 1, SampleRange( 0, samples.size() )) ;
@@ -613,21 +621,57 @@ private:
 		// designs[0] is null model
 		// designs[1] is 1st alternative
 		boost::ptr_vector< regression::Design > designs ;
+		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
 		designs.push_back(
 			regression::Design::create(
-				Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "gp=0", "gp=1" }),
+				Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ outcomeName + "=0", outcomeName + "=1" }),
 				Matrix::Zero( samples.size(), 0 ), all_samples, Names(),
 				Names() // only baseline
 			)
 		) ;
-		designs.push_back(
-			regression::Design::create(
-				Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "gp=0", "gp=1" }),
-				Matrix::Zero( samples.size(), 0 ), all_samples, Names(),
-				Names({"add", "het"})
-			)
-		) ;
 		
+		std::vector< std::string > const& models = options().get_values< std::string >( "-models" ) ;
+		std::vector< Eigen::MatrixXd > modelEncodings( models.size() + 1 ) ;
+		// Null model encoding
+		modelEncodings[0] = Eigen::MatrixXd(3,0) ;
+
+		// Alternative models encoding
+		for( std::size_t i = 0; i < models.size(); ++i ) {
+			std::string const& predictorCoding = models[i] ;
+			
+			Matrix predictor_levels ;
+			Names predictorNames ;
+			if( predictorCoding == "add+het" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 2 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 2 ;
+				// het predictor
+				predictor_levels(1,1) = 1 ;
+				predictorNames = Names({"add", "het"}) ;
+			} else if( predictorCoding == "add" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 2 ;
+				predictorNames = Names({"add"}) ;
+				std::cerr << "Additive coding.\n" ;
+			} else {
+				assert(0) ;
+			}
+
+			modelEncodings[i+1] = predictor_levels ;
+
+			designs.push_back(
+				regression::Design::create(
+					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "outcome=0", "outcome=1" }),
+					Matrix::Zero( samples.size(), 0 ), all_samples, Names(),
+					predictorNames
+				)
+			) ;
+		}
 		genfile::SNPDataSource* const predictor_source = &host ;
 		genfile::SNPDataSource* const outcome_source = &para ;
 
@@ -644,13 +688,6 @@ private:
 		Matrix predictor_probabilities = Matrix::Zero( samples.size(), 3 ) ;
 		Vector predictor_ploidy = Vector::Zero( samples.size() ) ;
 		SampleRanges nonmissing_predictor ;
-		Matrix predictor_levels = Eigen::MatrixXd::Zero( 3, 2 ) ;
-		// add predictor
-		predictor_levels(0,0) = 0 ;
-		predictor_levels(1,0) = 1 ;
-		predictor_levels(2,0) = 2 ;
-		// het predictor
-		predictor_levels(1,1) = 1 ;
 
 		{
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
@@ -665,7 +702,9 @@ private:
 				ProbSetter hostSetter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
 				predictor_source->read_variant_data()->get( ":genotypes:", genfile::to_GP_unphased( hostSetter )) ;
 				designs[0].set_predictors( Eigen::MatrixXd::Zero( 1, 0 ), predictor_probabilities.rowwise().sum(), nonmissing_predictor ) ;
-				designs[1].set_predictors( predictor_levels, predictor_probabilities, nonmissing_predictor ) ;
+				for( std::size_t i = 1; i < designs.size(); ++i ) {
+					designs[i].set_predictors( modelEncodings[i], predictor_probabilities, nonmissing_predictor ) ;
+				}
 
 				bool predictorIncluded = true ;
 				double const predictorCount = 
@@ -691,7 +730,11 @@ private:
 
 					outcome_source->read_variant_data()->get( "GT", CallSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ) ;
 					for( std::size_t i = 0; i < designs.size(); ++i ) {
-						designs[i].set_outcome( outcome, nonmissing_outcome, std::vector< std::string >({"gp=0","gp=1"})) ;
+						designs[i].set_outcome(
+							outcome,
+							nonmissing_outcome,
+							std::vector< std::string >({outcomeName + "=0", outcomeName + "=1"} )
+						) ;
 					}
 				
 					bool outcomeIncluded = true ;
@@ -800,7 +843,7 @@ private:
 
 	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) const {
 		metro::regression::LogLikelihood::UniquePtr ll( metro::regression::BinomialLogistic::create( design ).release() ) ;
-		if( options().check_if_option_has_value( "-prior" )) {
+		if( !options().check_if_option_has_value( "-no-prior" )) {
 			ll = apply_priors( ll, options().get_values< std::string>( "-prior" )) ;
 		}
 		return metro::regression::LogLikelihood::UniquePtr( ll.release() ) ;
@@ -995,6 +1038,12 @@ private:
 			output.store_data_for_key( variants, model_name + ":converged", result.first ? "1" : "0" ) ;
 			output.store_data_for_key( variants, model_name + ":iterations", result.second ) ;
 			output.store_data_for_key( variants, model_name + ":fit_time", boost::timer::format( timer.elapsed(), 3, "%t" ) ) ;
+			output.store_data_for_key( variants, model_name + ":ll", ll.get_value_of_function() ) ;
+			output.store_data_for_key(
+				variants,
+				model_name + ":degrees_of_freedom",
+				int( ll.get_parameters().size() - lls[0].get_parameters().size() )
+			) ;
 		
 			if( ( model > 0 || output_models == "all" ) && result.first ) {
 				output_results( lls[0], ll, variants, output, model_name, &comments ) ;
@@ -1083,19 +1132,19 @@ private:
 #endif
 		if( check_model_fit( information, variance_covariance, model_name, comments ) ) {
 			output_parameter_estimates( ll, variants, model_name, variance_covariance, output ) ;
-			if( options().check_if_option_has_value( "-prior" )) {
+			
+			compute_frequentist_summary(
+				null_ll, ll,
+				model_name,
+				variants, output,
+				comments
+			) ;
+			if( !options().check( "-no-prior" )) {
 				compute_bayesian_summary(
 					null_ll, null_solver.logAbsDeterminant(),
 					ll, solver.logAbsDeterminant(),
 					model_name,
 					variants, output
-				) ;
-			} else {
-				compute_frequentist_summary(
-					null_ll, ll,
-					model_name,
-					variants, output,
-					comments
 				) ;
 			}
 		}
@@ -1219,12 +1268,6 @@ private:
 
 		output.store_data_for_key(
 			variants,
-			model_name + ":degrees_of_freedom",
-			int( alternative_parameters.size() - null_parameters.size() )
-		) ;
-
-		output.store_data_for_key(
-			variants,
 			model_name + ":log10_bf",
 			log10_bf
 		) ;
@@ -1246,24 +1289,18 @@ private:
 			parameters.size() - null_parameters.size(),
 			options().get< double >( "-tolerance" )
 		) ;
-		if( p_value < 0 ) {
+		if( p_value != p_value || p_value < 0 ) {
 			if( comments ) {
 				// This should not happen because the convergence criterion checks for this.
 				comments->push_back( model_name + ":numerical_error" ) ;
 			}
 			p_value = std::numeric_limits< double >::quiet_NaN() ;
-		} else {
-			output.store_data_for_key(
-				variants,
-				model_name + ":degrees_of_freedom",
-				int( parameters.size() - null_parameters.size() )
-			) ;
-			output.store_data_for_key(
-				variants,
-				model_name + ":lrt_pvalue",
-				p_value
-			) ;
 		}
+		output.store_data_for_key(
+			variants,
+			model_name + ":lrt_pvalue",
+			p_value
+		) ;
 	}	
 	
 	double compute_lrt_pvalue(
