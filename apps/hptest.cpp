@@ -8,7 +8,9 @@
 #include <iostream>
 #include <limits>
 #include <typeinfo>
+#include <fstream>
 
+#include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/math/distributions/normal.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
@@ -69,10 +71,10 @@ namespace {
 		return true ;
 	}
 	
-	std::vector< std::string > collect_unique_ids( std::vector< std::string > const& ids_or_filenames ) const {
+	std::vector< std::string > collect_unique_ids( std::vector< std::string > const& ids_or_filenames ) {
 		std::vector< std::string > result ;
 		for( auto elt: ids_or_filenames ) {
-			if( bfs::exists( elt )) {
+			if( boost::filesystem::exists( elt )) {
 				std::ifstream f( elt ) ;
 				std::copy(
 					std::istream_iterator< std::string >( f ),
