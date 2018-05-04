@@ -50,8 +50,35 @@ namespace metro {
 				Transform transform = eIdentity,
 				std::vector< int > const& interacting_covariates = std::vector< int >()
 			) ;
+
+			static UniquePtr create(
+				Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+				std::vector< std::string > const& predictor_names,
+				Transform transform = eIdentity
+			) ;
+
+			Design(
+				Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+				std::vector< std::string > const& predictor_names,
+				Transform transform = eIdentity
+			) ;
 		
 			// Design( Design const& other ) ;
+
+			// add a single continuous covariate
+			// missing values are encoded by NaN
+			void add_single_covariate(
+				std::string const& name,
+				boost::function< double( std::size_t ) > const& data
+			) ;
+			// add a single discrete covariate (which expands into multiple columns of zeroes and ones)
+			// levels are specified by non-negative integers.
+			// missing values are encoded by -1
+			void add_discrete_covariate(
+				std::string const& name,
+				boost::function< int( std::size_t ) > const& data,
+				int numberOfLevels
+			) ;
 
 			int const number_of_predictors() const { return m_predictor_names.size() ; }
 			int const number_of_interaction_terms() const { return number_of_predictors() * m_design_matrix_interaction_columns.size() ; }
@@ -104,9 +131,12 @@ namespace metro {
 			SampleRanges m_nonmissing_predictors ;
 
 			// Covariate variables
-			std::vector< std::string > const m_covariate_names ;
+			std::vector< Matrix > m_covariates ;
+			std::vector< std::string > m_covariate_names ;
 			SampleRanges m_nonmissing_covariates ;
 
+			// Interactors
+			std::vector< int > const m_predictor_covariate_interactions ;
 			// Design matrix column transform - e.g. mean centre.
 			Transform const m_transform ;
 
@@ -128,9 +158,11 @@ namespace metro {
 				SampleRanges const& nonmissing_predictors,
 				SampleRanges const& nonmissing_covariates
 			) const ;
+			void recalculate() ; 
 			void calculate_design_matrix(
 				int const,
-				Matrix const& covariates,
+				std::vector< Matrix > const& covariates,
+				std::vector< std::string > const& covariate_names,
 				std::vector< std::string > const& predictor_names,
 				std::vector< int > const& interaction_cols,
 				Matrix* result,

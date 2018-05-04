@@ -111,7 +111,6 @@ AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
 	int const nOutcomes = 2 ;
 	for( int nSamples = 0; nSamples < 100; ++nSamples ) {
 		SampleRanges const all_samples( SampleRanges( 1, metro::SampleRange( 0, nSamples ))) ;
-		Matrix covariates = Matrix::Zero( nSamples, 0 ) ;
 
 		for( int nMissing = 0; nMissing < nSamples; ++nMissing ) {
 			Matrix outcome = Matrix::Zero( nSamples, nOutcomes ) ;
@@ -126,12 +125,12 @@ AUTO_TEST_CASE( test_binomial_logisticregression_missing_outcome ) {
 			BinomialLogistic ll(
 				Design::create(
 					outcome, nonmissing_samples, outcome_names,
-					covariates, all_samples, Names(),
 					Names( 1, "predictor" )
 				)
 			) ;
-		
+	
 #if DEBUG_TESTS
+			std::cerr << "DESIGN MATRIX: " << ll.design().matrix().rows() << "x" << ll.design().matrix().cols() << ".\n" ;
 			std::cerr << "nSamples = " << nSamples << ", nMissing = " << nMissing << ", nOutcomes = " << nOutcomes << ".\n" ;
 			std::cerr << "ll =\n" << ll.get_summary() << "\n" ;
 #endif

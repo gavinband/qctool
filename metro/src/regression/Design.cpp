@@ -37,6 +37,20 @@ namespace metro {
 			) ;
 		}
 
+		Design::UniquePtr Design::create(
+			Matrix const& outcome, SampleRanges const& nonmissing_outcome, std::vector< std::string > const& outcome_names,
+			std::vector< std::string > const& predictor_names,
+			Transform transform
+		) {
+			return Design::UniquePtr(
+				new Design(
+					outcome, nonmissing_outcome, outcome_names,
+					predictor_names,
+					transform
+				)
+			) ;
+		}
+
 		Design::Design(
 			Matrix const& outcome, SampleRanges const& nonmissing_outcome,  std::vector< std::string > const& outcome_names,
 			Matrix const& covariates, SampleRanges const& nonmissing_covariates, std::vector< std::string > const& covariate_names,
@@ -53,28 +67,110 @@ namespace metro {
 			m_predictor_levels( Matrix::Zero( 0, predictor_names.size() )),
 			m_predictor_names( predictor_names ),
 			m_nonmissing_predictors( SampleRanges() ),
-			// predictor variables
+			// covariate variables
+			m_covariates( 1, covariates ),
 			m_covariate_names( covariate_names ),
 			m_nonmissing_covariates( nonmissing_covariates ),
+			// predictor-covariate interactions
+			m_predictor_covariate_interactions( interacting_covariates ),
 			// Design matrix column transform
 			m_transform( transform )
 		{
 			assert( covariates.rows() == m_outcome.rows() ) ;
 			assert( m_outcome_names.size() == m_outcome.cols() ) ;
-			calculate_design_matrix(
-				m_outcome.rows(),
-				covariates,
-				m_predictor_names,
-				interacting_covariates,
-				&m_design_matrix,
-				&m_design_matrix_interaction_columns,
-				&m_design_matrix_column_names
-			) ;
-			// 
-			m_nonmissing_samples = compute_nonmissing_samples(
-				m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates
-			) ;
-			assert( m_design_matrix_column_names.size() == m_design_matrix.cols() ) ;
+			recalculate() ;
+		}
+
+		Design::Design(
+			Matrix const& outcome, SampleRanges const& nonmissing_outcome,  std::vector< std::string > const& outcome_names,
+			std::vector< std::string > const& predictor_names,
+			Transform transform
+		):
+			// outcome variables
+		 	m_outcome( outcome ),
+			m_outcome_names( outcome_names ),
+		 	m_nonmissing_outcome( nonmissing_outcome ),
+			// predictor variables
+			m_predictor_level_probabilities( Matrix::Zero( outcome.rows(), 0 )),
+			m_predictor_levels( Matrix::Zero( 0, predictor_names.size() )),
+			m_predictor_names( predictor_names ),
+			m_nonmissing_predictors( SampleRanges() ),
+			// covariate variables
+			m_covariates(),
+			m_covariate_names(),
+			m_nonmissing_covariates( 1, SampleRange( 0, m_outcome.rows() )),
+			// predictor-covariate interactions
+			m_predictor_covariate_interactions(),
+			// Design matrix column transform
+			m_transform( transform )
+		{
+			assert( m_outcome_names.size() == m_outcome.cols() ) ;
+			recalculate() ;
+		}
+		
+		// add a single continuous covariate
+		// missing values are encoded by NaN
+		void Design::add_single_covariate(
+			std::string const& name,
+			boost::function< double( std::size_t ) > const& values
+		) {
+			Vector data = Vector::Constant( m_outcome.rows(), 0 ) ;
+			std::vector< SampleRange > nonmissingness ;
+			int last_nonmissing_sample_i = 0 ;
+			for( int i = 0; i < m_outcome.rows(); ++i ) {
+				double v = values(i) ;
+				if( v == v ) {
+					data(i) = v ;
+				} else {
+					if( i > last_nonmissing_sample_i ) {
+						nonmissingness.push_back( SampleRange( last_nonmissing_sample_i, i )) ;
+					}
+					last_nonmissing_sample_i = i+1 ;
+				}
+			}
+			if( last_nonmissing_sample_i < m_outcome.rows() ) {
+				nonmissingness.push_back( SampleRange( last_nonmissing_sample_i, m_outcome.rows() )) ;
+			}
+
+			// Ok push it.
+			m_covariates.push_back( data ) ;
+			m_covariate_names.push_back( name ) ;
+			m_nonmissing_covariates = impl::intersect_ranges( m_nonmissing_covariates, nonmissingness ) ;
+			
+			recalculate() ;
+		}
+		
+		// add a single discrete covariate (which expands into multiple columns of zeroes and ones)
+		// levels are specified by non-negative integers.
+		// missing values are encoded by -1
+		void Design::add_discrete_covariate(
+			std::string const& name,
+			boost::function< int( std::size_t ) > const& values,
+			int numberOfLevels
+		) {
+			// column for level 0 is not provided as will be a linear combination of the others.
+			Matrix data = Matrix::Constant( m_outcome.rows(), numberOfLevels - 1, 0.0 ) ;
+			std::vector< SampleRange > nonmissingness ;
+			int last_nonmissing_sample_i = 0 ;
+			for( int i = 0; i < m_outcome.rows(); ++i ) {
+				int level = values( i ) ;
+				if( level > 0 ) {
+					data( i, level-1 ) = 1.0 ;
+				} else if( level == -1 ) {
+					if( i > last_nonmissing_sample_i ) {
+						nonmissingness.push_back( SampleRange( last_nonmissing_sample_i, i )) ;
+					}
+					last_nonmissing_sample_i = i+1 ;
+				}
+			}
+			if( last_nonmissing_sample_i < m_outcome.rows() ) {
+				nonmissingness.push_back( SampleRange( last_nonmissing_sample_i, m_outcome.rows() )) ;
+			}
+			m_covariates.push_back( data ) ;
+			m_covariate_names.push_back( name ) ;
+			m_nonmissing_covariates = impl::intersect_ranges( m_nonmissing_covariates, nonmissingness ) ;
+
+			recalculate() ;
 		}
 
 		std::string const& Design::get_predictor_name( std::size_t i ) const {
@@ -166,9 +262,28 @@ namespace metro {
 			return impl::intersect_ranges( result, nonmissing_covariates ) ;
 		}
 
+		void Design::recalculate() {
+			calculate_design_matrix(
+				m_outcome.rows(),
+				m_covariates,
+				m_covariate_names,
+				m_predictor_names,
+				m_predictor_covariate_interactions,
+				&m_design_matrix,
+				&m_design_matrix_interaction_columns,
+				&m_design_matrix_column_names
+			) ;
+			// 
+			m_nonmissing_samples = compute_nonmissing_samples(
+				m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates
+			) ;
+			assert( m_design_matrix_column_names.size() == m_design_matrix.cols() ) ;
+		}
+
 		void Design::calculate_design_matrix(
 			int const number_of_samples,
-			Matrix const& covariates,
+			std::vector< Matrix > const& covariates,
+			std::vector< std::string > const& covariate_names,
 			std::vector< std::string > const& predictor_names,
 			std::vector< int > const& interacting_covariates,
 			Matrix* result,
@@ -179,16 +294,22 @@ namespace metro {
 			assert( design_matrix_interaction_cols != 0 ) ;
 			assert( design_matrix_interaction_cols->size() == 0 ) ;
 			std::size_t const number_of_predictors = predictor_names.size() ;
+			// Compute the number of covariates
+			std::size_t numberOfCovariates = 0 ;
+			for( std::size_t i = 0; i < covariates.size(); ++i ) {
+				numberOfCovariates += covariates[i].cols() ;
+			}
+			
 			// design matrix is layed out as:
 			// baseline column of 1's
 			// columns for predictors with values set later
 			// columns for predictor vs. covariate interactions with values set later
 			// columns for covariates with values set here.
-			result->setZero(
-				number_of_samples,
-				1 + number_of_predictors * ( 1 + interacting_covariates.size() )
-				+ covariates.cols()
-			) ;
+			std::size_t numberOfDesignMatrixColumns
+				= 1 + number_of_predictors * ( 1 + interacting_covariates.size() ) + numberOfCovariates ;
+			result->setZero( number_of_samples, numberOfDesignMatrixColumns ) ;
+
+			// baseline column
 			result->leftCols( 1 ).setOnes() ;
 			design_matrix_column_names->push_back( "baseline" ) ;
 			design_matrix_column_names->insert(
@@ -199,19 +320,26 @@ namespace metro {
 
 			if( interacting_covariates.size() > 0 ) {
 				for( std::size_t i = 0; i < interacting_covariates.size(); ++i ) {
-					design_matrix_interaction_cols->push_back( interacting_covariates[i] + result->cols() - covariates.cols() ) ;
+					design_matrix_interaction_cols->push_back( interacting_covariates[i] + result->cols() - numberOfCovariates ) ;
 					for( std::size_t predictor = 0; predictor < number_of_predictors; ++predictor ) {
-						design_matrix_column_names->push_back( m_predictor_names[predictor] + "x" + m_covariate_names[interacting_covariates[i]] ) ;
+						design_matrix_column_names->push_back( m_predictor_names[predictor] + "x" + covariate_names[interacting_covariates[i]] ) ;
 					}
 				}
 			}
 
-			if( covariates.cols() > 0 ) {
-				result->rightCols( covariates.cols() ) = covariates ;
+			if( numberOfCovariates > 0 ) {
+				int col = numberOfDesignMatrixColumns - numberOfCovariates ;
+				for( std::size_t i = 0; i < covariates.size(); ++i ) {
+					result->block(
+						0, col,
+						result->rows(), covariates[i].cols()
+					) = covariates[i] ;
+					col += covariates[i].cols() ;
+				}
 				design_matrix_column_names->insert(
 					design_matrix_column_names->end(),
-					m_covariate_names.begin(),
-					m_covariate_names.end()
+					covariate_names.begin(),
+					covariate_names.end()
 				) ;
 			}
 	#if DEBUG_REGRESSIONDESIGN

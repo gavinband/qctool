@@ -8,7 +8,8 @@
 
 #define DEBUG 1
 
-BOOST_AUTO_TEST_SUITE( test_regressiondesign )
+BOOST_AUTO_TEST_SUITE( test_regression_design )
+	
 AUTO_TEST_CASE( test_construction ) {
 	using metro::SampleRange ;
 	using metro::regression::Design ;
