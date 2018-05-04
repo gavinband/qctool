@@ -126,9 +126,17 @@ namespace {
 		int value = -1 ;
 		genfile::VariantEntry entry = samples.get_entry( sample_index, column_index ) ;
 		if( !entry.is_missing() ) {
-			value = mapping.get_mapped_value( entry ).as< int >() - 1 ;
+			value = mapping.get_mapped_value( entry ).as< int >() ;
 		}
 		return value ;
+	}
+
+	std::string get_unmapped_level(
+		genfile::CrossCohortCovariateValueMapping const& mapping,
+		int level
+	) {
+		genfile::VariantEntry entry = mapping.get_unmapped_value( level ) ;
+		return entry.as< std::string >() ;
 	}
 }
 
@@ -219,9 +227,9 @@ public:
 		
 		options.declare_group( "Model options" ) ;
 		options[ "-models" ]
-			.set_description( "Specify models to fit." )
+			.set_description( "Specify models to fit.  Syntax is <name>:<model>" )
 			.set_takes_values_until_next_option()
-			.set_default_value( "add+het" ) ;
+			.set_default_value( "gen:add+het" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file(s).")
 			.set_takes_values( 1 )
@@ -258,14 +266,18 @@ public:
 			)
 			.set_takes_values_until_next_option()
 			.set_default_value( "add/[outcome]=1~logf(2,2)" )
-			.set_default_value( "het/[outcome]=1~logf(4,4)" )
-			.set_default_value( "dom/[outcome]=1~logf(4,4)" )
-			.set_default_value( "rec/[outcome]=1~logf(4,4)" )
+			.set_default_value( "overdominance/[outcome]=1~logf(4,4)" )
+			.set_default_value( "het/[outcome]=1~logf(2,2)" )
+			.set_default_value( "dom/[outcome]=1~logf(2,2)" )
+			.set_default_value( "rec/[outcome]=1~logf(2,2)" )
 		;
 		options[ "-no-prior" ]
-			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." )
-		;
-
+			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." ) ;
+		options[ "-covariates" ]
+			.set_description( "Specify the name of one or more covariates to include in the model."
+				" These must be columns named in the sample file." )
+			.set_takes_values_until_next_option() ;
+			
 		options.declare_group( "Model fitting options" ) ;
 		options[ "-tolerance" ]
 			.set_description( "Tolerance" )
@@ -808,9 +820,10 @@ private:
 		// designs[1 onwards] are alternative models
 		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
 
+		std::vector< std::string > model_names ;
 		boost::ptr_vector< regression::Design > designs ;
 		std::vector< Eigen::MatrixXd > predictorCodings ;
-		build_models( samples, &designs, &predictorCodings ) ;
+		build_models( samples, &model_names, &designs, &predictorCodings ) ;
 
 		genfile::SNPDataSource* const predictor_source = &host ;
 		genfile::SNPDataSource* const outcome_source = &para ;
@@ -903,7 +916,7 @@ private:
 					}
 				
 					if( !have_summarised_models ) {
-						summarise_models( designs ) ;
+						summarise_models( model_names, designs ) ;
 						have_summarised_models = true ;
 					}
 #if DEBUG
@@ -918,7 +931,7 @@ private:
 					}
 					// Set up ll
 					if( predictorIncluded && outcomeIncluded ) {
-						test( designs, variants, output ) ;
+						test( model_names, designs, variants, output ) ;
 					} 
 					progress_context( ++count, total_count ) ;
 				}
@@ -928,10 +941,11 @@ private:
 	
 	void build_models(
 		genfile::CohortIndividualSource const& samples,
+		std::vector< std::string >* names,
 		boost::ptr_vector< metro::regression::Design >* designs,
 		std::vector< Eigen::MatrixXd >* predictorCodings
 	) {
-		build_unadjusted_models( samples, designs, predictorCodings ) ;
+		build_unadjusted_models( samples, names, designs, predictorCodings ) ;
 		if( options().check( "-covariates" )) {
 			add_covariates( samples, designs, options().get_values< std::string >( "-covariates" ) ) ;
 		}
@@ -939,6 +953,7 @@ private:
 
 	void build_unadjusted_models(
 		genfile::CohortIndividualSource const& samples,
+		std::vector< std::string >* names,
 		boost::ptr_vector< metro::regression::Design >* designs,
 		std::vector< Eigen::MatrixXd >* predictorCodings
 	) {
@@ -949,6 +964,7 @@ private:
 
 		// baseline model, no predictor
 		{
+			names->push_back( "null" ) ;
 			designs->push_back(
 				metro::regression::Design::create(
 					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ outcomeName + "=0", outcomeName + "=1" }),
@@ -962,9 +978,11 @@ private:
 		std::vector< std::string > const& models = options().get_values< std::string >( "-models" ) ;
 		// Null model encoding
 
+		using genfile::string_utils::slice ;
 		// Alternative models encoding
 		for( std::size_t i = 0; i < models.size(); ++i ) {
-			std::string const& predictorCoding = models[i] ;
+			std::vector< slice > elts = parse_model_spec( models[i] ) ;
+			std::string const& predictorCoding = elts[1] ;
 		
 			Matrix predictor_levels ;
 			Names predictorNames ;
@@ -976,7 +994,7 @@ private:
 				predictor_levels(2,0) = 2 ;
 				// het predictor
 				predictor_levels(1,1) = 1 ;
-				predictorNames = Names({"add", "het"}) ;
+				predictorNames = Names({"add", "overdominance"}) ;
 			} else if( predictorCoding == "add" ) {
 				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
 				// add predictor
@@ -1009,6 +1027,7 @@ private:
 				assert(0) ;
 			}
 
+			names->push_back( elts[0] ) ;
 			designs->push_back(
 				metro::regression::Design::create(
 					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "outcome=0", "outcome=1" }),
@@ -1018,55 +1037,87 @@ private:
 			predictorCodings->push_back( predictor_levels ) ;
 		}
 	}
+	
+	std::vector< genfile::string_utils::slice > parse_model_spec( genfile::string_utils::slice const& spec ) {
+		std::vector< genfile::string_utils::slice > result = spec.split( ":" ) ;
+		if( result.size() == 1 ) {
+			// model name is same as spec
+			result.insert( result.begin(), result[0] ) ;
+		}
+		if( result.size() != 2 ) {
+			throw genfile::BadArgumentError(
+				"HPTestApplication::parse_model_spec()",
+				"spec=\"" + spec + "\"",
+				"Expected a model spec in the form <name>:<model>"
+			) ;
+		}
+		return result ;
+	}
 
 	void add_covariates(
 		genfile::CohortIndividualSource const& samples,
 		boost::ptr_vector< metro::regression::Design >* designs,
 		std::vector< std::string > const& covariates
 	) {
+		get_ui_context().logger() << "Adding covariates...\n" ;
+
 		genfile::CohortIndividualSource::ColumnSpec const& spec = samples.get_column_spec() ;
 		for( std::size_t i = 0; i < covariates.size(); ++i ) {
+			std::string const& covariateName = covariates[i] ;
+			genfile::CohortIndividualSource::SingleColumnSpec columnSpec = spec[covariateName] ;
 			genfile::CrossCohortCovariateValueMapping::UniquePtr mapping
-				= genfile::CrossCohortCovariateValueMapping::create( spec[i], true ) ;
+				= genfile::CrossCohortCovariateValueMapping::create( columnSpec, true ) ;
 			mapping->add_source( samples ) ;
 			
 			for( std::size_t model_i = 0; model_i < designs->size(); ++model_i ) {
 				metro::regression::Design& design = designs->at(model_i) ;
-				if( spec[i].is_discrete() ) {
-					design.add_single_covariate(
-						covariates[i],
+				
+				if( columnSpec.is_discrete() ) {
+					design.add_discrete_covariate(
+						covariateName,
 						boost::bind(
 							&extract_mapped_categorical_value,
 							_1,
 							boost::cref( samples ),
-							spec.find_column( covariates[i] ),
+							spec.find_column( covariateName ),
 							boost::cref( *mapping )
-						)
+						),
+						boost::bind(
+							&get_unmapped_level,
+							boost::cref( *mapping ),
+							_1
+						),
+						mapping->get_number_of_distinct_mapped_values()
 					) ;
 				} else {
-					design.add_discrete_covariate(
-						covariates[i],
+					design.add_single_covariate(
+						covariateName,
 						boost::bind(
 							&extract_mapped_continuous_value,
 							_1,
 							boost::cref( samples ),
-							spec.find_column( covariates[i] ),
+							spec.find_column( covariateName ),
 							boost::cref( *mapping )
-						),
-						mapping->get_number_of_distinct_mapped_values()
+						)
 					) ;
 				}
 			}
+			
+			get_ui_context().logger()
+				<< "++ Added covariate: \"" + covariateName + "\":\n"
+				<<  mapping->get_summary( "     " )
+				<< "\n\n" ;
 		}
 	}
-			
+	
 	void summarise_models(
+		std::vector< std::string > const& model_names,
 		boost::ptr_vector< metro::regression::Design >& designs
 	) {
 		get_ui_context().logger() << "Models are:\n" ;
 		for( std::size_t i = 0; i < designs.size(); ++i ) {
 			metro::regression::LogLikelihood::UniquePtr model = create_loglikelihood( designs[i] ) ; 
-			get_ui_context().logger() << "- Model " << (i+1) << ": "
+			get_ui_context().logger() << "- Model " << (i+1) << " (\"" + model_names[i] << "\"): "
 				<< model->get_summary() << "\n" ;
 		}
 		get_ui_context().logger() << "Model design for first test:\n" << designs.back().get_summary() << ".\n" ;
@@ -1099,13 +1150,15 @@ private:
 
 		output.store_data_for_key( variants, "N", total ) ;
 		output.store_data_for_key( variants, "missing", int( design.outcome().rows() - total ) ) ;
-		std::ostringstream ostr ;
-		if( total == 0 ) {
-			ostr << "NA" ;
-		} else {
-			ostr << included_samples ;
+		if( options().check( "-detailed" )) {
+			std::ostringstream ostr ;
+			if( total == 0 ) {
+				ostr << "NA" ;
+			} else {
+				ostr << included_samples ;
+			}
+			output.store_data_for_key( variants, "included_samples", ostr.str() ) ;
 		}
-		output.store_data_for_key( variants, "included_samples", ostr.str() ) ;
 		
 		for(
 			std::map< int, int >::const_iterator i = outcomeCounts.begin();
@@ -1313,6 +1366,7 @@ private:
 	}
 
 	void test(
+		std::vector< std::string > const& model_names,
 		boost::ptr_vector< metro::regression::Design >& designs,
 		std::vector< genfile::VariantIdentifyingData > const& variants,
 		qcdb::MultiVariantStorage& output
@@ -1334,7 +1388,7 @@ private:
 		for( std::size_t model = 0; model < lls.size(); ++model ) {
 			boost::timer::cpu_timer timer ;
 			metro::regression::LogLikelihood& ll = lls[model] ;
-			std::string const model_name = ( model == 0 ) ? "null" : ("model_" + genfile::string_utils::to_string( model )) ;
+			std::string const& model_name = model_names[model] ;
 			std::pair< bool, int > result = fit_model(
 				ll,
 				model_name,
