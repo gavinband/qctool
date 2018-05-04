@@ -658,12 +658,10 @@ private:
 			}
 			if( options().check( incl_ids_option )) {
 				std::vector< std::string > files = collect_unique_ids( options().get_values< std::string > ( incl_ids_option ) ) ;
-				BOOST_FOREACH( std::string const& filename, files ) {
-					result->include_snps_in_file(
-						filename,
-						genfile::CommonSNPFilter::RSIDs
-					) ;
-				}
+				result->include_snps_in_set(
+					std::set< std::string >( files.begin(), files.end() ),
+					genfile::CommonSNPFilter::RSIDs
+				) ;
 			}
 		}
 		return result ;
