@@ -22,9 +22,7 @@ namespace genfile {
 
 	CohortIndividualSource::Entry CategoricalCrossCohortCovariateValueMapping::get_unmapped_value( Entry const& level ) const {
 		int i = level.as< int >() ;
-		assert( i > 0 ) ;
-		// Adjust because levels are always positive integers
-		--i ;
+		assert( i >= 0 ) ;
 		assert( std::size_t( i ) < histogram().size() ) ;
 		Histogram::const_iterator where = histogram().begin() ;
 		std::advance( where, std::size_t( i ) ) ;
@@ -34,8 +32,7 @@ namespace genfile {
 	CohortIndividualSource::Entry CategoricalCrossCohortCovariateValueMapping::get_mapped_value( Entry const& entry ) const {
 		Histogram::const_iterator where = histogram().find( entry ) ;
 		assert( where != histogram().end() ) ;
-		// We always return positive integers, so add one.
-		return Entry( int( std::distance( histogram().begin(), where ) + 1 ) ) ;
+		return Entry( int( std::distance( histogram().begin(), where ) ) ) ;
 	}
 	
 	
