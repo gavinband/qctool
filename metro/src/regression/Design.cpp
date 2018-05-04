@@ -146,12 +146,14 @@ namespace metro {
 		void Design::add_discrete_covariate(
 			std::string const& name,
 			boost::function< int( std::size_t ) > const& values,
+			boost::function< std::string( int ) > const& levelNames,
 			int numberOfLevels
 		) {
 			// column for level 0 is not provided as will be a linear combination of the others.
 			Matrix data = Matrix::Constant( m_outcome.rows(), numberOfLevels - 1, 0.0 ) ;
 			std::vector< SampleRange > nonmissingness ;
 			int last_nonmissing_sample_i = 0 ;
+			std::vector< std::string > covariateLevelNames ;
 			for( int i = 0; i < m_outcome.rows(); ++i ) {
 				int level = values( i ) ;
 				if( level > 0 ) {
@@ -167,7 +169,9 @@ namespace metro {
 				nonmissingness.push_back( SampleRange( last_nonmissing_sample_i, m_outcome.rows() )) ;
 			}
 			m_covariates.push_back( data ) ;
-			m_covariate_names.push_back( name ) ;
+			for( int i = 1; i < numberOfLevels; ++i ) {
+				m_covariate_names.push_back( name + "=" + levelNames(i) ) ;
+			}
 			m_nonmissing_covariates = impl::intersect_ranges( m_nonmissing_covariates, nonmissingness ) ;
 
 			recalculate() ;
@@ -307,17 +311,22 @@ namespace metro {
 			// columns for covariates with values set here.
 			std::size_t numberOfDesignMatrixColumns
 				= 1 + number_of_predictors * ( 1 + interacting_covariates.size() ) + numberOfCovariates ;
+
 			result->setZero( number_of_samples, numberOfDesignMatrixColumns ) ;
+			design_matrix_column_names->clear() ;
 
 			// baseline column
 			result->leftCols( 1 ).setOnes() ;
 			design_matrix_column_names->push_back( "baseline" ) ;
+
+			// predict columns
 			design_matrix_column_names->insert(
 				design_matrix_column_names->end(),
 				m_predictor_names.begin(),
 				m_predictor_names.end()
 			) ;
 
+			// predictor-covariate interactions
 			if( interacting_covariates.size() > 0 ) {
 				for( std::size_t i = 0; i < interacting_covariates.size(); ++i ) {
 					design_matrix_interaction_cols->push_back( interacting_covariates[i] + result->cols() - numberOfCovariates ) ;
@@ -327,6 +336,7 @@ namespace metro {
 				}
 			}
 
+			// covariates
 			if( numberOfCovariates > 0 ) {
 				int col = numberOfDesignMatrixColumns - numberOfCovariates ;
 				for( std::size_t i = 0; i < covariates.size(); ++i ) {

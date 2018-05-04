@@ -77,6 +77,7 @@ namespace metro {
 			void add_discrete_covariate(
 				std::string const& name,
 				boost::function< int( std::size_t ) > const& data,
+				boost::function< std::string( int ) > const& levels,
 				int numberOfLevels
 			) ;
 

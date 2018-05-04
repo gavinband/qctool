@@ -14,6 +14,8 @@
 #include "genfile/CategoricalCrossCohortCovariateValueMapping.hpp"
 #include "genfile/string_utils.hpp"
 
+// #define DEBUG 1
+
 namespace genfile {
 	CategoricalCrossCohortCovariateValueMapping::CategoricalCrossCohortCovariateValueMapping( std::string const& column_name ):
 		LevelCountingCrossCohortCovariateValueMapping( column_name )
@@ -30,6 +32,9 @@ namespace genfile {
 	}
 	
 	CohortIndividualSource::Entry CategoricalCrossCohortCovariateValueMapping::get_mapped_value( Entry const& entry ) const {
+#if DEBUG
+		std::cerr << "CategoricalCrossCohortCovariateValueMapping::get_mapped_value( " << entry << " ).\n" ;
+#endif
 		Histogram::const_iterator where = histogram().find( entry ) ;
 		assert( where != histogram().end() ) ;
 		return Entry( int( std::distance( histogram().begin(), where ) ) ) ;
@@ -38,7 +43,8 @@ namespace genfile {
 	
 	std::string CategoricalCrossCohortCovariateValueMapping::get_summary( std::string const& prefix ) const {
 		std::ostringstream ostr ;
-		ostr << "missing  levels\n"
+		ostr << prefix
+			<< "missing  levels\n"
 			<< prefix
 			<< std::setw(8) << std::setfill( ' ' ) << std::left << std::fixed << std::setprecision( 5 )
 			<< get_number_of_missing_values() ;
