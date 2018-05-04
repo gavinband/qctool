@@ -42,6 +42,7 @@
 
 #include "db/Error.hpp"
 
+#include "metro/constants.hpp"
 #include "metro/regression/Design.hpp"
 #include "metro/SampleRange.hpp"
 #include "metro/intersect_ranges.hpp"
@@ -101,33 +102,34 @@ namespace {
 		result.resize( newBack - result.begin() ) ;
 		return result ;
 	}
-#if 0
-	void fill_matrix_values_categorical(
-		Eigen::MatrixXd* values,
-		int column_offset,
-		std::vector< metro::SampleRange >* non_missing_values,
-		genfile::CrossCohortCovariateValueMapping const& mapping,
-		int row,
-		genfile::VariantEntry const& value,
-		int const omitted_value
-	) {
-		int const d = mapping.get_number_of_distinct_mapped_values() - 1 ;
-		if( value.is_missing() ) {
-			non_missing_values->row( row ).segment( column_offset, d ).setZero() ;
-			(*values)->row( row_offset + row ).segment( column_offset, d ).setConstant( std::numeric_limits< double >::quiet_NaN() ) ;
-		} else {
-			non_missing_values->row( row_offset + row ).segment( column_offset, d ).setOnes() ;
-			values->row( row_offset + row ).segment( column_offset, d ).setZero() ;
 
-			int mapped_value = mapping.get_mapped_value( value ).as< int >() ;
-			if( mapped_value != omitted_value ) {
-				mapped_value -= ( ( mapped_value > omitted_value ) ? 1 : 0 ) ;
-				(*non_missing_values)( row_offset + row, column_offset + mapped_value - 1 ) = 1 ;
-				(*values)( row_offset + row, column_offset + mapped_value - 1 ) = 1 ;
-			}
+	double extract_mapped_continuous_value(
+		std::size_t sample_index,
+		genfile::CohortIndividualSource const& samples,
+		std::size_t column_index,
+		genfile::CrossCohortCovariateValueMapping const& mapping
+	) {
+		double value = metro::NA ;
+		genfile::VariantEntry entry = samples.get_entry( sample_index, column_index ) ;
+		if( !entry.is_missing() ) {
+			value = mapping.get_mapped_value( entry ).as< double >() ;
 		}
+		return value ;
 	}
-#endif
+
+	int extract_mapped_categorical_value(
+		std::size_t sample_index,
+		genfile::CohortIndividualSource const& samples,
+		std::size_t column_index,
+		genfile::CrossCohortCovariateValueMapping const& mapping
+	) {
+		int value = -1 ;
+		genfile::VariantEntry entry = samples.get_entry( sample_index, column_index ) ;
+		if( !entry.is_missing() ) {
+			value = mapping.get_mapped_value( entry ).as< int >() - 1 ;
+		}
+		return value ;
+	}
 }
 
 struct HPTestOptions: public appcontext::CmdLineOptionProcessor
@@ -284,7 +286,7 @@ public:
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
 		options[ "-outcome-genotype-call-threshold" ]
-			.set_description( "Threshold outcome probabilities, if necessary, to make calls." )
+			.set_description( "The threshold to apply to outcome genotype probabilities, if necessary, to make calls." )
 			.set_takes_single_value()
 			.set_default_value( 0.9 ) ;
 	}
@@ -800,74 +802,16 @@ private:
 		using namespace metro ;
 		typedef std::vector< SampleRange > SampleRanges ;
 
-		// Put together data needed for setting up regression design
-		typedef std::vector< std::string > Names ;
 
-		SampleRanges const all_samples( 1, SampleRange( 0, samples.size() )) ;
-
-#if 0
-		Matrix covariates ;
-		SampleRanges covariate_inclusions ;
-		load_covariates(
-			samples, options().get_values< std::string >( "-covariates" ),
-			&covariates, &covariate_inclusions
-		) ;
-#endif
-		// list of model designs
-		// designs[0] is null model
-		// designs[1] is 1st alternative
-		boost::ptr_vector< regression::Design > designs ;
+		// list of models
+		// designs[0] is baseline model
+		// designs[1 onwards] are alternative models
 		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
-		designs.push_back(
-			regression::Design::create(
-				Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ outcomeName + "=0", outcomeName + "=1" }),
-				Matrix::Zero( samples.size(), 0 ), all_samples, Names(),
-				Names() // only baseline
-			)
-		) ;
-		
-		std::vector< std::string > const& models = options().get_values< std::string >( "-models" ) ;
-		std::vector< Eigen::MatrixXd > modelEncodings( models.size() + 1 ) ;
-		// Null model encoding
-		modelEncodings[0] = Eigen::MatrixXd(3,0) ;
 
-		// Alternative models encoding
-		for( std::size_t i = 0; i < models.size(); ++i ) {
-			std::string const& predictorCoding = models[i] ;
-			
-			Matrix predictor_levels ;
-			Names predictorNames ;
-			if( predictorCoding == "add+het" ) {
-				predictor_levels = Eigen::MatrixXd::Zero( 3, 2 ) ;
-				// add predictor
-				predictor_levels(0,0) = 0 ;
-				predictor_levels(1,0) = 1 ;
-				predictor_levels(2,0) = 2 ;
-				// het predictor
-				predictor_levels(1,1) = 1 ;
-				predictorNames = Names({"add", "het"}) ;
-			} else if( predictorCoding == "add" ) {
-				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
-				// add predictor
-				predictor_levels(0,0) = 0 ;
-				predictor_levels(1,0) = 1 ;
-				predictor_levels(2,0) = 2 ;
-				predictorNames = Names({"add"}) ;
-				std::cerr << "Additive coding.\n" ;
-			} else {
-				assert(0) ;
-			}
+		boost::ptr_vector< regression::Design > designs ;
+		std::vector< Eigen::MatrixXd > predictorCodings ;
+		build_models( samples, &designs, &predictorCodings ) ;
 
-			modelEncodings[i+1] = predictor_levels ;
-
-			designs.push_back(
-				regression::Design::create(
-					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "outcome=0", "outcome=1" }),
-					Matrix::Zero( samples.size(), 0 ), all_samples, Names(),
-					predictorNames
-				)
-			) ;
-		}
 		genfile::SNPDataSource* const predictor_source = &host ;
 		genfile::SNPDataSource* const outcome_source = &para ;
 
@@ -900,7 +844,7 @@ private:
 				predictor_source->read_variant_data()->get( ":genotypes:", genfile::to_GP_unphased( hostSetter )) ;
 				designs[0].set_predictors( Eigen::MatrixXd::Zero( 1, 0 ), predictor_probabilities.rowwise().sum(), nonmissing_predictor ) ;
 				for( std::size_t i = 1; i < designs.size(); ++i ) {
-					designs[i].set_predictors( modelEncodings[i], predictor_probabilities, nonmissing_predictor ) ;
+					designs[i].set_predictors( predictorCodings[i], predictor_probabilities, nonmissing_predictor ) ;
 				}
 
 				bool predictorIncluded = true ;
@@ -982,35 +926,140 @@ private:
 		}
 	}
 	
-#if 0	
-	void load_covariates(
+	void build_models(
 		genfile::CohortIndividualSource const& samples,
-		std::vector< std::string > const& covariate_names,
-		Eigen::MatrixXd* covariates,
-		std::vector< metro::SampleRange >* inclusions
+		boost::ptr_vector< metro::regression::Design >* designs,
+		std::vector< Eigen::MatrixXd >* predictorCodings
 	) {
-		(*covariates) = Eigen::MatrixXd::Zero( samples.get_number_of_individuals(), covariate_names.size() ) ;
-		genfile::CohortIndividualSource::ColumnSpec const& spec = samples.get_column_spec() ;
-		for( std::size_t i = 0; i < covariate_names.size(); ++i ) {
-			genfile::CrossCohortCovariateValueMapping mapping( spec[ covariate_names[i] ] ) ;
-			mapping.add_source( samples ) ;
-			Eigen::VectorXd values( Eigen::VectorXd::Zero( samples.get_number_of_individuals() )) ;
-			samples.get_column_values(
-				covariate_names[i],
-				boost::bind(
-					&impl::fill_matrix_values_categorical,
-					&values,
-					inclusions,
-					boost::cref( mapping ),
-					_1, _2,
-					1 // omit the first level
-				)
-			) ;
-			
+		build_unadjusted_models( samples, designs, predictorCodings ) ;
+		if( options().check( "-covariates" )) {
+			add_covariates( samples, designs, options().get_values< std::string >( "-covariates" ) ) ;
 		}
 	}
-#endif
+
+	void build_unadjusted_models(
+		genfile::CohortIndividualSource const& samples,
+		boost::ptr_vector< metro::regression::Design >* designs,
+		std::vector< Eigen::MatrixXd >* predictorCodings
+	) {
+		typedef std::vector< metro::SampleRange > SampleRanges ;
+		typedef std::vector< std::string > Names ;
+
+		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
+
+		// baseline model, no predictor
+		{
+			designs->push_back(
+				metro::regression::Design::create(
+					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ outcomeName + "=0", outcomeName + "=1" }),
+					Names() // only baseline
+				)
+			) ;
+			predictorCodings->push_back( Eigen::MatrixXd(3,0) ) ;
+		}
+
+		// alternative models
+		std::vector< std::string > const& models = options().get_values< std::string >( "-models" ) ;
+		// Null model encoding
+
+		// Alternative models encoding
+		for( std::size_t i = 0; i < models.size(); ++i ) {
+			std::string const& predictorCoding = models[i] ;
 		
+			Matrix predictor_levels ;
+			Names predictorNames ;
+			if( predictorCoding == "add+het" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 2 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 2 ;
+				// het predictor
+				predictor_levels(1,1) = 1 ;
+				predictorNames = Names({"add", "het"}) ;
+			} else if( predictorCoding == "add" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 2 ;
+				predictorNames = Names({"add"}) ;
+			} else if( predictorCoding == "dom" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 1 ;
+				predictorNames = Names({"dom"}) ;
+			} else if( predictorCoding == "rec" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 0 ;
+				predictor_levels(2,0) = 1 ;
+				predictorNames = Names({"rec"}) ;
+			} else if( predictorCoding == "het" ) {
+				predictor_levels = Eigen::MatrixXd::Zero( 3, 1 ) ;
+				// add predictor
+				predictor_levels(0,0) = 0 ;
+				predictor_levels(1,0) = 1 ;
+				predictor_levels(2,0) = 0 ;
+				predictorNames = Names({"het"}) ;
+			} else {
+				assert(0) ;
+			}
+
+			designs->push_back(
+				metro::regression::Design::create(
+					Matrix::Zero( samples.size(), 2 ), SampleRanges(), Names({ "outcome=0", "outcome=1" }),
+					predictorNames
+				)
+			) ;
+			predictorCodings->push_back( predictor_levels ) ;
+		}
+	}
+
+	void add_covariates(
+		genfile::CohortIndividualSource const& samples,
+		boost::ptr_vector< metro::regression::Design >* designs,
+		std::vector< std::string > const& covariates
+	) {
+		genfile::CohortIndividualSource::ColumnSpec const& spec = samples.get_column_spec() ;
+		for( std::size_t i = 0; i < covariates.size(); ++i ) {
+			genfile::CrossCohortCovariateValueMapping::UniquePtr mapping
+				= genfile::CrossCohortCovariateValueMapping::create( spec[i], true ) ;
+			mapping->add_source( samples ) ;
+			
+			for( std::size_t model_i = 0; model_i < designs->size(); ++model_i ) {
+				metro::regression::Design& design = designs->at(model_i) ;
+				if( spec[i].is_discrete() ) {
+					design.add_single_covariate(
+						covariates[i],
+						boost::bind(
+							&extract_mapped_categorical_value,
+							_1,
+							boost::cref( samples ),
+							spec.find_column( covariates[i] ),
+							boost::cref( *mapping )
+						)
+					) ;
+				} else {
+					design.add_discrete_covariate(
+						covariates[i],
+						boost::bind(
+							&extract_mapped_continuous_value,
+							_1,
+							boost::cref( samples ),
+							spec.find_column( covariates[i] ),
+							boost::cref( *mapping )
+						),
+						mapping->get_number_of_distinct_mapped_values()
+					) ;
+				}
+			}
+		}
+	}
+			
 	void summarise_models(
 		boost::ptr_vector< metro::regression::Design >& designs
 	) {
