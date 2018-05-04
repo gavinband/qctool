@@ -38,6 +38,7 @@
 #include "genfile/CompoundSampleFilter.hpp"
 #include "genfile/SampleFilterNegation.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
+#include "genfile/GPThresholdingGTSetter.hpp"
 
 #include "db/Error.hpp"
 
@@ -194,7 +195,6 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
-
 		options[ "-output-models" ]
 			.set_description( "Specify which models to output estimates, standard errors, and Wald P-values for. "
 				"This can be either \"alternative\", in which case only non-null models are output, or \"all\" in which "
@@ -203,7 +203,6 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "alternative" )
 			.set_check( boost::bind( &in_set, _1, _2, std::set< std::string >({"all", "alternative"}) ) ) ;
-
 		options[ "-output-parameters" ]
 			.set_description( "Specify which parameters to output estimates, standard errors, and Wald P-values for."
 				"By default only data on the genetic parameters are output; specify \"all\" to output all parameters."
@@ -211,13 +210,16 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "genetic" )
 			.set_check( boost::bind( &in_set, _1, _2, std::set< std::string >({"all", "genetic"}) ) ) ;
+		options[ "-detailed" ]
+			.set_description( "Specify that hptest should produce detailed output for each test." ) ;
+		options[ "-output-all-variants" ]
+			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
 		
 		options.declare_group( "Model options" ) ;
 		options[ "-models" ]
 			.set_description( "Specify models to fit." )
 			.set_takes_values_until_next_option()
-			.set_default_value( "add+het" )
-		;
+			.set_default_value( "add+het" ) ;
 		options[ "-incl-samples"]
 			.set_description( "Filter out samples whose sample ID does not lie in the given file(s).")
 			.set_takes_values( 1 )
@@ -238,31 +240,14 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
-
-		options[ "-tolerance" ]
-			.set_description( "Tolerance" )
-			.set_takes_values(1)
-			.set_default_value( 0.001 )
-		;
-
-		options[ "-max-iterations" ]
-			.set_description( "Maximum fitting iterations" )
-			.set_takes_values(1)
-			.set_default_value( 100 )
-		;
-
 		options[ "-minimum-predictor-count" ]
 			.set_description( "Skip predictors that have less than this minor allele count" )
 			.set_takes_values(1)
-			.set_default_value( 10 )
-		;
-
+			.set_default_value( 10 ) ;
 		options[ "-minimum-outcome-count" ]
 			.set_description( "Skip outcomes that have less than this count" )
 			.set_takes_values(1)
-			.set_default_value( 10 )
-		;
-
+			.set_default_value( 10 ) ;
 		options[ "-prior" ]
 			.set_description( "Specify a prior for bayesian computation."
 				"Prior spec should be in the form <parameter name>~<distribution family>(parameters)."
@@ -279,6 +264,16 @@ public:
 			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." )
 		;
 
+		options.declare_group( "Model fitting options" ) ;
+		options[ "-tolerance" ]
+			.set_description( "Tolerance" )
+			.set_takes_values(1)
+			.set_default_value( 0.001 ) ;
+		options[ "-max-iterations" ]
+			.set_description( "Maximum fitting iterations" )
+			.set_takes_values(1)
+			.set_default_value( 100 ) ;
+
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
@@ -288,12 +283,10 @@ public:
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
-		options[ "-detailed" ]
-			.set_description( "Specify that hptest should produce detailed output for each test." ) ;
-		options[ "-output-all-variants" ]
-			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
-		options[ "-threshold" ]
-			.set_description( "Threshold outcome probabilities, if necessary, to make calls." ) ;
+		options[ "-outcome-genotype-call-threshold" ]
+			.set_description( "Threshold outcome probabilities, if necessary, to make calls." )
+			.set_takes_single_value()
+			.set_default_value( 0.9 ) ;
 	}
 } ;
 
@@ -599,8 +592,7 @@ private:
 				"-incl-outcome-range",
 				"-incl-outcome-rsids"
 			),
-			excluded_samples,
-			options().check( "-threshold" )
+			excluded_samples
 		) ;
 
 		std::size_t const N = samples->size() ;
@@ -933,15 +925,33 @@ private:
 							  << "++   OUTCOME variant: " << ov << "\n" ;
 #endif
 
-					outcome_source->read_variant_data()->get( "GT", CallSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ) ;
-					for( std::size_t i = 0; i < designs.size(); ++i ) {
-						designs[i].set_outcome(
-							outcome,
-							nonmissing_outcome,
-							std::vector< std::string >({outcomeName + "=0", outcomeName + "=1"} )
-						) ;
+					{
+						genfile::VariantDataReader::UniquePtr outcome_data = outcome_source->read_variant_data() ;
+						CallSetter callSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ;
+						if( outcome_data->supports( "GT" )) {
+							outcome_source->read_variant_data()->get( "GT", callSetter ) ;
+						} else if( outcome_data->supports( "GP" )) {
+							outcome_source->read_variant_data()->get(
+								"GP",
+								genfile::GPThresholdingGTSetter( callSetter, options().get< double >( "-outcome-genotype-call-threshold" ) )
+							) ;
+						} else {
+							throw genfile::BadArgumentError(
+								"HPTestApplication::test()",
+								"outcome_source",
+								"Source must support hard genotype calls (GT) or genotype probabilities (GP) field."
+							) ;
+						}
+						
+						for( std::size_t i = 0; i < designs.size(); ++i ) {
+							designs[i].set_outcome(
+								outcome,
+								nonmissing_outcome,
+								std::vector< std::string >({outcomeName + "=0", outcomeName + "=1"} )
+							) ;
+						}
 					}
-				
+					
 					bool outcomeIncluded = true ;
 					double const outcomeCount =  std::min( outcome.col(0).sum(), outcome.col(1).sum() ) ;
 					if( outcomeCount < options().get< double >( "-minimum-outcome-count" )) {
