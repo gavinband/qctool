@@ -255,10 +255,10 @@ public:
 				"Currently, logF and gaussian priors are supported."
 			)
 			.set_takes_values_until_next_option()
-			.set_default_value( "add/outcome=1~logf(2,2)" )
-			.set_default_value( "het/outcome=1~logf(4,4)" )
-			.set_default_value( "dom/outcome=1~logf(4,4)" )
-			.set_default_value( "rec/outcome=1~logf(4,4)" )
+			.set_default_value( "add/[outcome]=1~logf(2,2)" )
+			.set_default_value( "het/[outcome]=1~logf(4,4)" )
+			.set_default_value( "dom/[outcome]=1~logf(4,4)" )
+			.set_default_value( "rec/[outcome]=1~logf(4,4)" )
 		;
 		options[ "-no-prior" ]
 			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." )
@@ -926,12 +926,12 @@ private:
 #endif
 
 					{
-						genfile::VariantDataReader::UniquePtr outcome_data = outcome_source->read_variant_data() ;
+						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source->read_variant_data() ;
 						CallSetter callSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ;
-						if( outcome_data->supports( "GT" )) {
-							outcome_source->read_variant_data()->get( "GT", callSetter ) ;
-						} else if( outcome_data->supports( "GP" )) {
-							outcome_source->read_variant_data()->get(
+						if( outcomeReader->supports( "GT" )) {
+							outcomeReader->get( "GT", callSetter ) ;
+						} else if( outcomeReader->supports( "GP" )) {
+							outcomeReader->get(
 								"GP",
 								genfile::GPThresholdingGTSetter( callSetter, options().get< double >( "-outcome-genotype-call-threshold" ) )
 							) ;
@@ -1126,7 +1126,13 @@ private:
 			std::string parameter_name ;
 			std::string distribution ;
 			std::vector< std::string > parameters ;
-			parse_prior_spec( specs[i], &parameter_name, &distribution, &parameters ) ;
+			parse_prior_spec(
+				specs[i],
+				&parameter_name,
+				&distribution,
+				&parameters,
+				options().get< std::string >( "-outcome-name" )
+			) ;
 
 			++used_parameters[parameter_name] ;
 			if( used_parameters[parameter_name] > 1 ) {
@@ -1210,7 +1216,8 @@ private:
 		std::string const& spec,
 		std::string* parameter_name,
 		std::string* distribution,
-		std::vector< std::string >* parameters
+		std::vector< std::string >* parameters,
+		std::string const& outcome_name
 	) const {
 		using genfile::string_utils::split ;
 		using genfile::string_utils::to_repr ;
@@ -1221,7 +1228,7 @@ private:
 				"PerVariantComputationManager::parse_prior_spec()",
 				"spec=\"" + spec + "\"",
 				(boost::format(
-					"Malformatted value (\"%s\") specified, should be of the form <parameter name>=<family>(<parameters>)\n"
+					"Malformatted value (\"%s\") specified, should be of the form <parameter name>~<family>(<parameters>)\n"
 						" where family is one of \"gaussian\" or \"logF\"") % spec).str()
 			) ;
 		}
@@ -1241,7 +1248,17 @@ private:
 		}
 		std::vector< slice > const parameter_spec = distribution_spec[1].split( "," ) ;
 
-		*parameter_name = elts[0] ;
+		{
+			std::string parameterSpec = elts[0] ;
+			std::size_t where = parameterSpec.find( "[outcome]" ) ;
+			if( where != std::string::npos ) {
+				parameterSpec = parameterSpec.substr( 0, where )
+					+ outcome_name
+					+ parameterSpec.substr( where + 9, parameterSpec.size() ) ;
+			}
+			*parameter_name = parameterSpec ;
+		}
+		
 		*distribution = distribution_spec[0] ;
 		parameters->assign( parameter_spec.begin(), parameter_spec.end() ) ;
 	}
