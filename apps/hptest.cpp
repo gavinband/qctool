@@ -226,7 +226,7 @@ public:
 			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
 		
 		options.declare_group( "Model options" ) ;
-		options[ "-models" ]
+		options[ "-model" ]
 			.set_description( "Specify models to fit.  Syntax is <name>:<model>" )
 			.set_takes_values_until_next_option()
 			.set_default_value( "gen:add+het" ) ;
@@ -973,7 +973,7 @@ private:
 		}
 
 		// alternative models
-		std::vector< std::string > const& models = options().get_values< std::string >( "-models" ) ;
+		std::vector< std::string > const& models = options().get_values< std::string >( "-model" ) ;
 		// Null model encoding
 
 		using genfile::string_utils::slice ;
