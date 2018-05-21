@@ -82,6 +82,14 @@ namespace metro {
 			}
 			m_value_of_function += m_constant ;
 		}
+		
+		IndependentNormalWeightedLogLikelihood::Vector IndependentNormalWeightedLogLikelihood::get_prior_mode() const {
+			Vector result = Vector::Zero( m_value_of_first_derivative.size() ) ;
+			for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {
+				result(i) = m_means[i] ;
+			}
+			return result ;
+		}
 	
 		std::string IndependentNormalWeightedLogLikelihood::get_summary() const {
 			std::ostringstream ostr ;

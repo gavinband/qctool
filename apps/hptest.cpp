@@ -49,6 +49,7 @@
 #include "metro/regression/BinomialLogistic.hpp"
 #include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
 #include "metro/regression/IndependentLogFWeightedLogLikelihood.hpp"
+#include "metro/regression/LogPosteriorDensity.hpp"
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
@@ -1484,7 +1485,6 @@ private:
 	) {
 		Eigen::ColPivHouseholderQR< Matrix > null_solver ;
 		Eigen::ColPivHouseholderQR< Matrix > solver ;
-		Eigen::VectorXd const& parameters = ll.get_parameters() ;
 		Matrix const& information = -ll.get_value_of_second_derivative() ;
 		null_solver.compute( -null_ll.get_value_of_second_derivative() ) ;
 		solver.compute( information ) ;
@@ -1495,7 +1495,8 @@ private:
 				<< ".\n" ;
 #endif
 		if( check_model_fit( information, variance_covariance, model_name, comments ) ) {
-			output_parameter_estimates( ll, variants, model_name, variance_covariance, output ) ;
+			std::vector< int > const parametersToOutput = get_parameters_to_output( ll ) ;
+			output_parameter_estimates( ll, variants, model_name, variance_covariance, output, parametersToOutput ) ;
 			
 			compute_frequentist_summary(
 				null_ll, ll,
@@ -1508,7 +1509,8 @@ private:
 					null_ll, null_solver.logAbsDeterminant(),
 					ll, solver.logAbsDeterminant(),
 					model_name,
-					variants, output
+					variants, output,
+					parametersToOutput
 				) ;
 			}
 		}
@@ -1531,17 +1533,8 @@ private:
 		}
 	}
 	
-	void output_parameter_estimates(
-		metro::regression::LogLikelihood const& ll,
-		std::vector< genfile::VariantIdentifyingData > const& variants,
-		std::string const& model_name,
-		Matrix const& variance_covariance,
-		qcdb::MultiVariantStorage& output
-	) const {
-		// Output parameter estimates, standard errors, etc.
-		metro::regression::LogLikelihood::IntegerMatrix const parameter_identity = ll.identify_parameters() ;
-		using genfile::string_utils::to_string ;
-
+	std::vector< int > get_parameters_to_output( metro::regression::LogLikelihood const& ll ) {
+		std::vector< int > result ;
 		int lower = 0 ;
 		int upper = 0 ;
 		std::string const output_parameters = options().get< std::string >( "-output-parameters" ) ;
@@ -1558,25 +1551,46 @@ private:
 				"Expected \"all\" or \"genetic\"."
 			) ;
 		}
-		
-		int const alternative_D = ll.design().matrix().cols() ;
+		for( int i = lower; i < upper; ++i ) {
+			result.push_back(i) ;
+		}
+		return result ;
+	}
+	
+	void output_parameter_estimates(
+		metro::regression::LogLikelihood const& ll,
+		std::vector< genfile::VariantIdentifyingData > const& variants,
+		std::string const& model_name,
+		Matrix const& variance_covariance,
+		qcdb::MultiVariantStorage& output,
+		std::vector< int > const parametersToOutput
+	) const {
+		// Output parameter estimates, standard errors, etc.
+		metro::regression::LogLikelihood::IntegerMatrix const parameter_identity = ll.identify_parameters() ;
+		using genfile::string_utils::to_string ;
+
 		Vector const& parameters = ll.get_parameters() ;
 
-		for( int i = lower ; i < upper; ++i ) {
+		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+			int const i = parametersToOutput[parameter_i] ;
 			std::string const parameter_name = ll.get_parameter_name(i) ;
 			output.store_data_for_key( variants, model_name + ":beta_" + to_string( i ) + ":" + parameter_name, parameters( i ) ) ;
 		}
 
-		for( int i = lower; i < upper; ++i ) {
+		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+			int const i = parametersToOutput[parameter_i] ;
 			output.store_data_for_key( variants, model_name + ":se_" + to_string( i ) /*+ ":" + parameter_naming_scheme( i ) */, std::sqrt( variance_covariance( i, i ) ) ) ;
 		}
-		for( int i = lower; i < upper; ++i ) {
-			for( int j = i+1; j < upper; ++j ) {
+		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+			int const i = parametersToOutput[parameter_i] ;
+			for( std::size_t parameter_j = parameter_i+1; parameter_j < parametersToOutput.size(); ++parameter_j ) {
+				int const j = parametersToOutput[parameter_j] ;
 				output.store_data_for_key( variants, model_name + ":cov_" + to_string( i ) + "," + to_string( j ), variance_covariance( i, j ) ) ;
 			}
 		}
 		
-		for( int i = lower ; i < upper; ++i ) {
+		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+			int const i = parametersToOutput[parameter_i] ;
 			std::string const parameter_name = ll.get_parameter_name(i) ;
 			output.store_data_for_key(
 				variants,
@@ -1602,7 +1616,8 @@ private:
 		double const logAbsFullDeterminant,
 		std::string const& model_name,
 		std::vector< genfile::VariantIdentifyingData > const& variants,
-		qcdb::MultiVariantStorage& output
+		qcdb::MultiVariantStorage& output,
+		std::vector< int > const parametersToOutput
 	) const {
 		//  P(alt|D)       P(D|alt)    P(alt)           P(alt)
 		// ---------   =   -------- x  ------    = BF x ------ 
@@ -1618,7 +1633,7 @@ private:
 		// Use a laplace approximation to compute numerator and denominator of the BF
 		// The point is that we have an (approximate) estimate of the unnormalised posterior
 		// under the null and alternative models.  The normalising constant gives us the
-		// posterior.  
+		// posterior.
 		Vector const& alternative_parameters = ll.get_parameters() ;
 		Vector const& null_parameters = null_ll.get_parameters() ;
 		double const log_2pi = std::log( 2.0 * 3.1415926535897932384626 ) ;
@@ -1635,6 +1650,31 @@ private:
 			model_name + ":log10_bf",
 			log10_bf
 		) ;
+		
+		metro::regression::LogPosteriorDensity const* posterior = dynamic_cast< metro::regression::LogPosteriorDensity const* >( &ll ) ;
+		assert( posterior ) ;
+		if( posterior ) {
+			Eigen::VectorXd const prior_mode = posterior->get_prior_mode() ;
+			Matrix const ll_information = -posterior->get_loglikelihood_second_derivative() ;
+			Eigen::ColPivHouseholderQR< Matrix > solver( ll_information ) ;
+			Matrix const ll_variance_covariance = solver.solve( Matrix::Identity( ll_information.rows(), ll_information.cols() ) ) ;
+
+			using genfile::string_utils::to_string ;
+			for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+				int const i = parametersToOutput[parameter_i] ;
+				output.store_data_for_key(
+					variants,
+					model_name + ":prior_mode_" + to_string(i),
+					prior_mode(i)
+				) ;
+				output.store_data_for_key(
+					variants,
+					model_name + ":ll_se_" + to_string(i),
+					std::sqrt( ll_variance_covariance(i,i) )
+				) ;
+					
+			}
+		}
 	}
 
 	void compute_frequentist_summary(

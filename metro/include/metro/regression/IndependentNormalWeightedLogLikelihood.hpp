@@ -14,6 +14,7 @@
 #include "Eigen/Cholesky"
 #include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
+#include "metro/regression/LogPosteriorDensity.hpp"
 
 namespace metro {
 	namespace regression {
@@ -21,7 +22,7 @@ namespace metro {
 		// normal distributions on each parameter.
 		// by default variance=infinity, i.e. no weighting, and weighting
 		// must be set.
-		struct IndependentNormalWeightedLogLikelihood: public LogLikelihood {
+		struct IndependentNormalWeightedLogLikelihood: public LogPosteriorDensity {
 		public:
 			typedef std::auto_ptr< IndependentNormalWeightedLogLikelihood > UniquePtr ;
 			enum Normalisation { ePDF, eZeroAtMean } ;
@@ -64,6 +65,16 @@ namespace metro {
 
 			Matrix get_value_of_second_derivative() const {
 				return m_ll->get_value_of_second_derivative() + m_value_of_second_derivative ;
+			}
+		
+			Vector get_prior_mode() const ;
+
+			Matrix get_prior_second_derivative() const {
+				return m_value_of_second_derivative ;
+			}
+
+			Matrix get_loglikelihood_second_derivative() const {
+				return m_ll->get_value_of_second_derivative() ;
 			}
 		
 			std::string get_summary() const ;

@@ -110,6 +110,15 @@ namespace metro {
 			}
 		}
 	
+		IndependentLogFWeightedLogLikelihood::Vector IndependentLogFWeightedLogLikelihood::get_prior_mode() const {
+			Vector result = Vector::Zero( m_value_of_first_derivative.size() ) ;
+			for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {
+				// mode is mode of beta distribution with shpae1=1+alpha, shape2
+				result(i) = m_alpha[i] / ( m_alpha[i] + m_beta[i] ) ;
+			}
+			return result ;
+		}
+	
 		std::string IndependentLogFWeightedLogLikelihood::get_summary() const {
 			std::ostringstream ostr ;
 			ostr << m_ll->get_summary() << "\n" ;

@@ -14,12 +14,13 @@
 #include "Eigen/Cholesky"
 #include "metro/regression/Design.hpp"
 #include "metro/regression/LogLikelihood.hpp"
+#include "metro/regression/LogPosteriorDensity.hpp"
 
 namespace metro {
 	namespace regression {
 		// Represents a log-likelihood function weighted by independent
 		// log-F distributions on each of a chosen set of parameters.
-		struct IndependentLogFWeightedLogLikelihood: public LogLikelihood {
+		struct IndependentLogFWeightedLogLikelihood: public LogPosteriorDensity {
 		public:
 			typedef std::auto_ptr< IndependentLogFWeightedLogLikelihood > UniquePtr ;
 			enum Normalisation { ePDF, eZeroAtMean } ;
@@ -62,6 +63,16 @@ namespace metro {
 
 			Matrix get_value_of_second_derivative() const {
 				return m_ll->get_value_of_second_derivative() + m_value_of_second_derivative ;
+			}
+
+			Vector get_prior_mode() const ;
+
+			Matrix get_prior_second_derivative() const {
+				return m_value_of_second_derivative ;
+			}
+
+			Matrix get_loglikelihood_second_derivative() const {
+				return m_ll->get_value_of_second_derivative() ;
 			}
 		
 			std::string get_summary() const ;
