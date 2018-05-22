@@ -200,9 +200,8 @@ namespace metro {
 			Eigen::MatrixXd mean_predictors = Eigen::MatrixXd::Zero( N, P ) ;
 			{
 				for( int level = 0; level < m_predictor_level_probabilities.cols(); ++level ) {
-					mean_predictors += m_predictor_level_probabilities.col(0).asDiagonal() * m_predictor_levels.block( 0, P*level, N, P ) ;
+					mean_predictors += m_predictor_level_probabilities.col(level).asDiagonal() * m_predictor_levels.block( 0, P*level, N, P ) ;
 				}
-				mean_predictors /= m_predictor_level_probabilities.cols() ;
 			}
 
 			std::vector< std::size_t > widths( D + 1 ) ;
@@ -217,8 +216,8 @@ namespace metro {
 			for( int i = 0; i < N; ++i ) {
 				out << std::setw(5) << i ;
 				out << std::setw(3) << "   " ;
-				if( outcome()(i) == outcome()(i) ) {
-					out << std::setw(widths[0]) << outcome()(i) ;
+				if( outcome().row(i).sum() == outcome().row(i).sum() ) {
+					out << outcome()(i,0) << " " << outcome()(i,1) ;
 				} else {
 					out << std::setw(widths[0]) << "NA" ;
 				}

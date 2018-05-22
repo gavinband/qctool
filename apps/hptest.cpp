@@ -302,6 +302,9 @@ public:
 			.set_description( "The threshold to apply to outcome genotype probabilities, if necessary, to make calls." )
 			.set_takes_single_value()
 			.set_default_value( 0.9 ) ;
+		options.declare_group( "Miscellaneous options" ) ;
+		options[ "-debug" ]
+			.set_description( "Output debugging information." ) ;
 	}
 } ;
 
@@ -370,7 +373,7 @@ namespace {
 
 		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
 			// This sample has missing data, end our current sample range here.
-			if( m_sample_i > m_last_nonmissing_sample_i ) {
+			if( m_sample_i >= m_last_nonmissing_sample_i ) {
 				m_nonmissing_samples->push_back(
 					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
 				) ;
@@ -380,7 +383,7 @@ namespace {
 
 		void set_value( std::size_t entry_i, Integer const value ) {
 			// Only accumulate if not missing
-			if( m_sample_i > m_last_nonmissing_sample_i ) {
+			if( m_sample_i >= m_last_nonmissing_sample_i ) {
 				(*m_genotypes)(m_sample_i,value) += 1 ;
 			}
 		}
@@ -850,6 +853,7 @@ private:
 				: boost::optional< std::size_t >() ;
 			bool have_summarised_models = false ;
 			bool outputAllVariants = options().check( "-output-all-variants" ) ;
+			bool const debug = options().check( "-debug" ) ;
 
 			while( predictor_source->get_snp_identifying_data( &pv )) {
 				ProbSetter hostSetter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
@@ -869,17 +873,21 @@ private:
 					predictorIncluded = false ;
 				}
 
-#if DEBUG
-				std::cerr << "PREDICTOR PROBS:\n" << predictor_probabilities.block( 0, 0, 30, predictor_probabilities.cols() ) << "\n" ;
-				std::cerr << "PREDICTOR INCLUDED SAMPLES: " << nonmissing_predictor << "\n" ;
-#endif
+				if( debug ) {
+					std::cerr << "PREDICTOR PROBS:\n" << predictor_probabilities.block( 0, 0, std::min( 30, int( predictor_probabilities.rows() ) ), predictor_probabilities.cols() ).transpose() << "\n" ;
+					std::cerr << "PREDICTOR INCLUDED SAMPLES: " << nonmissing_predictor << "\n" ;
+					std::cerr << "PREDICTOR CODINGS:\n" ;
+					for( std::size_t i = 1; i < designs.size(); ++i ) {
+						std::cerr << predictorCodings[i] << ".\n" ;
+					}
+				}
 				outcome_source->reset_to_start() ;
 				while( outcome_source->get_snp_identifying_data( &ov )) {
-#if DEBUG
-					std::cerr << "++ Testing:\n"
-							  << "++ PREDICTOR variant: " << pv << "\n"
-							  << "++   OUTCOME variant: " << ov << "\n" ;
-#endif
+					if( debug ) {
+						std::cerr << "++ Testing:\n"
+								  << "++ PREDICTOR variant: " << pv << "\n"
+								  << "++   OUTCOME variant: " << ov << "\n" ;
+					}
 
 					{
 						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source->read_variant_data() ;
@@ -898,6 +906,11 @@ private:
 								"Source must support hard genotype calls (GT) or genotype probabilities (GP) field."
 							) ;
 						}
+						if( debug ) {
+							std::cerr << "OUTCOME:\n" << outcome.block( 0, 0, std::min( 30, int( outcome.rows() ) ), outcome.cols() ).transpose() << ".\n" ;
+							std::cerr << "OUTCOME INCLUDED SAMPLES: " << nonmissing_outcome << "\n" ;
+						}
+
 						
 						for( std::size_t i = 0; i < designs.size(); ++i ) {
 							designs[i].set_outcome(
@@ -918,9 +931,6 @@ private:
 						summarise_models( model_names, designs ) ;
 						have_summarised_models = true ;
 					}
-#if DEBUG
-					std::cerr << "  OUTCOME INCLUDED SAMPLES: " << nonmissing_outcome << "\n" ;
-#endif
 					
 					if( outputAllVariants || (predictorIncluded && outcomeIncluded)) {
 						output_design( designs[1], variants, designs[1].nonmissing_samples(), output ) ;
