@@ -382,14 +382,9 @@ namespace {
 
 		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
 			// This sample has missing data, end our current sample range here.
-			if( m_sample_i >= m_last_nonmissing_sample_i ) {
-				m_nonmissing_samples->push_back(
-					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
-				) ;
-			}
-			m_last_nonmissing_sample_i = m_sample_i + 1 ;
+			record_missing_sample() ;
 		}
-
+		
 		void set_value( std::size_t entry_i, Integer const value ) {
 			// Only accumulate if not missing
 			if( m_sample_i >= m_last_nonmissing_sample_i ) {
@@ -397,7 +392,7 @@ namespace {
 					// Set anything that isn't homozygous to missing
 					if( (*m_genotypes)(m_sample_i,value) != 1 ) {
 						(*m_genotypes).row(m_sample_i).setZero() ;
-						m_last_nonmissing_sample_i = m_sample_i + 1 ;
+						record_missing_sample() ;
 					}
 				} else {
 					(*m_genotypes)(m_sample_i,value) += 1 ;
@@ -407,6 +402,15 @@ namespace {
 
 		void set_value( std::size_t entry_i, double const value ) {
 			assert(0) ; // expecting GT field
+		}
+
+		void record_missing_sample() {
+			if( m_sample_i >= m_last_nonmissing_sample_i ) {
+				m_nonmissing_samples->push_back(
+					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
+				) ;
+			}
+			m_last_nonmissing_sample_i = m_sample_i + 1 ;
 		}
 
 		void finalise() {
