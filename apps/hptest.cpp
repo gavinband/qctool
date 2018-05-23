@@ -193,7 +193,9 @@ public:
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option() ;
-
+		options[ "-treat-outcome-as-haploid" ]
+			.set_description( "Turn outcome homozygous genotype calls into haploid calls. "
+				"Heterozygous calls will be treated as missing" ) ;
 	    options[ "-s" ]
 	        .set_description( "Path of sample file" )
 			.set_takes_values( 1 )
@@ -321,10 +323,13 @@ namespace {
 			m_genotypes( genotypes ),
 			m_ploidy( ploidy ),
 			m_nonmissing_samples( nonmissing_samples ),
-			m_sample_i(0)
+			m_sample_i(0),
+			m_haploidify( false )
 		{
 			assert( genotypes != 0 && nonmissing_samples != 0 && ploidy != 0 ) ;
 		}
+
+		void set_haploidify() { m_haploidify = true ; }
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			if( nAlleles != 2 ) {
@@ -368,7 +373,11 @@ namespace {
 					"Expected a hard-called genotype, consider using threshholded calls."
 				) ;
 			}
-			(*m_ploidy)(m_sample_i) = ploidy ;
+			if( m_haploidify ) {
+				(*m_ploidy)(m_sample_i) = 1 ;
+			} else {
+				(*m_ploidy)(m_sample_i) = ploidy ;
+			}
 		}
 
 		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
@@ -384,7 +393,15 @@ namespace {
 		void set_value( std::size_t entry_i, Integer const value ) {
 			// Only accumulate if not missing
 			if( m_sample_i >= m_last_nonmissing_sample_i ) {
-				(*m_genotypes)(m_sample_i,value) += 1 ;
+				if( m_haploidify && entry_i > 0 ) {
+					// Set anything that isn't homozygous to missing
+					if( (*m_genotypes)(m_sample_i,value) != 1 ) {
+						(*m_genotypes).row(m_sample_i).setZero() ;
+						m_last_nonmissing_sample_i = m_sample_i + 1 ;
+					}
+				} else {
+					(*m_genotypes)(m_sample_i,value) += 1 ;
+				}
 			}
 		}
 
@@ -407,6 +424,7 @@ namespace {
 		SampleRanges* m_nonmissing_samples ;
 		std::size_t m_last_nonmissing_sample_i ;
 		std::size_t m_sample_i ;
+		bool m_haploidify ;
 	} ;
 	
 	struct ProbSetter: public genfile::VariantDataReader::PerSampleSetter {
@@ -428,7 +446,7 @@ namespace {
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			if( nAlleles != 2 ) {
 				throw genfile::BadArgumentError(
-					"CallSetter::initialise()",
+					"ProbSetter::initialise()",
 					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
 					"I only support biallelic variants"
 				) ;
@@ -892,6 +910,9 @@ private:
 					{
 						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source->read_variant_data() ;
 						CallSetter callSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ;
+						if( options().check( "-treat-outcome-as-haploid" )) {
+							callSetter.set_haploidify() ;
+						}
 						if( outcomeReader->supports( "GT" )) {
 							outcomeReader->get( "GT", callSetter ) ;
 						} else if( outcomeReader->supports( "GP" )) {
@@ -911,7 +932,6 @@ private:
 							std::cerr << "OUTCOME INCLUDED SAMPLES: " << nonmissing_outcome << "\n" ;
 						}
 
-						
 						for( std::size_t i = 0; i < designs.size(); ++i ) {
 							designs[i].set_outcome(
 								outcome,
