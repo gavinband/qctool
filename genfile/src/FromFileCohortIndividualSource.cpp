@@ -160,25 +160,23 @@ namespace genfile {
 			}
 			m_column_types[i] = where->second ;
 			
-            using genfile::string_utils::to_upper ;
-            if( to_upper( m_column_names[i] ) == "ID_1" && i != 0 ) {
+			using genfile::string_utils::to_upper ;
+			if( to_upper( m_column_names[i] ) == "ID_1" && i != 0 ) {
 				throw MalformedInputError( m_filename, "The name 'ID_1', if used, must be the first column in the sample file.", 0 ) ;
-            }
-            if( to_upper( m_column_names[i] ) == "ID_2" && i != 1 ) {
+			}
+			if( to_upper( m_column_names[i] ) == "ID_2" && i != 1 ) {
 				throw MalformedInputError( m_filename, "The name 'ID_2', if used, must be the second column in the sample file.", 0 ) ;
-            }
-            if( to_upper( m_column_names[i] ) == "missing" && i != 2 ) {
+			}
+			if( to_upper( m_column_names[i] ) == "missing" && i != 2 ) {
 				throw MalformedInputError( m_filename, "The name 'missing', if used, must be the third column in the sample file.", 0 ) ;
-            }
+			}
 			if( i == 0 && m_column_types[i] != e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, "column " + genfile::string_utils::to_string( i+1 ) + "(\"" + m_column_names[i] + "\") should have type \"0\"", 0 ) ;
-				}
+				throw MalformedInputError( m_filename, "column " + genfile::string_utils::to_string( i+1 ) + "(\"" + m_column_names[i] + "\") should have type \"0\"", 0 ) ;
 			}
 			if( i > 2 && m_column_types[i] == e_ID_COLUMN ) {
-					throw MalformedInputError( m_filename, "Only the first three columns can have type \"0\"", 0 ) ;
-				}
+				throw MalformedInputError( m_filename, "Only the first three columns can have type \"0\"", 0 ) ;
 			}
-            // update the missingness column to the right type.
+			// update the missingness column to the right type.
 			if( genfile::string_utils::to_upper( m_column_names[i] ) == "MISSING" ) {
 				m_column_types[i] = e_MISSINGNESS_COLUMN ;
 			}
