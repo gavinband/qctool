@@ -10,7 +10,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/thread/thread.hpp>
-#include "genfile/SNPIdentifyingData.hpp"
+#include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "db/Connection.hpp"
@@ -21,11 +21,13 @@
 namespace qcdb {
 	namespace impl {
 		bool get_match_rsid( std::string spec ) {
-			std::vector< std::string > elts = genfile::string_utils::split_and_strip( spec, "," ) ;
+			typedef genfile::VariantIdentifyingData::CompareFields CompareFields;
+			CompareFields comparer( spec ) ;
+			std::vector<int> const fields = comparer.get_compared_fields() ;
 
 			if(
-				std::find( elts.begin(), elts.end(), "position" ) == elts.end()
-				|| std::find( elts.begin(), elts.end(), "alleles" ) == elts.end()
+				std::find( fields.begin(), fields.end(), CompareFields::ePosition ) == fields.end()
+				|| std::find( fields.begin(), fields.end(), CompareFields::eAlleles ) == fields.end()
 			) {
 				throw genfile::BadArgumentError(
 					"qcdb::impl::get_match_rsid()",
@@ -33,8 +35,9 @@ namespace qcdb {
 					"Spec must include position and alleles."
 				) ;
 			}
-			
-			return std::find( elts.begin(), elts.end(), "rsid" ) != elts.end() ;
+		
+			bool match_rsid = (std::find( fields.begin(), fields.end(), CompareFields::eRSID ) != fields.end()) || (std::find( fields.begin(), fields.end(), CompareFields::eIDs ) != fields.end() ) ;
+			return match_rsid ;
 		}
 	}
 
