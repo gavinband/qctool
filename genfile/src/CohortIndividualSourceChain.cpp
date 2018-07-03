@@ -27,7 +27,7 @@ namespace genfile {
 			if( new_column_spec[0] != m_column_spec[0] ) {
 				throw  BadArgumentError(
 					"CohortIndividualSourceChain::add_source()",
-					"source = \"" + source->get_source_spec() + "\"",
+					"source = \"" + m_sources.back().get_source_spec() + "\"",
 					"All sources must share the same ID_1 field (\"" + m_column_spec[0].name() + "\")."
 				) ;
 			}
