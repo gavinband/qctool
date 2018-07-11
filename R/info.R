@@ -6,16 +6,16 @@ info.strange <- function( genotypes ) {
 }
 
 info.original <- function( genotypes ) {
-    I = sum( rowSums( genotypes ))
-    if( I == 0 ) {
-        return( 0 ) ;
-    }
-    N = nrow( genotypes )
-    f = genotypes[, 2] + 4 * genotypes[, 3]
-    e = genotypes[, 2] + 2 * genotypes[, 3]
-    theta = sum(e) / (2*I)
-    ratio = sum( f-e^2 ) / ( 2*N*theta*(1-theta) )
-    return( 1 - ratio )
+	I = sum( rowSums( genotypes ))
+	if( I == 0 ) {
+		return( 0 ) ;
+	}
+	N = nrow( genotypes )
+	f = genotypes[, 2] + 4 * genotypes[, 3]
+	e = genotypes[, 2] + 2 * genotypes[, 3]
+	theta = sum(e) / (2*I)
+	ratio = sum( f-e^2 ) / ( 2*N*theta*(1-theta) )
+	return( 1 - ratio )
 }
 
 info.original.terms <- function( genotypes ) {
