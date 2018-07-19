@@ -279,9 +279,9 @@ namespace {
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			if( nAlleles != 2 ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::initialise()",
+					"CallSetter::initialise()",
 					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
-					"Only biallelic variants are currently supported."
+					"I only support biallelic variants"
 				) ;
 			}
 			m_result->clear() ; // ploidy 2
@@ -536,107 +536,141 @@ void HaplotypeFrequencyComponent::compute_ld_measures(
 			}
 		}
 		
-		compute_ld_measures(
+		compute_dosage_ld_measures(
 			source_snp,
-			source_calls,
 			source_ploidy,
 			target_snp,
-			target_calls,
 			target_ploidy,
 			dosages,
-			nonmissingness,
-			haveCalls
+			nonmissingness
 		) ;
-	}
-}
 
-void HaplotypeFrequencyComponent::compute_ld_measures(
-	genfile::VariantIdentifyingData const& source_snp,
-	std::vector< int > const& source_calls,
-	std::vector< uint32_t > const& source_ploidy,
-	genfile::VariantIdentifyingData const& target_snp,
-	std::vector< int > const& target_calls,
-	std::vector< uint32_t > const& target_ploidy,
-	Eigen::MatrixXd const& dosages,
-	Eigen::MatrixXd const& nonmissingness,
-	bool const runEM
-) {
-	if( m_stratification ) {
-		bool output = (m_min_r2 == 0.0 ) ;
-		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
-			try {
-				if( runEM ) {
-					output = compute_em_ld_measures(
-						source_snp,
-						source_calls,
-						source_ploidy,
-						target_snp,
-						target_calls,
-						target_ploidy,
-						m_stratification->stratum_name(i) + ":",
-						m_stratification->stratum(i),
-						output
-					) || output ;
-				}
-				output = compute_dosage_ld_measures(
-					source_snp,
-					target_snp,
-					dosages,
-					nonmissingness,
-					m_stratification->stratum_name(i) + ":",
-					m_stratification->stratum(i),
-					output
-				) || output ;
-			} catch( genfile::OperationFailedError const& e ) {
-				m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
-					<< "stratum " << m_stratification->stratum_name(i) << ": "
-					<< "could not compute LD measures between SNPs "
-					<< source_snp << " and " << target_snp << ".\n"
-					<< "!! reason: " << e.get_message() << "\n" ;
-			}
-		}
-	} else {
-		try {
-			bool output = (m_min_r2 == 0.0 ) ;
-			if( runEM ) {
-				output = compute_em_ld_measures(
-					source_snp,
-					source_calls, source_ploidy,
-					target_snp,
-					target_calls, target_ploidy,
-					"",
-					std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) ),
-					output
-				) ;
-			}
-			compute_dosage_ld_measures(
+		if( haveCalls ) {
+			compute_em_ld_measures(
 				source_snp,
+				source_ploidy,
+				source_calls,
 				target_snp,
-				dosages,
-				nonmissingness,
-				"",
-				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, dosages.rows() ) ),
-				output
+				target_ploidy,
+				target_calls,
+				nonmissingness
 			) ;
-		} catch( genfile::OperationFailedError const& e ) {
-			m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_ld_measures(): "
-				<< "could not compute LD measures between SNPs "
-				<< source_snp << " and " << target_snp << ".\n"
-				<< "!! reason: " << e.get_message() << "\n" ;
 		}
 	}
 }
 
 bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
+	std::vector< uint32_t > const& source_ploidy,
+	genfile::VariantIdentifyingData const& target_snp,
+	std::vector< uint32_t > const& target_ploidy,
+	Eigen::MatrixXd const& dosages,
+	Eigen::MatrixXd const& nonmissingness
+) {
+	bool output = (m_min_r2 == 0.0) ;
+	if( m_stratification ) {
+		double const NA = std::numeric_limits< double >::quiet_NaN() ;
+		std::vector< double > correlations( m_stratification->number_of_strata(), NA ) ;
+		double max_squared_correlation = 0.0 ;
+		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
+			try {
+				correlations[i] = compute_dosage_correlation(
+					source_snp,
+					target_snp,
+					dosages,
+					nonmissingness,
+					m_stratification->stratum(i)
+				) ;
+				max_squared_correlation = std::max(
+					max_squared_correlation,
+					correlations[i] * correlations[i]
+				) ;
+			} catch( genfile::OperationFailedError const& e ) {
+				m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_dosage_ld_measures(): "
+					<< "stratum " << m_stratification->stratum_name(i) << ": "
+					<< "could not compute LD measures between SNPs "
+					<< source_snp << " and " << target_snp << ".\n"
+					<< "!! reason: " << e.get_message() << "\n" ;
+			}
+		}
+		output = output | (max_squared_correlation >= m_min_r2) ;
+
+		if( output ) {
+			for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
+				m_sink->store_per_variant_pair_data( source_snp, target_snp, m_stratification->stratum_name(i) + ":dosage_r", correlations[i]  ) ;
+			}
+		}
+	} else {
+		double r = compute_dosage_correlation(
+			source_snp,
+			target_snp,
+			dosages,
+			nonmissingness,
+			std::vector< genfile::SampleRange >( 1, genfile::SampleRange( 0, dosages.rows() ) )
+		) ;
+		if( output || (r*r) >= m_min_r2 ) {
+			m_sink->store_per_variant_pair_data( source_snp, target_snp, "dosage_r", r ) ;
+		}
+	}
+	return output ;
+}
+
+bool HaplotypeFrequencyComponent::compute_em_ld_measures(
+	genfile::VariantIdentifyingData const& source_snp,
+	std::vector< uint32_t > const& source_ploidy,
+	std::vector< int > const& source_calls,
+	genfile::VariantIdentifyingData const& target_snp,
+	std::vector< uint32_t > const& target_ploidy,
+	std::vector< int > const& target_calls,
+	Eigen::MatrixXd const& nonmissingness
+) {
+	bool output = (m_min_r2 == 0.0) ;
+	if( m_stratification ) {
+		for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
+			for( std::size_t i = 0; i < m_stratification->number_of_strata(); ++i ) {
+				try {
+					output = compute_em_ld_measures(
+						source_snp, source_ploidy, source_calls,
+						target_snp, target_ploidy, target_calls,
+						m_stratification->stratum_name(i) + ":",
+						m_stratification->stratum(i),
+						output
+					) || output ;
+				} catch( genfile::OperationFailedError const& e ) {
+					m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_em_ld_measures(): "
+						<< "stratum " << m_stratification->stratum_name(i) << ": "
+						<< "could not compute LD measures between SNPs "
+						<< source_snp << " and " << target_snp << ".\n"
+						<< "!! reason: " << e.get_message() << "\n" ;
+				}
+			}
+		}
+	} else {
+		try {
+			compute_em_ld_measures(
+				source_snp, source_ploidy, source_calls, 
+				target_snp, target_ploidy, target_calls, 
+				"",
+				std::vector< genfile::SampleRange  >( 1, genfile::SampleRange( 0, source_calls.size() ) ),
+				output
+			) ;
+		} catch( genfile::OperationFailedError const& e ) {
+			m_ui_context.logger() << "!! HaplotypeFrequencyComponent::compute_em_ld_measures(): "
+				<< "could not compute LD measures between SNPs "
+				<< source_snp << " and " << target_snp << ".\n"
+				<< "!! reason: " << e.get_message() << "\n" ;
+		}
+	}
+	return output ;
+}
+
+double HaplotypeFrequencyComponent::compute_dosage_correlation(
+	genfile::VariantIdentifyingData const& source_snp,
 	genfile::VariantIdentifyingData const& target_snp,
 	Eigen::MatrixXd const& dosages,
 	Eigen::MatrixXd const& nonmissingness,
-	std::string const& variable_name_stub,
-	std::vector< genfile::SampleRange > const& sample_set,
-	bool alwaysOutput
+	std::vector< genfile::SampleRange > const& sample_set
 ) {
-	bool includeInOutput = alwaysOutput ;
 	Eigen::RowVectorXd means = Eigen::RowVectorXd::Zero(2) ;
 	Eigen::RowVectorXd totals = Eigen::RowVectorXd::Zero(2) ;
 	for( std::size_t i = 0; i < sample_set.size(); ++i ) {
@@ -654,8 +688,29 @@ bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 		
 		totals += nonmissingness.block( sample_set[i].begin(), 0, sample_set[i].end() - sample_set[i].begin(), 2 ).colwise().sum() ;
 	}
-
-	means.array() /= totals.array() ;
+	
+	//
+	// Here is R code for this computation:
+	/*
+		bayesr <- function( genotypes, prior.weight = 1 ) {
+			w = prior.weight
+			M = matrix( c( 0, 0, 0, 2, 2, 0, 2, 2 ), byrow = T, ncol = 2 )
+			means = ( colSums( genotypes ) + c( 0.5*w, 0.5*w )) / (nrow(genotypes) + (0.5*w))
+			print( means )
+			genotypes[,1] = genotypes[,1] - means[1]
+			genotypes[,2] = genotypes[,2] - means[2]
+			covariance = t(genotypes) %*% genotypes
+			covariance = covariance + (w/8.0 * t(M-means) %*% (M-means))
+			covariance[1,2] / sqrt( covariance[1,1] * covariance[2,2])
+		}
+	*/
+	
+	// We conceptually add one of each of the four haplotypes to the data weighted by the prior
+	// or alternatively, four individuals, each homozygous for one of the possible haplotypes.
+	// Individuals are then weighted as w/8 so that the total weight is w/2.
+	// These individuals also contribute a dosage of 4*2/8 = 0.5*w.
+	double const w = m_prior.sum() ;
+	means.array() = ( means.array() + (0.5*w) ) / ( totals.array() + (0.5*w) );
 
 	Eigen::Matrix2d covariance = Eigen::Matrix2d::Zero() ;
 	Eigen::Matrix2d nonmissing = Eigen::Matrix2d::Zero() ;
@@ -672,32 +727,43 @@ bool HaplotypeFrequencyComponent::compute_dosage_ld_measures(
 		covariance += block.transpose() * block ;
 		nonmissing += nonmissing_block.transpose() * nonmissing_block ;
 	}
-	// Compute correlation as:
-	// 
+
+	// Incorporate prior information
+	{
+		Eigen::MatrixXd priorGenotypes = Eigen::MatrixXd::Zero( 4, 2 ) ;
+		// priorHaps = (
+		//   0 0
+		//   0 2
+		//   2 0
+		//   2 2
+		// )
+		// We treat this like data but weighted by w/8.
+		priorGenotypes(1,1) = 2 ;
+		priorGenotypes(2,0) = 2 ;
+		priorGenotypes(3,0) = 2 ;
+		priorGenotypes(3,1) = 2 ;
+		priorGenotypes = priorGenotypes.rowwise() - means ;
+		covariance += (w/8.0) * priorGenotypes.transpose() * priorGenotypes ;
+	}
+
 	double r = covariance(0,1) / std::sqrt( covariance(0,0) * covariance(1,1) ) ;
-
-	includeInOutput = includeInOutput || (r*r >= m_min_r2 ) ;
-
+		
 #if DEBUG_HAPLOTYPE_FREQUENCY_COMPONENT
 	std::cerr << "means = " << means << ".\n" ;
 	std::cerr << "cov =\n" << covariance << ".\n" ;
 	std::cerr << "r =\n" << r << ".\n" ;
 #endif
 
-	if( includeInOutput ) {
-		m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r", r  ) ;
-		m_sink->store_per_variant_pair_data( source_snp, target_snp, variable_name_stub + "dosage_r2", r*r ) ;
-	}
-	return includeInOutput ;
+	return r ;
 }
 
 bool HaplotypeFrequencyComponent::compute_em_ld_measures(
 	genfile::VariantIdentifyingData const& source_snp,
-	std::vector< int > const& source_calls,
 	std::vector< uint32_t > const& source_ploidy,
+	std::vector< int > const& source_calls,
 	genfile::VariantIdentifyingData const& target_snp,
-	std::vector< int > const& target_calls,
 	std::vector< uint32_t > const& target_ploidy,
+	std::vector< int > const& target_calls,
 	std::string const& variable_name_stub,
 	std::vector< genfile::SampleRange > const& sample_set,
 	bool alwaysOutput

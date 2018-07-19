@@ -197,9 +197,9 @@ namespace genfile {
 
 	protected:
 
-		virtual void get_snp_identifying_data_impl( 
+		virtual void get_snp_identifying_data_impl(
 			VariantIdentifyingData* variant
-		) = 0 ;	
+		) = 0 ;
 
 		void read_snp_probability_data_impl(
 			GenotypeProbabilitySetter const& ,

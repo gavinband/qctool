@@ -4,7 +4,7 @@
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
 # image: docker-image:tag
-image: atlassian/default-image:latest
+image: atlassian/default-image:2
 pipelines:
   default:
     - step:
@@ -19,3 +19,4 @@ pipelines:
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - mkdir -p test-reports
           - pybot -d test-reports -o NONE -l NONE -r NONE -x xunit.xml ./tests.txt
+
