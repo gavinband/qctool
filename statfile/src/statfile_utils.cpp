@@ -5,6 +5,7 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #include <iostream>
+#include <map>
 #include <string>
 #include <cstdio>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -42,18 +43,24 @@ namespace statfile {
 	}
 	
 	FileFormatType get_file_format_type_indicated_by_filename( std::string const& filename ) {
-		if( filename.size() > 4 && ( filename.substr( filename.size() - 4, 4 ) == ".ssv" || filename.substr( filename.size() - 4, 4 ) == ".txt" )) {
-			return e_SpaceDelimited ;
+		std::map< std::string, FileFormatType > types  ;
+		types[ ".txt" ]     = types[ ".txt.gz" ]        = e_SpaceDelimited ;
+		types[ ".csv" ]     = types[ ".csv.gz" ] 		= e_CommaDelimitedFormat ;
+		types[ ".tsv" ]     = types[ ".tsv.gz" ] 		= e_TabDelimitedFormat ;
+
+		for(
+			std::map< std::string, FileFormatType >::const_iterator i = types.begin();
+			i != types.end();
+			++i
+		) {
+			if(
+				filename.size() >= i->first.size() &&
+				filename.substr( filename.size()- i->first.size(), i->first.size() ) == i->first
+			) {
+				return i->second ;
+			}
 		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".csv" ) {
-			return e_CommaDelimitedFormat ;
-		}
-		else if( filename.size() > 4 && filename.substr( filename.size() - 4, 4 ) == ".tsv" ) {
-			return e_TabDelimitedFormat ;
-		}
-		else {
-			return e_UnknownFormat ;
-		}
+		return e_UnknownFormat ;
 	}
 
 	std::string strip_file_format_extension_if_present( std::string const& filename ) {
