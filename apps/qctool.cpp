@@ -323,6 +323,14 @@ public:
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option() ;
+		options[ "-incl-ranges" ]
+			.set_description( "Like -incl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to include in the analysis." )
+			.set_takes_values_until_next_option() ;
+		options[ "-excl-ranges" ]
+			.set_description( "Like -excl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to exclude from the analysis." )
+			.set_takes_values_until_next_option() ;
 
 		options.declare_group( "Options for adjusting SNPs" ) ;
 	    options[ "-strand" ]
@@ -2026,6 +2034,32 @@ private:
 						snp_filter->exclude_snps_in_range(
 							genfile::GenomePositionRange::parse( specs[i] )
 						) ;
+					}
+				}
+
+				if( m_options.check_if_option_was_supplied( "-incl-ranges" )) {
+					std::vector< std::string > files = m_options.get_values< std::string >( "-incl-ranges" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						std::ifstream in = std::ifstream( filename ) ;
+						std::string range ;
+						while( in >> range ) {
+							snp_filter->include_snps_in_range(
+								genfile::GenomePositionRange::parse( range )
+							) ;
+						}
+					}
+				}
+
+				if( m_options.check_if_option_was_supplied( "-excl-ranges" )) {
+					std::vector< std::string > files = m_options.get_values< std::string >( "-excl-ranges" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						std::ifstream in = std::ifstream( filename ) ;
+						std::string range ;
+						while( in >> range ) {
+							snp_filter->exclude_snps_in_range(
+								genfile::GenomePositionRange::parse( range )
+							) ;
+						}
 					}
 				}
 			}
