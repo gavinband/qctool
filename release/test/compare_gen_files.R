@@ -36,7 +36,7 @@ if( length(w) > 0 ) {
 if( length(w2 ) > 0 ) {
 	cat( "File genotype data differs.\n" )
 	w2 = which( abs( XG - YG ) > 10^-args$precision, arr.in = TRUE )
-	print(w2)
+	print(head(w2))
 }
 
 stopifnot( length(w) == 0 && length(w2) == 0 )

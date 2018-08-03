@@ -1,3 +1,4 @@
+
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
@@ -49,6 +50,30 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.bed"], "filetype": "binary_ped", "snp-stats": "", "osnp": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
+Filters samples
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+
+Filters SNPs
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-snpids": "data/good_snp_snpids.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-positions": "data/good_snp_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "assume-chromosome": "1", "incl-positions": "data/good_snp_genomic_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-rsids": "data/bad_snp_rsids.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-snpids": "data/bad_snp_snpids.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-positions": "data/bad_snp_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "assume-chromosome": "1", "excl-positions": "data/bad_snp_genomic_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
+
 Threshholds Genotypes
 	RunsCommandWithExactOutput	{ "g": [ "data/tothreshhold.gen" ], "s": [ "data/tothreshhold.sample" ], "og": "<tmp>", "threshold": "0.9", "ofiletype": "dosage" }	data/tothreshhold.dosage
 
@@ -61,16 +86,6 @@ Reorders Samples
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "bgen" }	data/complex.reordered.bgen
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "vcf" }	data/complex.backward.vcf
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "bgen" }	data/complex.backward.bgen
-
-Filters SNPs
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-snpids": "data/good_snp_snpids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-positions": "data/good_snp_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "assume-chromosome": "1", "incl-positions": "data/good_snp_genomic_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-rsids": "data/bad_snp_rsids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-snpids": "data/bad_snp_snpids.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-positions": "data/bad_snp_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "assume-chromosome": "1", "excl-positions": "data/bad_snp_genomic_positions.txt", "ofiletype": "gen" }	"data/test.filtered.gen"
 
 Computes LD
 	RunsCommandWithResult	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "compute-ld-with": [ "data/test.bgen", "data/test.sample" ], "old": "<tmp>" }	ok
@@ -148,7 +163,7 @@ RunsCommandWithOutputGen
 	[Arguments]	${command}	${expectedOutput}
 	${filenames}=	Run Qctool	${command}	ok
 	${filename}=	Get Variable Value	${filenames['og']}
-	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	data/test.filtered.gen
+	CheckRun	Rscript	--vanilla	compare_gen_files.R	--file1	${filename}	--file2	${expectedOutput}	--precision	3
 
 RunsCommandWithExactOutput
 	[Arguments]	${command}	${expectedOutput}
