@@ -25,8 +25,8 @@ namespace genfile {
 		
 		std::size_t get_number_of_distinct_mapped_values() const ;
 
-		// Return the entry corresponding to level i.
-		// i must be a positive integer in the range 1...number of distinct entries
+		// Return the entry corresponding to the given level.
+		// level must be a positive integer in the half-open range 0...number of distinct entries
 		Entry get_unmapped_value( Entry const& level ) const ;
 		
 		// Return the level (positive integer) corresponding to the given entry.

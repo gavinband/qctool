@@ -92,7 +92,10 @@ namespace integration {
 		}
 		
 		MatrixL matrixL() const {
-			return m_matrix ;
+			// not compiling right now after updating to eigen 3.3.4
+			// TODO: fix this
+			//return m_matrix.triangularView< Eigen::UnitLower >() ;
+			assert(0) ;
 		}
 		
 	    Diagonal vectorD() const {

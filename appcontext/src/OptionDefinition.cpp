@@ -65,7 +65,11 @@ namespace appcontext {
 			i = m_value_checkers.begin(),
 			end_i = m_value_checkers.end() ;
 		for( ; i != end_i; ++i ) {
-			(*i)( option_name, option_values ) ;
+			if( !(*i)( option_name, option_values ) ) {
+				std::ostringstream ostr ;
+				ostr << "Option \"" << option_name << "\": illegal value." ;
+				throw OptionValueInvalidException( option_name, option_values, ostr.str() ) ;
+			} ;
 		}
 	}
 	

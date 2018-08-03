@@ -26,6 +26,7 @@
 #include "genfile/ShapeITHaplotypesSNPDataSink.hpp"
 #include "genfile/VCFFormatSNPDataSink.hpp"
 #include "genfile/ImputeHapProbsSNPDataSink.hpp"
+#include "genfile/ListSNPDataSink.hpp"
 #include "genfile/vcf/get_set_eigen.hpp"
 #include "genfile/get_set_eigen.hpp"
 #include "genfile/get_set.hpp"
@@ -48,6 +49,7 @@ namespace genfile {
 		result.push_back( "intensity" ) ;
 		result.push_back( "penncnv" ) ;
 		result.push_back( "cnvhap" ) ;
+		result.push_back( "list" ) ;
 		return result ;
 	}
 
@@ -106,11 +108,14 @@ namespace genfile {
 		else if( d.first == "impute_allele_probs" ) {
 			return SNPDataSink::UniquePtr( new ImputeHapProbsSNPDataSink( filename ) ) ;
 		}
+		else if( d.first == "list" ) {
+			return SNPDataSink::UniquePtr( new ListSNPDataSink( filename, compression_type ) ) ;
+		}
 		else if( d.first == "" ) {
 			return SNPDataSink::UniquePtr( new VCFFormatSNPDataSink( filename ) ) ;
 		}
 		else {
-			throw BadArgumentError( "SNPDataSink::create_impl()", "filename", "Unrecognised file type for file \"" + filename + "\"." ) ;
+			throw BadArgumentError( "SNPDataSink::create_impl()", "filename", "Unrecognised file type (\"" + d.first + "\") for file \"" + filename + "\"." ) ;
 		}
 	}
 	

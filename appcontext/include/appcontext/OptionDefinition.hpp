@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <cassert>
+#include <boost/function.hpp>
 
 namespace appcontext {
 	struct OptionDefinition {
@@ -16,7 +17,8 @@ namespace appcontext {
 			OptionDefinition( OptionDefinition const& other ) ;
 			OptionDefinition& operator=( OptionDefinition const& other ) ;
 
-			typedef void (*value_checker_t)( std::string const&, std::vector< std::string > const& ) ;
+			// typedef void (*value_checker_t)( std::string const&, std::vector< std::string > const& ) ;
+			typedef boost::function< bool( std::string const&, std::vector< std::string > const& ) > value_checker_t ;
 			typedef std::vector< std::string > (*value_preprocessor_t)( std::string const&, std::vector< std::string > const& ) ;
 
 			std::string const& group() const { return m_group ; }
@@ -65,7 +67,7 @@ namespace appcontext {
 				m_number_of_values_per_use = eUntilNextOption ;	
 				return *this ;
 			}
-			OptionDefinition& add_value_checker( value_checker_t value_checker ) {
+			OptionDefinition& set_check( value_checker_t value_checker ) {
 				assert( value_checker != 0 ) ;
 				m_value_checkers.push_back( value_checker ) ; 
 				return *this ; 

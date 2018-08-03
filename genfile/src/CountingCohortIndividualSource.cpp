@@ -17,7 +17,7 @@ namespace genfile {
 		}
 	}
 
-	CountingCohortIndividualSource::CountingCohortIndividualSource( std::vector< std::string > const& sample_ids ):
+	CountingCohortIndividualSource::CountingCohortIndividualSource( std::vector< genfile::VariantEntry > const& sample_ids ):
 		m_sample_ids( sample_ids )
 	{}
 
