@@ -789,6 +789,8 @@ namespace genfile {
 							buffer = read_little_endian_integer( buffer, end, &prob ) ;
 							setter.set_value( g, impl::convert_from_integer_representation( prob, probability_conversion_factor ) ) ;
 						}
+					} else {
+						buffer += 6 ;
 					}
 				}
 				call_finalise( setter ) ;
