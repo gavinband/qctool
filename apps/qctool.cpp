@@ -2040,9 +2040,9 @@ private:
 				if( m_options.check_if_option_was_supplied( "-incl-ranges" )) {
 					std::vector< std::string > files = m_options.get_values< std::string >( "-incl-ranges" ) ;
 					BOOST_FOREACH( std::string const& filename, files ) {
-						std::ifstream in = std::ifstream( filename ) ;
+						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
 						std::string range ;
-						while( in >> range ) {
+						while( (*in) >> range ) {
 							snp_filter->include_snps_in_range(
 								genfile::GenomePositionRange::parse( range )
 							) ;
@@ -2053,9 +2053,9 @@ private:
 				if( m_options.check_if_option_was_supplied( "-excl-ranges" )) {
 					std::vector< std::string > files = m_options.get_values< std::string >( "-excl-ranges" ) ;
 					BOOST_FOREACH( std::string const& filename, files ) {
-						std::ifstream in = std::ifstream( filename ) ;
+						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
 						std::string range ;
-						while( in >> range ) {
+						while( (*in) >> range ) {
 							snp_filter->exclude_snps_in_range(
 								genfile::GenomePositionRange::parse( range )
 							) ;
