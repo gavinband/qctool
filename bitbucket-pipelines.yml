@@ -5,7 +5,7 @@
 # You can specify a custom docker image from Docker Hub as your build environment.
 # image: docker-image:tag
 #image: atlassian/default-image:2
-image: ubuntu/16.04
+image: ubuntu:16.04
 pipelines:
   default:
     - step:
