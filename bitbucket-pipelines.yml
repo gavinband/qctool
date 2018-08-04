@@ -5,13 +5,14 @@
 # You can specify a custom docker image from Docker Hub as your build environment.
 # image: docker-image:tag
 #image: atlassian/default-image:2
-image: ubuntu:16.04
+#image: ubuntu:16.04
+image: gavinband/ubuntu-16.04-build
 pipelines:
   default:
     - step:
         script:
-          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
-          - apt-get install --assume-yes python-pip
+#          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
+#          - apt-get install --assume-yes python-pip
           - python -m pip install robotframework
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
