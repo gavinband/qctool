@@ -13,8 +13,6 @@ pipelines:
         script:
 #          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
 #          - apt-get install --assume-yes python-pip
-          - python -m pip install robotframework
-          - /usr/local/bin/pybot --help
           - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
     - step:
@@ -26,5 +24,6 @@ pipelines:
         script:
           - cd release/test
           - mkdir -p test-reports
+          - python -m pip install robotframework
           - /usr/local/bin/pybot -d test-reports -o NONE -l NONE -r NONE -x xunit.xml ./tests.txt
 
