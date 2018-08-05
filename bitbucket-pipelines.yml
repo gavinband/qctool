@@ -16,6 +16,7 @@ pipelines:
           - python -m pip install robotframework
           - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
+          - python -m pip install robotframework
     - step:
         size: 2x
         script:
