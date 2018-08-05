@@ -14,11 +14,16 @@ pipelines:
 #          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
 #          - apt-get install --assume-yes python-pip
           - python -m pip install robotframework
-          - ./waf-1.5.18 configure
-          - ./waf-1.5.18
-          - cd release/test
           - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
           - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
+    - step:
+        size: 2x
+        script:
+          - ./waf-1.5.18 configure
+          - ./waf-1.5.18
+    - step:
+        script:
+          - cd release/test
           - mkdir -p test-reports
           - pybot -d test-reports -o NONE -l NONE -r NONE -x xunit.xml ./tests.txt
 
