@@ -62,7 +62,7 @@
 #include "genfile/SNPFilteringSNPDataSource.hpp"
 #include "genfile/ReorderingSNPDataSource.hpp"
 #include "genfile/ReorderingCohortIndividualSource.hpp"
-#include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
+#include "genfile/VariantIdentifyingDataFilteringSNPDataSource.hpp"
 #include "genfile/utility.hpp"
 #include "genfile/QuantileNormalisingCrossCohortCovariateValueMapping.hpp"
 #include "genfile/ValueMappingCohortIndividualSource.hpp"
@@ -113,7 +113,7 @@ namespace globals {
 }
 
 namespace impl {
-	void set_vector_entry( std::vector< std::string >* vector, std::size_t i, std::string const& value ) {
+	void set_vector_entry( std::vector< genfile::VariantEntry >* vector, std::size_t i, std::string const& value ) {
 		assert( i < vector->size() ) ;
 		(*vector)[i] = value ;
 	}
@@ -322,6 +322,14 @@ public:
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+			.set_takes_values_until_next_option() ;
+		options[ "-incl-ranges" ]
+			.set_description( "Like -incl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to include in the analysis." )
+			.set_takes_values_until_next_option() ;
+		options[ "-excl-ranges" ]
+			.set_description( "Like -excl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to exclude from the analysis." )
 			.set_takes_values_until_next_option() ;
 
 		options.declare_group( "Options for adjusting SNPs" ) ;
@@ -2028,6 +2036,32 @@ private:
 						) ;
 					}
 				}
+
+				if( m_options.check_if_option_was_supplied( "-incl-ranges" )) {
+					std::vector< std::string > files = m_options.get_values< std::string >( "-incl-ranges" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+						std::string range ;
+						while( (*in) >> range ) {
+							snp_filter->include_snps_in_range(
+								genfile::GenomePositionRange::parse( range )
+							) ;
+						}
+					}
+				}
+
+				if( m_options.check_if_option_was_supplied( "-excl-ranges" )) {
+					std::vector< std::string > files = m_options.get_values< std::string >( "-excl-ranges" ) ;
+					BOOST_FOREACH( std::string const& filename, files ) {
+						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+						std::string range ;
+						while( (*in) >> range ) {
+							snp_filter->exclude_snps_in_range(
+								genfile::GenomePositionRange::parse( range )
+							) ;
+						}
+					}
+				}
 			}
 			m_snp_filter = snp_filter ;
 		}
@@ -2306,11 +2340,7 @@ private:
 		genfile::SNPDataSource const& snp_data_source
 	) {
 		genfile::CohortIndividualSource::UniquePtr result ;
-		std::vector< std::string > sample_ids( snp_data_source.number_of_samples() ) ;
-		boost::format fmt( "sample_%d" ) ;
-		for( std::size_t i = 0; i < sample_ids.size(); ++i ) {
-			sample_ids[i] = ( fmt % i ).str() ;
-		}
+		std::vector< genfile::VariantEntry > sample_ids( snp_data_source.number_of_samples(), genfile::MissingValue() ) ;
 		snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry, &sample_ids, _1, _2 )) ;
 		result.reset( new genfile::CountingCohortIndividualSource( sample_ids ) ) ;
 		return result ;

@@ -28,8 +28,8 @@ namespace genfile {
 	):
 		m_filename( filename ),
 		m_sink( sink ),
-		m_offset_of_first_snp( 0 ),
-		m_file_offsets( comparer )
+		m_file_offsets( comparer ),
+		m_offset_of_first_snp( 0 )
 	{
 	}
 

@@ -19,7 +19,7 @@ namespace genfile {
 	{
 	public:
 		typedef std::auto_ptr< CrossCohortCovariateValueMapping > UniquePtr ;
-		static UniquePtr create( CohortIndividualSource::SingleColumnSpec const& column_spec ) ;
+		static UniquePtr create( CohortIndividualSource::SingleColumnSpec const& column_spec, bool normalise = false ) ;
 
 		typedef CohortIndividualSource::Entry Entry ;
 		typedef std::map< Entry, unsigned int > Histogram ;

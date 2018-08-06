@@ -18,9 +18,12 @@
 #include "genfile/string_utils.hpp"
 
 namespace genfile {
-	CrossCohortCovariateValueMapping::UniquePtr CrossCohortCovariateValueMapping::create( CohortIndividualSource::SingleColumnSpec const& column_spec ) {
-		if( column_spec.is_continuous() ) {
-			if( column_spec.is_phenotype() ) {
+	CrossCohortCovariateValueMapping::UniquePtr CrossCohortCovariateValueMapping::create(
+		CohortIndividualSource::SingleColumnSpec const& column_spec,
+		bool normalise
+	) {
+		if( column_spec.is_continuous()) {
+			if( normalise ) {
 				return UniquePtr( new NormalisingCrossCohortCovariateValueMapping( column_spec.name() )) ;
 			}
 			else {

@@ -7,16 +7,31 @@
 #ifndef QCTOOL_QCDB_STORAGE_HPP
 #define QCTOOL_QCDB_STORAGE_HPP
 
+#include <string>
+#include <memory>
+#include <map>
 #include <stdint.h>
-#include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/shared_ptr.hpp>
 #include "genfile/VariantIdentifyingData.hpp"
 #include "qcdb/StorageOptions.hpp"
+#include "qcdb/DBOutputter.hpp"
 
 namespace qcdb {
 	struct Storage {
 		typedef std::auto_ptr< Storage > UniquePtr ;
 		typedef boost::shared_ptr< Storage > SharedPtr ;
+		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
+
+		static std::vector< std::string > parse_filespec( std::string spec ) ;
+
+		static UniquePtr create(
+			std::string const& filename,
+			std::string const& analysis_name,
+			std::string const& analysis_chunk,
+			Metadata const& metadata,
+			std::string const& compare_by = "position,alleles"
+		) ;
 		
 		virtual ~Storage() {} ;
 

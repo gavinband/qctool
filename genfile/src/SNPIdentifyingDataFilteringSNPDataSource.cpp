@@ -7,7 +7,7 @@
 #include "genfile/Error.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantIdentifyingDataTest.hpp"
-#include "genfile/SNPIdentifyingDataFilteringSNPDataSource.hpp"
+#include "genfile/VariantIdentifyingDataFilteringSNPDataSource.hpp"
 #include "genfile/get_set.hpp"
 
 namespace genfile {

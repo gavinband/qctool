@@ -2,7 +2,7 @@
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.0.1
+${QCTOOL}	../../build/release/qctool_v2.1-dev
 
 *** Settings ***
 Library	OperatingSystem
