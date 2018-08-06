@@ -63,6 +63,10 @@ Filters samples
 	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
 
 Filters SNPs
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	data/test.filtered.gen
