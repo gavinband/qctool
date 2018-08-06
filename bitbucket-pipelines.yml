@@ -10,18 +10,10 @@ image: gavinband/ubuntu-16.04-build
 pipelines:
   default:
     - step:
-        script:
-#          - apt-get install --assume-yes libbz2-1.0 libbz2-dev zlib1g-dev r-base
-#          - apt-get install --assume-yes python-pip
-          - echo 'install.packages( "rjson", repos = "http://cran.us.r-project.org" )' | R --vanilla
-          - echo 'install.packages( "argparse", repos = "http://cran.us.r-project.org" )' | R --vanilla
-    - step:
         size: 2x
         script:
           - ./waf-1.5.18 configure
           - ./waf-1.5.18
-    - step:
-        script:
           - cd release/test
           - mkdir -p test-reports
           - python -m pip install robotframework
