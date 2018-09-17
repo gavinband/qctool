@@ -1522,29 +1522,31 @@ private:
 		Matrix const& information = -ll.get_value_of_second_derivative() ;
 		null_solver.compute( -null_ll.get_value_of_second_derivative() ) ;
 		solver.compute( information ) ;
-		Matrix const variance_covariance = solver.solve( Matrix::Identity( information.rows(), information.cols() ) ) ;
+		Matrix const covariance = solver.solve( Matrix::Identity( information.rows(), information.cols() ) ) ;
 #if DEBUG
 		std::cerr << "Model " << model_name << ": information:\n"
 			<< information
 				<< ".\n" ;
 #endif
-		if( check_model_fit( information, variance_covariance, model_name, comments ) ) {
+		if( check_model_fit( information, covariance, model_name, comments ) ) {
 			std::vector< int > const parametersToOutput = get_parameters_to_output( ll ) ;
-			output_parameter_estimates( ll, variants, model_name, variance_covariance, output, parametersToOutput ) ;
-			
-			compute_frequentist_summary(
-				null_ll, ll,
-				model_name,
-				variants, output,
-				comments
-			) ;
-			if( !options().check( "-no-prior" )) {
-				compute_bayesian_summary(
-					null_ll, null_solver.logAbsDeterminant(),
-					ll, solver.logAbsDeterminant(),
+			output_parameter_estimates( ll, variants, model_name, covariance, output, parametersToOutput ) ;
+		
+			if( options().check( "-no-prior" )) {	
+				compute_frequentist_summary(
+					null_ll, ll,
 					model_name,
 					variants, output,
-					parametersToOutput
+					comments
+				) ;
+			} else {
+				compute_bayesian_summary(
+					null_ll, null_solver.logAbsDeterminant(),
+					ll, solver.logAbsDeterminant(), covariance,
+					model_name,
+					variants, output,
+					parametersToOutput,
+					comments
 				) ;
 			}
 		}
@@ -1552,11 +1554,11 @@ private:
 
 	bool check_model_fit(
 		Matrix const& information,
-		Matrix const& variance_covariance,
+		Matrix const& covariance,
 		std::string const& model_name,
 		std::vector< std::string >* comments
 	) const {
-		double const relative_error = (( information * variance_covariance ) - Matrix::Identity( information.rows(), information.cols() ) ).norm() ;
+		double const relative_error = (( information * covariance ) - Matrix::Identity( information.rows(), information.cols() ) ).norm() ;
 		if( relative_error != relative_error || relative_error > options().get< double >( "-tolerance" ) ) {
 			if( comments ) {
 				comments->push_back( model_name + ":singular" ) ;
@@ -1595,7 +1597,7 @@ private:
 		metro::regression::LogLikelihood const& ll,
 		std::vector< genfile::VariantIdentifyingData > const& variants,
 		std::string const& model_name,
-		Matrix const& variance_covariance,
+		Matrix const& covariance,
 		qcdb::MultiVariantStorage& output,
 		std::vector< int > const parametersToOutput
 	) const {
@@ -1613,24 +1615,14 @@ private:
 
 		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 			int const i = parametersToOutput[parameter_i] ;
-			output.store_data_for_key( variants, model_name + ":se_" + to_string( i ) /*+ ":" + parameter_naming_scheme( i ) */, std::sqrt( variance_covariance( i, i ) ) ) ;
+			output.store_data_for_key( variants, model_name + ":sd_" + to_string( i ) /*+ ":" + parameter_naming_scheme( i ) */, std::sqrt( covariance( i, i ) ) ) ;
 		}
 		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 			int const i = parametersToOutput[parameter_i] ;
 			for( std::size_t parameter_j = parameter_i+1; parameter_j < parametersToOutput.size(); ++parameter_j ) {
 				int const j = parametersToOutput[parameter_j] ;
-				output.store_data_for_key( variants, model_name + ":cov_" + to_string( i ) + "," + to_string( j ), variance_covariance( i, j ) ) ;
+				output.store_data_for_key( variants, model_name + ":cov_" + to_string( i ) + "," + to_string( j ), covariance( i, j ) ) ;
 			}
-		}
-		
-		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
-			int const i = parametersToOutput[parameter_i] ;
-			std::string const parameter_name = ll.get_parameter_name(i) ;
-			output.store_data_for_key(
-				variants,
-				model_name + ":wald_pvalue_" + to_string( i ),
-				compute_twosided_wald_pvalue( parameters(i), std::sqrt( variance_covariance(i,i) ) )
-			) ;
 		}
 	}
 	
@@ -1648,10 +1640,12 @@ private:
 		double const logAbsNullDeterminant,
 		metro::regression::LogLikelihood const& ll,
 		double const logAbsFullDeterminant,
+		Eigen::MatrixXd const& posterior_covariance,
 		std::string const& model_name,
 		std::vector< genfile::VariantIdentifyingData > const& variants,
 		qcdb::MultiVariantStorage& output,
-		std::vector< int > const parametersToOutput
+		std::vector< int > const parametersToOutput,
+		std::vector< std::string >* comments
 	) const {
 		//  P(alt|D)       P(D|alt)    P(alt)           P(alt)
 		// ---------   =   -------- x  ------    = BF x ------ 
@@ -1690,9 +1684,13 @@ private:
 		if( posterior ) {
 			Eigen::VectorXd const prior_mode = posterior->get_prior_mode() ;
 			Matrix const ll_information = -posterior->get_loglikelihood_second_derivative() ;
-			Eigen::ColPivHouseholderQR< Matrix > solver( ll_information ) ;
-			Matrix const ll_variance_covariance = solver.solve( Matrix::Identity( ll_information.rows(), ll_information.cols() ) ) ;
-
+			Matrix const approxSamplingCovariance = posterior_covariance * ll_information * posterior_covariance ;
+			Eigen::ColPivHouseholderQR< Matrix > solver( approxSamplingCovariance ) ;
+			Vector const z = solver.solve( alternative_parameters ) ;
+			std::cerr << "      Posterior covariance:\n" << posterior_covariance << ",\n" ;
+			std::cerr << "Approx sampling covariance:\n" << approxSamplingCovariance << ".\n" ;
+			std::cerr << "                  Approx Z:\n" << z << ".\n" ;
+			
 			using genfile::string_utils::to_string ;
 			for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 				int const i = parametersToOutput[parameter_i] ;
@@ -1701,12 +1699,31 @@ private:
 					model_name + ":prior_mode_" + to_string(i),
 					prior_mode(i)
 				) ;
+				double const sampling_se = std::sqrt( approxSamplingCovariance(i,i)) ;
+				double const posterior_sd = std::sqrt( posterior_covariance(i,i)) ;
 				output.store_data_for_key(
 					variants,
-					model_name + ":ll_se_" + to_string(i),
-					std::sqrt( ll_variance_covariance(i,i) )
+					model_name + ":se_" + to_string(i),
+					sampling_se
 				) ;
-					
+			
+				std::string const parameter_name = ll.get_parameter_name(i) ;
+				if( sampling_se < posterior_sd / 10 ) {
+					output.store_data_for_key(
+						variants,
+						model_name + ":pvalue_" + to_string( i ),
+						metro::NA
+					) ;
+					comments->push_back(
+						parameter_name + ":sampling_se_<<_posterior_sd:_p-value_may_be_unreliable"
+					) ;
+				} else {
+					output.store_data_for_key(
+						variants,
+						model_name + ":pvalue_" + to_string( i ),
+						compute_twosided_wald_pvalue( alternative_parameters(i), std::sqrt( approxSamplingCovariance(i,i) ) )
+					) ;
+				}
 			}
 		}
 	}
