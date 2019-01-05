@@ -94,17 +94,29 @@ namespace metro {
 				std::vector< std::string > const& names
 			) ;
 
-			// levels is a K x d matrix
-			// and probabilities is N x K
-			// where
+			// Set predictors with uncertainty
+			// We assume there are K possible combinations of all the predictor values,
+			// and that each sample takes the kth set of predictor values with probability given
+			// by the specified matrix.  Here
+			//
+			// - levels is a K x d matrix  (K levels for d predictors)
+			// - probabilities is N x K    (N samples, probabilities for K levels)
+			//
 			// N = number of samples
 			// K = number of different possible levels of the predictors
 			// and d = number of predictors.
-			// The interpretation is that individual n has predictor levels given by the kth row of levels with probability probabilities(n,k)
 			Design& set_predictors(
 				Matrix const& levels,
 				Matrix const& probabilities,
 				SampleRanges const& included_samples
+			) ;
+
+			// Set predictors without uncertainty
+			// We assume that the nth row of the given matrix
+			// specifies the predictor values for the nth sample.
+			Design& set_predictors(
+				Matrix const& predictors,
+				std::vector< metro::SampleRange > const& nonmissingness
 			) ;
 
 			Matrix const& matrix() const { return m_design_matrix ; }
