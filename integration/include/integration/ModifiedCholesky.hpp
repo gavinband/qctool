@@ -15,12 +15,24 @@
 // #define DEBUG_MODIFIED_CHOLESKY 1
 
 namespace integration {
+	namespace {
+		template< typename Real >
+		Real max( Real const a, Real const b ) {
+			return std::max( a, b ) ;
+		}
+
+		template< typename Real >
+		Real max( Real const a, Real const b, Real const c ) {
+			return std::max( a, std::max( b, c )) ;
+		}
+	}
 	//
 	// Implements the 'MC' algorithm from Gill & Murray, Practical Optimisation.
 	// Also expressed as Algorithm 6.5, "Modified Cholesky algorithm" in
 	// Nocedal & Wright, "Numerical Optimisation".
+	// See also Fang & Leary 2006
 	//
-	// I have borrowed a little bit from Eigen's LDLT.h here to get the permutations and types right.
+	// I have borrowed from Eigen's LDLT.h here to get the permutations and types right.
 	//
 	// This algorithm only touches the lower-diagonal of the matrix.
 	// As described in the above references, we use the lower-diagonal of the matrix
@@ -94,36 +106,36 @@ namespace integration {
 		MatrixL matrixL() const {
 			// not compiling right now after updating to eigen 3.3.4
 			// TODO: fix this
-			//return m_matrix.triangularView< Eigen::UnitLower >() ;
-			assert(0) ;
+			return m_matrix.template triangularView< Eigen::UnitLower >() ;
+			//assert(0) ;
 		}
 		
 	    Diagonal vectorD() const {
 			return m_matrix.diagonal();
 		}
 
-		Transpositions const matrixP() const {
-			return m_transpositions ;
+		Permutations const matrixP() const {
+			return Permutations( m_transpositions ) ;
 		}
 		
 		Matrix solve( Matrix const& rhs ) const
-	    {
+		{
 			Matrix result = rhs ;
 			assert( result.rows() == m_matrix.rows() ) ;
-		    // result = P rhs
-		    result = m_transpositions * result ;
-		    // result = L^-1 (P rhs)
-		    matrixL().solveInPlace( result );
-		    // result = D^-1 (L^-1 P rhs)
+			// result = P rhs
+			result = m_transpositions * result ;
+			// result = L^-1 (P rhs)
+			matrixL().solveInPlace( result );
+			// result = D^-1 (L^-1 P rhs)
 			for( Index i = 0; i < m_matrix.rows(); ++i ) {
 				result.row(i) /= m_matrix(i,i) ;
 			}
-		    // result = L^-T (D^-1 L^-1 P rhs)
-		    matrixL().transpose().solveInPlace( result ) ;
-		    // result = P^-1 L^-T (D^-1 L^-1 P rhs)
+			// result = L^-T (D^-1 L^-1 P rhs)
+			matrixL().transpose().solveInPlace( result ) ;
+			// result = P^-1 L^-T (D^-1 L^-1 P rhs)
 			result = m_transpositions.transpose() * result ;
 			return result ;
-	    }
+		}
 		
 	private:
 	    Matrix m_matrix ;
@@ -141,36 +153,48 @@ namespace integration {
 #endif
 			
 			Scalar biggestOnDiagonal ;
-			RealScalar beta ;
 			RealScalar betaSquared ;
 			RealScalar delta ;
+			RealScalar bound ;
 
 			for( Index j = 0; j < size; ++j ) {
-		        // Find largest diagonal element
-		        Index indexOfBiggestOnDiagonal ;
-		        biggestOnDiagonal = matrix.diagonal().tail( size - j ).cwiseAbs().maxCoeff( &indexOfBiggestOnDiagonal ) ;
+				// Find largest diagonal element
+				Index indexOfBiggestOnDiagonal ;
+				biggestOnDiagonal = matrix.diagonal().tail( size - j ).cwiseAbs().maxCoeff( &indexOfBiggestOnDiagonal ) ;
 				indexOfBiggestOnDiagonal += j ;
 
 				// Initialise beta and delta if we are starting.
-		        if( j == 0 ) {
+				// These choices are as described in Gill & Murray Algorithm MC
+				if( j == 0 ) {
 					Scalar biggestOffDiagonal = 0.0 ;
 					for( Index i = 0; i < size; ++i ) {
 						for( Index j = i+1; j < size; ++j ) {
-							biggestOffDiagonal = std::max( biggestOffDiagonal, std::abs( matrix( i, j )) ) ;
+							biggestOffDiagonal = max( biggestOffDiagonal, std::abs( matrix( i, j )) ) ;
 						}
 					}
-					delta = std::numeric_limits< Scalar >::epsilon() * std::max( biggestOnDiagonal + biggestOffDiagonal, Scalar( 1 ) ) ;
-					beta = std::max(
+					// Had this before:
+					//delta = std::numeric_limits< Scalar >::epsilon() * max( biggestOnDiagonal + biggestOffDiagonal, Scalar( 1 ) ) ;
+					// ..but most authors e.g. (Fang & Leary 2006) say:
+					delta = std::numeric_limits< Scalar >::epsilon() ;
+					// Fang & Leary (2006), formula (5).
+					betaSquared = max(
 						std::numeric_limits< Scalar >::epsilon(),
-						std::max( biggestOnDiagonal, biggestOffDiagonal / std::sqrt( ( size * size ) - 1 ) )
+						biggestOnDiagonal,
+						biggestOffDiagonal / std::sqrt( ( size * size ) - 1 )
 					) ;
-					betaSquared = beta * beta ;
 					
 #if DEBUG_MODIFIED_CHOLESKY
 					std::cerr << "ModifiedCholesky::compute_inplace(): initialised with delta = "
 						<< delta << ", beta^2 = " << betaSquared << ".\n" ;
 #endif
-					
+					// Modified cholesky of A is cholesky of A+E for some diagonal matrix E
+					// We compute the bound on elements of E as in Fang & Leary (2006)
+				
+					bound = (
+						std::pow((biggestOffDiagonal/std::sqrt(betaSquared)) + (size-1)*std::sqrt(betaSquared), 2 )
+						+ 2 * ( biggestOnDiagonal + (size-1)*betaSquared )
+						+ std::numeric_limits< Scalar >::epsilon()
+					) ;
 				}
 				
 #if DEBUG_MODIFIED_CHOLESKY
@@ -181,9 +205,9 @@ namespace integration {
 #endif
 											
 				// Swap rows and columns corresponding to the jth and largest diagonal element.
-		        m_transpositions.coeffRef( j ) = indexOfBiggestOnDiagonal ;
-				Index const tailSize = size - indexOfBiggestOnDiagonal - 1 ;
-		        if( j != indexOfBiggestOnDiagonal ) {
+				m_transpositions.coeffRef( j ) = indexOfBiggestOnDiagonal ;
+				if( j != indexOfBiggestOnDiagonal ) {
+					Index const tailSize = size - indexOfBiggestOnDiagonal - 1 ;
 					// indexOfbiggestOnDiagonal is always >= j by construction
 					// we only touch the lower triangular part of the matrix.
 					matrix.row( j ).head( j ).swap( matrix.row( indexOfBiggestOnDiagonal ).head( j ) ) ;
@@ -194,6 +218,7 @@ namespace integration {
 					}
 				}
 				
+				Index const tailSize = size - j - 1 ;
 				// We first compute the jth row of L to produce:
 				// 1: d
 				// .  l d
@@ -203,7 +228,7 @@ namespace integration {
 				// .  c c c a a c
 				//
 				// by formula: l_js = c_js / d_s for s = 0,...,j-1.
-		        matrix.row( j ).head( j ).array() /= matrix.diagonal().head( j ).array() ;
+				matrix.row( j ).head( j ).array() /= matrix.diagonal().head( j ).array() ;
 #if DEBUG_MODIFIED_CHOLESKY
 				std::cerr << "ModifiedCholesky::compute_inplace(): after computing ls, matrix =\n"
 					<< matrix << ".\n" ;
@@ -234,8 +259,11 @@ namespace integration {
 				// j: l l l d
 				// .  c c c c c
 				// .  c c c c a c
-				double new_dj = std::max( delta, std::abs( matrix(j,j) ) ) ;
-				new_dj = std::max( new_dj, (theta*theta) / betaSquared ) ;
+				double new_dj = max(
+					delta,
+					std::abs( matrix(j,j) ),
+					(theta*theta) / betaSquared
+				) ;
 				matrix(j,j) = new_dj ;
 				//
 				// Finally update the c_ii's
