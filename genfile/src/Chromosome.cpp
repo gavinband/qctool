@@ -94,8 +94,8 @@ namespace genfile {
 	}
 
 	bool Chromosome::is_sex_determining() const {
-        return m_repr && ((*m_repr) == "0X" || (*m_repr) == "0Y" || (*m_repr) == "X" || (*m_repr) == "Y" ) ;
-    }
+		return m_repr && ((*m_repr) == "0X" || (*m_repr) == "0Y" || (*m_repr) == "X" || (*m_repr) == "Y" ) ;
+	}
 
 	bool Chromosome::is_autosome() const {
 		bool result = false ;
