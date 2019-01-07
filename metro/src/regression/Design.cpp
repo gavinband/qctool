@@ -217,7 +217,9 @@ namespace metro {
 				out << std::setw(5) << i ;
 				out << std::setw(3) << "   " ;
 				if( outcome().row(i).sum() == outcome().row(i).sum() ) {
-					out << outcome()(i,0) << " " << outcome()(i,1) ;
+					for( int j = 0; j < outcome().cols(); ++j ) {
+						out << ((j>0) ? " " : "" ) << outcome()(i,j) ;
+					}
 				} else {
 					out << std::setw(widths[0]) << "NA" ;
 				}
@@ -391,7 +393,8 @@ namespace metro {
 
 			// Set levels
 			{
-				// This is complexified by the need to handle possible interactions. 
+				// This is complexified by the need to handle possible interactions between
+				// predictors and covariates.
 				// There is one column per predictor and one column per predictor per interacting covariate.
 				// The levels go in a matrix of dimension N x ((#predictors & interactions) x (#levels)).
 				int const N = probabilities.rows() ;
@@ -412,6 +415,61 @@ namespace metro {
 							0, level_i * number_of_predictors_and_interactions + (i+1) * number_of_predictors(),
 							N, number_of_predictors()
 						) = m_design_matrix.col( m_design_matrix_interaction_columns[i] ) * levels.row(level_i) ;
+					}
+				}
+				
+				if( m_transform == eMeanCentre ) {
+					mean_centre_predictor_levels(
+						m_predictor_level_probabilities,
+						&m_predictor_levels,
+						nonmissingness
+					) ;
+				}
+			}
+
+			// Set nonmissingness if necessary
+			if( nonmissingness != m_nonmissing_predictors ) {
+				m_nonmissing_predictors = nonmissingness ;
+				m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
+			}
+
+			
+			return *this ;
+		}
+
+		Design& Design::set_predictors(
+			Matrix const& predictors,
+			std::vector< metro::SampleRange > const& nonmissingness
+		) {
+			int const N = predictors.rows() ;
+			int const D = predictors.cols() ;
+			assert( D == number_of_predictors() ) ;
+			assert( N == m_design_matrix.rows() ) ;
+
+			// Set probabilities
+			m_predictor_level_probabilities = Matrix::Ones( N, 1 ) ;
+
+			// Set levels
+			{
+				// This is complexified by the need to handle possible interactions. 
+				// There is one column per predictor and one column per predictor per interacting covariate.
+				// The levels go in a matrix of dimension N x ((#predictors & interactions) x (#levels)).
+				int const number_of_predictors_and_interactions = number_of_predictors() + number_of_interaction_terms() ;
+				m_predictor_levels = Matrix::Zero( N, number_of_predictors_and_interactions ) ;
+
+				// Lay this out as follows.
+				// For predictor level level_i, we fill in the block of m_predictor_levels with indices
+				// [0,N) x [ level_i*npi,(level_i+1)*npi )
+				// where npi is the total number of predictor and interaction terms.
+				m_predictor_levels.block(
+					0, 0,
+					N, D
+				) = predictors ;
+				for( std::size_t i = 0; i < m_design_matrix_interaction_columns.size(); ++i ) {
+					for( std::size_t d = 0; d < D; ++d ) {
+						m_predictor_levels.col( D * (1+i) + d )
+							= m_design_matrix.col( m_design_matrix_interaction_columns[i] ).array()
+								* predictors.col(d).array() ;
 					}
 				}
 				
