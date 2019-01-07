@@ -23,6 +23,7 @@ namespace metro {
 		*/
 		struct LogPosteriorDensity: public LogLikelihood
 		{
+			typedef std::auto_ptr< LogPosteriorDensity > UniquePtr ;
 			virtual Vector get_prior_mode() const = 0 ;
 			virtual Matrix get_loglikelihood_second_derivative() const = 0 ;
 		} ;
