@@ -33,6 +33,7 @@ namespace metro {
 				m_pi( 3.141592653589793238462643383279502884 ),
 				m_nu( degrees_of_freedom ),
 				m_data( 0 ),
+				m_p( 0 ),
 				m_kappa( 0 )
 			{
 			}
@@ -41,6 +42,7 @@ namespace metro {
 				m_pi( 3.141592653589793238462643383279502884 ),
 				m_nu( degrees_of_freedom ),
 				m_data( 0 ),
+				m_p( 0 ),
 				m_kappa( 0 )
 			{
 				set_data( data ) ;
@@ -50,6 +52,7 @@ namespace metro {
 				m_pi( 3.141592653589793238462643383279502884 ),
 				m_nu( degrees_of_freedom ),
 				m_data( 0 ),
+				m_p( 0 ),
 				m_kappa( 0 )
 			{
 				set_data( data, weights ) ;
@@ -147,6 +150,7 @@ namespace metro {
 
 #if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::evaluate_at():\n"
+						<< " m_data_subset " << m_data_subset << "\n"
 						<< " m_mean " << m_mean.transpose() << "\n"
 						<< " m_sigma = \n" << m_sigma << "\n" 
 						<< " m_log_determinant = " << m_log_determinant << "\n" ;
@@ -159,6 +163,10 @@ namespace metro {
 			double get_value_of_function() const {
 				Vector terms = Vector::Constant( m_data->rows(), 0 ) ;
 				get_terms_of_function( terms ) ;
+#if DEBUG_MULTIVARIATE_T
+					std::cerr << "metro::likelihood::MultivariateT::get_value_of_function():\n"
+						<< " terms = " << terms << ".\n" ;
+#endif				
 				return terms.sum() ;
 			}
 
@@ -190,9 +198,10 @@ namespace metro {
 						<< " Adding " << range << "\n"
 						<< " segmentZ = " << segmentZ.transpose() << "\n"
 						<< " segmentWeights = " << segmentWeights.transpose() << "\n"
-						<< " m_kappa = " << m_kappa << "\n"
+						<< " m_nu = " << m_nu << ", m_p = " << m_p << ", m_kappa = " << m_kappa << "\n"
 						<< " m_log_determinant = " << m_log_determinant << "\n"
-						<< " term = " << (( segmentZ + Vector::Constant( range.size(), m_nu ) ).array().log() )
+						<< " range.size() = " << range.size() << "\n"
+						<< " term = " << ((( segmentZ + Vector::Constant( range.size(), m_nu ) ).array().log() ) )
 						<< " result = " << result << ".\n" ;
 #endif				
 				}
@@ -320,7 +329,7 @@ namespace metro {
 				
 #if DEBUG_MULTIVARIATE_T
 				std::cerr << "metro::likelihood::MultivariateT::estimate_by_em(): start: params = "
-					<< get_parameters().transpose() << ", ll = " << get_value_of_function() << ".\n" ;
+					<< parameters().transpose() << ", ll = " << get_value_of_function() << ".\n" ;
 #endif				
 
 				// If nu = ∞ we are at the MLE already, so bail out...
@@ -353,7 +362,7 @@ namespace metro {
 
 #if DEBUG_MULTIVARIATE_T
 					std::cerr << "metro::likelihood::MultivariateT::estimate_by_em(): after iteration "
-						<< iteration << ": params = " << get_parameters().transpose()
+						<< iteration << ": params = " << parameters().transpose()
 						<< ", ll = " << loglikelihood
 						<< ", iterationWeights = " << iterationWeights.head( std::min( iterationWeights.size(), 10l )).transpose() << ".\n" ;
 #endif				
@@ -383,6 +392,11 @@ namespace metro {
 		private:
 			
 			double compute_constant_terms( double const nu, double const p ) const {
+#if DEBUG_MULTIVARIATE_T
+				std::cerr << "metro::likelihood::MultivariateT::compute_constant_terms():\n"
+					<< " nu  = " << nu << "\n"
+					<< " p = " << p << "\n" ;
+#endif
 				return ( nu == std::numeric_limits< double >::infinity() )
 					? (
 						-0.5 * p * std::log( 2 * m_pi )
