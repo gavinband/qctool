@@ -53,6 +53,7 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
+#include "metro/regression/fit_model.hpp"
 
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -1404,7 +1405,8 @@ private:
 		std::vector< genfile::VariantIdentifyingData > const& variants,
 		qcdb::MultiVariantStorage& output
 	) {
-		boost::ptr_vector< metro::regression::LogLikelihood > lls ;
+		using namespace metro::regression ;
+		boost::ptr_vector< LogLikelihood > lls ;
 		for( std::size_t i = 0; i < designs.size(); ++i ) {
 			lls.push_back( create_loglikelihood( designs[i] )) ;
 		}
@@ -1420,12 +1422,40 @@ private:
 		std::vector< std::string > comments ;
 		for( std::size_t model = 0; model < lls.size(); ++model ) {
 			boost::timer::cpu_timer timer ;
-			metro::regression::LogLikelihood& ll = lls[model] ;
+			LogLikelihood& ll = lls[model] ;
 			std::string const& model_name = model_names[model] ;
-			std::pair< bool, int > result = fit_model(
+
+			CholeskyStepper::Tracer tracer ;
+			if( options().check( "-debug" )) {
+				tracer = [this] ( 
+					int iteration,
+					double target_ll,
+					CholeskyStepper::Vector const& point,
+					CholeskyStepper::Vector const& first_derivative,
+					CholeskyStepper::Vector const& step,
+					bool converged
+				) {
+					this->get_ui_context().logger()
+						<< " ITERATION:" << iteration << "\n"
+						<< "    TARGET:" << target_ll << "\n"
+						<< "     POINT:" << point.transpose() << "\n"
+						<< "DERIVATIVE:" << first_derivative.transpose() << "\n"
+						<< "      STEP:" << step.transpose() << "\n"
+						<< " CONVERGED:" << ( converged ? "yes" : "no" ) << "\n" ;
+				} ;
+			}
+
+			CholeskyStepper stopping_condition(
+					options().get_value< double >( "-tolerance" ),
+					options().get_value< double >( "-max-iterations" ),
+					tracer
+				) ;
+
+			std::pair< bool, int > result = metro::regression::fit_model(
 				ll,
 				model_name,
 				Eigen::VectorXd::Zero( ll.get_parameters().size() ),
+				stopping_condition,
 				&comments
 			) ;
 #if DEBUG
@@ -1464,51 +1494,6 @@ private:
 		}
 	}
 
-	std::pair< bool, int > fit_model(
-		metro::regression::LogLikelihood& ll,
-		std::string const& model_name,
-		Eigen::VectorXd const& starting_point,
-		std::vector< std::string >* comments
-	) const {
-		typedef metro::regression::Design::Matrix Matrix ;
-		// Fit null model
-		assert( starting_point.size() == ll.get_parameters().size() ) ;
-		ll.evaluate_at( starting_point ) ;
-
-		bool success = true ;
-		int iterations = 0 ;
-		// Compute negative definiteness condition number.
-		Eigen::SelfAdjointEigenSolver< Matrix > eigenSolver( ll.get_value_of_second_derivative() ) ;
-		if( eigenSolver.eigenvalues().maxCoeff() > 0 ) {
-			success = false ;
-			if( comments ) {
-				comments->push_back( model_name + ":not-negative-definite" ) ;
-			}
-		} else {
-			metro::Snptest25StoppingCondition< metro::regression::LogLikelihood > stopping_condition(
-				ll,
-				options().get< double >( "-tolerance" ),
-				options().get< std::size_t >( "-max-iterations" ),
-				(appcontext::OstreamTee*)(0)
-				//&get_ui_context().logger()
-			) ;
-
-			Eigen::ColPivHouseholderQR< Matrix > solver ;
-			Eigen::VectorXd parameters = maximise_by_newton_raphson( ll, starting_point, stopping_condition, solver ) ;
-
-			if( stopping_condition.diverged() ) {
-				if( comments ) {
-					comments->push_back( model_name + ":model_fit_error:failed_to_converge_to_mle" ) ;
-				}
-			}
-
-			success = !stopping_condition.diverged() ;
-			iterations = stopping_condition.number_of_iterations() ;
-		}
-		
-		return std::make_pair( success, iterations ) ;
-	}
-	
 	void output_results(
 		metro::regression::LogLikelihood const& null_ll,
 		metro::regression::LogLikelihood const& ll,
