@@ -164,6 +164,10 @@ namespace metro {
 			return m_parameter_identity ;
 		}
 
+		int MultinomialRegressionLogLikelihood::number_of_parameters() const {
+			return m_parameter_identity.rows() ;
+		}
+
 		int MultinomialRegressionLogLikelihood::number_of_outcomes() const {
 			return m_design->outcome().cols() ;
 		}

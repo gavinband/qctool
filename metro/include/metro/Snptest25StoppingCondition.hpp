@@ -7,16 +7,50 @@
 #ifndef METRO_SNPTEST_STOPPING_CONDITION_HPP
 #define METRO_SNPTEST_STOPPING_CONDITION_HPP
 
-#include "appcontext/OstreamTee.hpp"
+//#include "appcontext/OstreamTee.hpp"
 
 namespace metro {
+	
+	struct Trace {
+	public:
+		int iteration ;
+		int max_iterations ;
+		double tolerance ;
+
+		double ll ;
+		double target_ll ;
+		double ll_difference ;
+		double ll_rel_difference ;
+
+		Eigen::VectorXd parameters ;
+		Eigen::VectorXd difference ;
+		Eigen::VectorXd first_derivative ;
+		Eigen::MatrixXd second_derivative ;
+		bool converged ;
+		bool diverged ;
+		
+		std::ostream& operator<<( std::ostream& out ) {
+			out << "Iteration: " << iteration << "; tolerance = " << tolerance << ":\n"
+				<< "params: " << parameters.transpose() << "\n"
+				<< "difference: " << difference.transpose() << " (rel diff  = " << ( difference.array() / ( parameters.array().abs() + 0.1 ) ).transpose() << ")\n"
+				<< "current ll: " << ll << ", difference: " << ll_difference
+				<< ", rel. diff = " << ll_rel_difference << "\n"
+				<< "target ll: " << target_ll << "\n"
+				<< "first derivative: " << first_derivative.transpose() << "\n"
+				//<< "second derivative:\n" << m_ll.get_value_of_second_derivative() << "\n"
+				<< "converged: " << converged << "\n"
+				<< "diverged: " << diverged << ".\n" ;
+			return out ;
+		}
+	} ;
+	
 	template< typename LogLikelihood >
 	struct Snptest25StoppingCondition {
 		Snptest25StoppingCondition(
 			LogLikelihood const& ll,
 			double tolerance,
 			std::size_t max_iterations,
-			appcontext::OstreamTee* log
+			Trace* trace
 		):
 			m_ll( ll ),
 			m_target_ll( -std::numeric_limits< double >::infinity() ),
@@ -25,7 +59,7 @@ namespace metro {
 			m_tolerance( tolerance ),
 			m_iteration( -1 ),
 			m_max_iterations( max_iterations ),
-			m_log( log )
+			m_trace( trace )
 		{}
 
 		void set_target_loglikelihood( double const target ) {
@@ -71,16 +105,18 @@ namespace metro {
 			//	&& param_diff < m_tolerance									// parameters have not changed much.
 			) ;
 
-			if( m_log ) {
-				(*m_log) << "Iteration: " << m_iteration << "; tolerance = " << m_tolerance << ":\n"
-					<< "params: " << m_current_params.transpose() << "\n"
-					<< "difference: " << difference.transpose() << " (rel diff  = " << ( difference.array() / ( parameters.array().abs() + 0.1 ) ).transpose() << ")\n"
-					<< "current ll: " << m_current_ll << ", difference: " << std::abs( m_current_ll - previous_ll )
-						<< ", rel. diff = " << std::abs( ( m_current_ll - previous_ll ) / m_current_ll ) << "\n"
-					<< "target ll: " << m_target_ll << "\n"
-					<< "first derivative: " << first_derivative.transpose() << "\n"
-					//<< "second derivative:\n" << m_ll.get_value_of_second_derivative() << "\n"
-					<< "converged: " << converged << ".\n" ;
+			if( m_trace ) {
+				m_trace->iteration = m_iteration ;
+				m_trace->max_iterations = m_max_iterations ;
+				m_trace->parameters = m_current_params ;
+				m_trace->ll = m_current_ll ;
+				m_trace->target_ll = m_target_ll ;
+				m_trace->ll_difference = std::abs( m_current_ll - previous_ll ) ;
+				m_trace->ll_rel_difference = std::abs( ( m_current_ll - previous_ll ) / m_current_ll ) ;
+				m_trace->first_derivative = first_derivative ;
+				m_trace->second_derivative = m_ll.get_value_of_second_derivative() ;
+				m_trace->converged = converged ;
+				m_trace->diverged = diverged() ;
 			}
 			return diverged() || converged ; 
 		}
@@ -98,7 +134,7 @@ namespace metro {
 			int m_iteration ;
 			bool m_converged ;
 			std::size_t const m_max_iterations ;
-			appcontext::OstreamTee* m_log ;
+			Trace* m_trace ;
 	} ;
 }
 

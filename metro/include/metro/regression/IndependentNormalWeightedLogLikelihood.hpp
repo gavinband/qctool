@@ -42,12 +42,13 @@ namespace metro {
 			
 			regression::Design& design() const { return m_ll->design() ; }
 
+			int number_of_parameters() const ;
 			std::string get_parameter_name( std::size_t i ) const ;
 
+			int number_of_outcomes() const ;
 			// Return a lx2 matrix identifying the l parameters.
 			// The row for each parameter contains the outcome level and design matrix column for that parameter.
 			IntegerMatrix identify_parameters() const ;
-			int number_of_outcomes() const ;
 			
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
 

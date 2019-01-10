@@ -49,20 +49,29 @@ namespace metro {
 				// Right now we handle only a bernoulli outcome, i.e.
 				// each sample must have a 1 in column 0 or 1 of the outcome matrix.
 				Logistic::Matrix const& outcome = design.outcome() ;
-				for( int i = 0; i < outcome.rows(); ++i ) {
-					if(
-						(outcome.row(i).sum() == outcome.row(i).sum())
-						&& (
-							( outcome.row(i).sum() != 1.0 )
-							|| ( outcome(i,0) != 1.0 && outcome(i,1) != 1.0 )
-						)
-					) {
-						std::cerr << "outcome:\n" << outcome.block(0,0,10,outcome.cols()) << "\n" ;
-						throw genfile::BadArgumentError(
-							"metro::case_control::Logistic::check_design()",
-							"design",
-							( boost::format( "Outcome (%f for individual %d) has non-missing level other than zero or one." ) % outcome(i) % (i+1) ).str()
-						) ;
+				if( outcome.cols() != 2 ) {
+					throw genfile::BadArgumentError(
+						"metro::case_control::Logistic::check_design()",
+						"design",
+						"Expected outcome to have 2 columns (count of fail and success outcomes) with row sums == 1"
+					) ;
+				}
+				regression::Design::SampleRanges const& ranges = design.nonmissing_samples() ;
+				for( std::size_t range_i = 0; range_i < ranges.size(); ++range_i ) {
+					for( int i = ranges[range_i].begin(); i < ranges[range_i].end(); ++i ) {
+						if(
+							(outcome.row(i).sum() == outcome.row(i).sum())
+							&& (
+								( outcome.row(i).sum() != 1.0 )
+								|| ( outcome(i,0) != 1.0 && outcome(i,1) != 1.0 )
+							)
+						) {
+							throw genfile::BadArgumentError(
+								"metro::case_control::Logistic::check_design()",
+								"design",
+								( boost::format( "Outcome (%f for individual %d) has non-missing level other than zero or one." ) % outcome(i) % (i+1) ).str()
+							) ;
+						}
 					}
 				}
 			}
@@ -116,6 +125,10 @@ namespace metro {
 			return m_get_parameter_name( m_design->get_predictor_name( identity(i,1) ), m_design->get_outcome_name(identity(i,0)) ) ;
 		}
 	
+		int Logistic::number_of_parameters() const {
+			return m_design->matrix().cols() ;
+		}
+
 		LogLikelihood::IntegerMatrix Logistic::identify_parameters() const {
 			IntegerMatrix result = IntegerMatrix::Zero( m_design->matrix().cols(), 2 ) ;
 			// Each parameter corresponds to an effect for the non-baseline outcome level

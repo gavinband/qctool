@@ -49,9 +49,10 @@ namespace metro {
 			void set_predictor_levels( Matrix const& levels, Matrix const& probabilities, std::vector< metro::SampleRange > const& included_samples ) ;
 		
 			void set_parameter_naming_scheme( GetParameterName ) ;
+			int number_of_parameters() const ;
+			int number_of_outcomes() const ;
 			std::string get_parameter_name( std::size_t i ) const ;		
 			IntegerMatrix identify_parameters() const ;
-			int number_of_outcomes() const ;
 			
 			void evaluate_at( Vector const& parameters, int const numberOfDerivatives = 2 ) ;
 			Vector const& get_parameters() const ;

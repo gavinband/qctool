@@ -44,8 +44,9 @@ namespace metro {
 			void set_parameter_naming_scheme( GetParameterName ) ;
 			std::string get_parameter_name( std::size_t i ) const ;
 	
-			IntegerMatrix identify_parameters() const ;
+			int number_of_parameters() const ;
 			int number_of_outcomes() const ;
+			IntegerMatrix identify_parameters() const ;
 
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
 

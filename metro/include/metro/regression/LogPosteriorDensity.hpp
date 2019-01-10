@@ -18,6 +18,9 @@
 namespace metro {
 	namespace regression {
 		/*
+		*
+		* DEPRECATED: use LogUnnormalisedPosterior instead
+		*
 		* Base class for classes implementing regression log posterior densities
 		* These are prior / log-likelihood combinations that can unpack the contribution from likelihood and prior
 		*/

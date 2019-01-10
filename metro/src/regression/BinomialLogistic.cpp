@@ -49,7 +49,8 @@ namespace metro {
 				BinomialLogistic::Matrix const& outcome = design.outcome() ;
 				// We insist that outcomes are smallish non-negative integers.
 				// Check this by comparing to absolute valued, floored version.
-				if( outcome.rows() > 0 && outcome.cols() > 0 && (outcome.array() - outcome.array().abs().floor()).abs().maxCoeff() != 0 ) {
+				if( outcome.rows() > 0 && outcome.cols() > 0
+					&& (outcome.array() - outcome.array().abs().floor()).abs().maxCoeff() != 0 ) {
 					throw genfile::BadArgumentError(
 						"metro::case_control::BinomialLogistic::check_design()",
 						"design",

@@ -61,6 +61,10 @@ namespace metro {
 			return m_ll->identify_parameters() ;
 		}
 		
+		int IndependentNormalWeightedLogLikelihood::number_of_parameters() const {
+			return m_ll->number_of_parameters() ;
+		}
+
 		int IndependentNormalWeightedLogLikelihood::number_of_outcomes() const {
 			return m_ll->number_of_outcomes() ;
 		}

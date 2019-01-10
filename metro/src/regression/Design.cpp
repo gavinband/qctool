@@ -206,10 +206,10 @@ namespace metro {
 
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
-			out << "         outcome   " ;
+			out << "        outcome   " ;
 			for( int j = 0; j < D; ++j ) {
 				std::string const name = m_design_matrix_column_names[j]  ;
-				widths[j+1] = std::max( name.size(), 5ul ) ;
+				widths[j+1] = std::max( name.size(), 7ul ) ;
 				out << std::setw( widths[j+1] ) << name << " " ;
 			}
 			out << "\n" ;
@@ -218,7 +218,7 @@ namespace metro {
 				out << std::setw(3) << "   " ;
 				if( outcome().row(i).sum() == outcome().row(i).sum() ) {
 					for( int j = 0; j < outcome().cols(); ++j ) {
-						out << ((j>0) ? " " : "" ) << outcome()(i,j) ;
+						out << ((j>0) ? " " : "" ) << std::setw(3) << outcome()(i,j) ;
 					}
 				} else {
 					out << std::setw(widths[0]) << "NA" ;
@@ -228,8 +228,9 @@ namespace metro {
 					if( j > 0 ) {
 						out << std::setw(1) << " " ;
 					}
-					out << std::setw( widths[j+1] ) ;
+					out << std::setw( widths[j+1] ) << std::defaultfloat << std::setprecision(3) ;
 					if( j > 0 & j <= P ) {
+						double const m = mean_predictors(i,j-1) ;
 						out << mean_predictors(i,j-1) ;
 					} else if( matrix()(i,j) == matrix()(i,j) ){
 						out << matrix()(i,j) ;
@@ -241,9 +242,9 @@ namespace metro {
 			
 				if( i == 6 && N > 8 ) {
 					for( int i2 = 0; i2 < 3; ++i2 ) {
-						out << std::setw(5) << " " << std::setw(3) << "   " ;
+						out << std::setw(8) << " " ;
 						out << std::setw(widths[0]) << "." ;
-						out << "   " ;
+						out << "  " ;
 						for( int j2 = 0; j2 < D; ++j2 ) {
 							if( j2 > 0 ) {
 								out << std::setw(1) << " " ;

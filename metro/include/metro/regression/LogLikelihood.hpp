@@ -11,6 +11,7 @@
 #include <memory>
 #include <boost/noncopyable.hpp>
 #include "Eigen/Core"
+#include "metro/SmoothFunction.hpp"
 #include "metro/regression/Design.hpp"
 
 namespace metro {
@@ -18,7 +19,7 @@ namespace metro {
 		/*
 		* Base class for classes implementing regression log-likelihoods
 		*/
-		struct LogLikelihood: public boost::noncopyable
+		struct LogLikelihood: public SmoothFunction
 		{
 		public:
 			typedef std::auto_ptr< LogLikelihood > UniquePtr ;
@@ -31,13 +32,15 @@ namespace metro {
 			virtual ~LogLikelihood() ;
 			virtual regression::Design& design() const = 0 ;
 			virtual std::string get_parameter_name( std::size_t i ) const = 0 ;
+			std::vector< std::string > get_parameter_names() const ;
 
 			// Return a lx2 matrix identifying the l parameters.
 			// For each parameter the row contains:
 			// column 0: the index of the outcome column.
 			// column 1: the index of the design matrix column.
-			virtual IntegerMatrix identify_parameters() const = 0 ;
+			virtual int number_of_parameters() const = 0 ;
 			virtual int number_of_outcomes() const = 0 ;
+			virtual IntegerMatrix identify_parameters() const = 0 ;
 
 			virtual void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) = 0 ;
 			virtual Point const& get_parameters() const = 0 ;
