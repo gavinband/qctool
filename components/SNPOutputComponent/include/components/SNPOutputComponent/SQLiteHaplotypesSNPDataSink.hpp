@@ -34,7 +34,7 @@
 		std::string m_genotype_field ; 
 		qcdb::DBOutputter::UniquePtr m_outputter ;
 		genfile::CohortIndividualSource const& m_samples ;
-		db::Connection::StatementPtr m_insert_data_stmnt ;
+		genfile::db::Connection::StatementPtr m_insert_data_stmnt ;
 
 		std::vector< genfile::VariantIdentifyingData > m_snps ;
 		std::vector< std::vector< uint8_t > > m_data ;

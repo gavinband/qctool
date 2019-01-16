@@ -15,8 +15,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "qcdb/Storage.hpp"
 
@@ -65,7 +65,7 @@ namespace qcdb {
 		DBOutputter m_outputter ;
 		std::string m_table_name ;
 		std::size_t const m_max_snps_per_block ;
-		db::Connection::StatementPtr m_insert_data_sql ;
+		genfile::db::Connection::StatementPtr m_insert_data_sql ;
 		std::vector< genfile::VariantIdentifyingData > m_snps ;
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
@@ -79,8 +79,8 @@ namespace qcdb {
 		void store_data_for_variant(
 			std::size_t const,
 			genfile::VariantIdentifyingData const& snp,
-			db::Connection::RowId const,
-			db::Connection::RowId const
+			genfile::db::Connection::RowId const,
+			genfile::db::Connection::RowId const
 		) ;
 		void create_variables() ;
 	} ;

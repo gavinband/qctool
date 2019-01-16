@@ -16,8 +16,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/CohortIndividualSource.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "qcdb/DBOutputter.hpp"
 #include "components/SampleSummaryComponent/SampleStorage.hpp"
 #include "qcdb/StorageOptions.hpp"
@@ -33,7 +33,7 @@ namespace sample_stats {
 			std::string const& analysis_description,
 			qcdb::DBOutputter::Metadata const& metadata,
 			genfile::CohortIndividualSource const& samples,
-			boost::optional< db::Connection::RowId > analysis_id
+			boost::optional< genfile::db::Connection::RowId > analysis_id
 		) ;
 		static SharedPtr create_shared(
 			std::string const& filename,
@@ -41,7 +41,7 @@ namespace sample_stats {
 			std::string const& analysis_description,
 			qcdb::DBOutputter::Metadata const& metadata,
 			genfile::CohortIndividualSource const& samples,
-			boost::optional< db::Connection::RowId > analysis_id
+			boost::optional< genfile::db::Connection::RowId > analysis_id
 		) ;
 
 		FlatTableDBOutputter(
@@ -50,7 +50,7 @@ namespace sample_stats {
 			std::string const& analysis_description,
 			qcdb::DBOutputter::Metadata const& metadata,
 			genfile::CohortIndividualSource const& samples,
-			boost::optional< db::Connection::RowId > analysis_id
+			boost::optional< genfile::db::Connection::RowId > analysis_id
 		) ;
 		~FlatTableDBOutputter() ;
 
@@ -73,10 +73,10 @@ namespace sample_stats {
 	private:
 		qcdb::DBOutputter m_outputter ;
 		std::string m_table_name ;
-		db::Connection::RowId m_variable_id ;
-		db::Connection::StatementPtr m_find_sample_statement ;
-		db::Connection::StatementPtr m_insert_sample_statement ;
-		db::Connection::StatementPtr m_insert_data_sql ;
+		genfile::db::Connection::RowId m_variable_id ;
+		genfile::db::Connection::StatementPtr m_find_sample_statement ;
+		genfile::db::Connection::StatementPtr m_insert_sample_statement ;
+		genfile::db::Connection::StatementPtr m_insert_data_sql ;
 
 		std::vector< genfile::VariantEntry > m_sample_ids ;
 		typedef std::vector< boost::tuple< std::string, std::size_t, std::string, std::string, genfile::VariantEntry > > Data ;
@@ -93,9 +93,9 @@ namespace sample_stats {
 		void create_variables() ;
 		void construct_statements() ;
 		void store_samples( genfile::CohortIndividualSource const& samples ) ;
-		db::Connection::RowId get_or_create_sample( genfile::VariantEntry const& identifier, std::size_t index ) const ;
+		genfile::db::Connection::RowId get_or_create_sample( genfile::VariantEntry const& identifier, std::size_t index ) const ;
 		void store_block() ;
-		void store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) ;
+		void store_data_for_sample( genfile::db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) ;
 	} ;
 }
 

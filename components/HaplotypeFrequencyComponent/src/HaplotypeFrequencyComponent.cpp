@@ -18,9 +18,9 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "integration/NewtonRaphson.hpp"
 #include "integration/Derivative.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
-#include "db/Error.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
+#include "genfile/db/Error.hpp"
 #include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 #include "components/HaplotypeFrequencyComponent/HaplotypeFrequencyComponent.hpp"
 

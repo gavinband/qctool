@@ -35,7 +35,7 @@
 #include "appcontext/get_current_time_as_string.hpp"
 //#include "FileUtil.hpp"
 
-#include "db/Error.hpp"
+#include "genfile/db/Error.hpp"
 
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
@@ -2117,7 +2117,7 @@ private:
 								m_options.get< std::string >( "-analysis-name" ),
 								m_options.get< std::string >( "-analysis-chunk" ),
 								m_options.get_values_as_map(),
-								boost::optional< db::Connection::RowId >(),
+								boost::optional< genfile::db::Connection::RowId >(),
 								m_options.get< std::string >( "-compare-variants-by" )
 							),
 							*m_samples
@@ -2131,7 +2131,7 @@ private:
 								m_options.get< std::string >( "-analysis-name" ),
 								m_options.get< std::string >( "-analysis-chunk" ),
 								m_options.get_values_as_map(),
-								boost::optional< db::Connection::RowId >(),
+								boost::optional< genfile::db::Connection::RowId >(),
 								m_options.get< std::string >( "-compare-variants-by" )
 							),
 							*m_samples
@@ -2582,7 +2582,7 @@ private:
 			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( db::Error const& e ) {
+		catch( genfile::db::Error const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << ") with the following statement: \""
 				<< e.sql()
 				<< "\".\n" ;
@@ -2767,7 +2767,7 @@ private:
 			std::vector< std::string > const file_spec = parse_filespec( options().get< std::string >( "-osample" ) ) ;
 			if( file_spec[0] == "sqlite" ) {
 				// Catch the case where we write both to the same db.
-				boost::optional< db::Connection::RowId > analysis_id ;
+				boost::optional< genfile::db::Connection::RowId > analysis_id ;
 				if( options().check( "-osnp" ) && file_spec[1] == options().get< std::string >( "-osnp" ) && per_snp_storage ) {
 					analysis_id = per_snp_storage->analysis_id() ;
 				}

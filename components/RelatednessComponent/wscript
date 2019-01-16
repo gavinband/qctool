@@ -30,7 +30,7 @@ def build( bld ):
 		source = bld.glob( 'src/*.cpp' ),
 		includes='./include',
 		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM CBLAS LAPACK',
-		uselib_local = 'eigen threadpool db statfile appcontext worker genfile boost SampleSummaryComponent',
+		uselib_local = 'eigen threadpool statfile appcontext worker genfile boost SampleSummaryComponent',
 		export_incdirs = './include'
 	)
 

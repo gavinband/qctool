@@ -15,8 +15,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/DBOutputter.hpp"
 
@@ -64,7 +64,7 @@ namespace haplotype_frequency_component {
 		qcdb::DBOutputter m_outputter ;
 		std::string m_table_name ;
 		std::size_t const m_max_variants_per_block ;
-		db::Connection::StatementPtr m_insert_data_sql ;
+		genfile::db::Connection::StatementPtr m_insert_data_sql ;
 		std::vector< std::pair< genfile::VariantIdentifyingData, genfile::VariantIdentifyingData > > m_variants ;
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
@@ -77,9 +77,9 @@ namespace haplotype_frequency_component {
 		void create_schema() ;
 		void store_data_for_variants(
 			std::size_t const variant_i,
-			db::Connection::RowId const analysis_id,
-			db::Connection::RowId const variant1_id,
-			db::Connection::RowId const variant2_id
+			genfile::db::Connection::RowId const analysis_id,
+			genfile::db::Connection::RowId const variant1_id,
+			genfile::db::Connection::RowId const variant2_id
 		) ;
 		// void create_variables() ;
 	} ;

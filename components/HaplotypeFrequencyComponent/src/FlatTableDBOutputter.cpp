@@ -12,8 +12,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/HaplotypeFrequencyComponent/FlatTableDBOutputter.hpp"
 
@@ -34,7 +34,7 @@ namespace haplotype_frequency_component {
 		Metadata const& metadata,
 		std::string const& snp_match_fields
 	):
-		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
+		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< genfile::db::Connection::RowId >(), snp_match_fields ),
 		m_table_name( "ld_analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_variants_per_block( 1000 )
 	{}
@@ -59,7 +59,7 @@ namespace haplotype_frequency_component {
 		m_values.clear() ;
 
 		if( options & qcdb::eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
+			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( variant1_id, variant2_id )" ) ;
 		}
 
@@ -123,15 +123,15 @@ namespace haplotype_frequency_component {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
 			// create_variables() ;
 		}
 		for( std::size_t i = 0; i < m_variants.size(); ++i ) {
-			db::Connection::RowId const variant1_id = m_outputter.get_or_create_variant( m_variants[i].first ) ;
-			db::Connection::RowId const variant2_id = m_outputter.get_or_create_variant( m_variants[i].second ) ;
+			genfile::db::Connection::RowId const variant1_id = m_outputter.get_or_create_variant( m_variants[i].first ) ;
+			genfile::db::Connection::RowId const variant2_id = m_outputter.get_or_create_variant( m_variants[i].second ) ;
 			store_data_for_variants( i, m_outputter.analysis_id(), variant1_id, variant2_id ) ;
 		}
 	}
@@ -233,9 +233,9 @@ namespace haplotype_frequency_component {
 	
 	void FlatTableDBOutputter::store_data_for_variants(
 		std::size_t const variant_i,
-		db::Connection::RowId const analysis_id,
-		db::Connection::RowId const variant1_id,
-		db::Connection::RowId const variant2_id
+		genfile::db::Connection::RowId const analysis_id,
+		genfile::db::Connection::RowId const variant1_id,
+		genfile::db::Connection::RowId const variant2_id
 	) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, variant1_id ) ;

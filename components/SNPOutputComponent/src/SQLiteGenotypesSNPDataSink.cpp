@@ -33,7 +33,7 @@ SQLiteGenotypesSNPDataSink::SQLiteGenotypesSNPDataSink(
 	m_genotype_data_i( 0 ),
 	m_intensity_data_i( 0 )
 {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
+	genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
 	m_outputter->connection().run_statement(
 		"CREATE TABLE IF NOT EXISTS Genotype ( "
 		"  analysis_id INT NOT NULL REFERENCES Analysis( id ), "
@@ -434,7 +434,7 @@ void SQLiteGenotypesSNPDataSink::finalise_impl() {
 	}
 	
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
 		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS IntensityVariantIndex ON Intensity ( variant_id )" ) ;
 		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS IntensityAnalysisVariantIndex ON Intensity ( analysis_id, variant_id )" ) ;
 		m_outputter->connection().run_statement( "CREATE INDEX IF NOT EXISTS GenotypeVariantIndex ON Genotype ( variant_id )" ) ;
@@ -445,13 +445,13 @@ void SQLiteGenotypesSNPDataSink::finalise_impl() {
 }
 
 void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_count ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
+	genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 2400 ) ;
 
 #if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Flushing " << data_count << " genotypes..." ;
 	std::size_t max_data_size = 0 ;
 #endif
-	std::vector< db::Connection::RowId > variant_ids( data_count ) ;
+	std::vector< genfile::db::Connection::RowId > variant_ids( data_count ) ;
 	for( std::size_t i = 0; i < data_count; ++i ) {
 		variant_ids[i] = m_outputter->get_or_create_variant( m_genotype_snps[i] ) ;
 	}
@@ -479,13 +479,13 @@ void SQLiteGenotypesSNPDataSink::flush_genotype_data( std::size_t const data_cou
 }
 
 void SQLiteGenotypesSNPDataSink::flush_intensity_data( std::size_t const data_count ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 1200 ) ;
+	genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 1200 ) ;
 
 #if DEBUG_SQLITEGENOTYPESNPDATASINK
 	std::cerr << "Flushing " << data_count << " intensities..." ;
 	std::size_t max_data_size = 0 ;
 #endif
-	std::vector< db::Connection::RowId > variant_ids( data_count ) ;
+	std::vector< genfile::db::Connection::RowId > variant_ids( data_count ) ;
 	for( std::size_t i = 0; i < data_count; ++i ) {
 		variant_ids[i] = m_outputter->get_or_create_variant( m_intensity_snps[i] ) ;
 	}

@@ -157,7 +157,7 @@ public:
 			get_ui_context().logger() << "!! (" << e.what() << "): " << e.format_message() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( db::StatementPreparationError const& e ) {
+		catch( genfile::db::StatementPreparationError const& e ) {
 			get_ui_context().logger() << "!! (" << e.what() << "): " << e.description() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}

@@ -39,9 +39,9 @@
         std::string m_intensity_field ;
 		qcdb::DBOutputter::UniquePtr m_outputter ;
         genfile::CohortIndividualSource const& m_samples ;
-		db::Connection::StatementPtr m_insert_sample_stmnt ;
-		db::Connection::StatementPtr m_insert_genotype_stmnt ;
-		db::Connection::StatementPtr m_insert_intensity_stmnt ;
+		genfile::db::Connection::StatementPtr m_insert_sample_stmnt ;
+		genfile::db::Connection::StatementPtr m_insert_genotype_stmnt ;
+		genfile::db::Connection::StatementPtr m_insert_intensity_stmnt ;
 
 		std::vector< genfile::VariantIdentifyingData > m_genotype_snps ;
 		std::vector< std::vector< uint8_t > > m_genotype_data ;

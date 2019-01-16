@@ -12,8 +12,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 
@@ -42,7 +42,7 @@ namespace qcdb {
 		std::string const& snp_match_fields
 		
 	):
-		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< db::Connection::RowId >(), snp_match_fields ),
+		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< genfile::db::Connection::RowId >(), snp_match_fields ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 1000 )
 	{}
@@ -67,7 +67,7 @@ namespace qcdb {
 		m_values.clear() ;
 
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
+			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( variant_id )" ) ;
 		}
 
@@ -132,14 +132,14 @@ namespace qcdb {
 	}
 
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
 			create_variables() ;
 		}
 		for( std::size_t i = 0; i < m_snps.size(); ++i ) {
-			db::Connection::RowId const variant_id = m_outputter.get_or_create_variant( m_snps[i] ) ;
+			genfile::db::Connection::RowId const variant_id = m_outputter.get_or_create_variant( m_snps[i] ) ;
 			store_data_for_variant( i, m_snps[i], m_outputter.analysis_id(), variant_id ) ;
 		}
 	}
@@ -238,8 +238,8 @@ namespace qcdb {
 	void FlatTableDBOutputter::store_data_for_variant(
 		std::size_t const snp_i,
 		genfile::VariantIdentifyingData const& snp,
-		db::Connection::RowId const analysis_id,
-		db::Connection::RowId const variant_id
+		genfile::db::Connection::RowId const analysis_id,
+		genfile::db::Connection::RowId const variant_id
 	) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, variant_id ) ;

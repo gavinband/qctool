@@ -37,7 +37,7 @@ namespace qcdb {
 		}
 		genfile::CohortIndividualSource::ColumnSpec const spec = sample_data.get_column_spec() ;
 
-		db::Connection::ScopedTransactionPtr transaction = outputter.connection().open_transaction( 2400 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = outputter.connection().open_transaction( 2400 ) ;
 
 		std::string sample_sql = 
 			"CREATE TABLE IF NOT EXISTS Sample ( "
@@ -63,7 +63,7 @@ namespace qcdb {
 
 		outputter.connection().run_statement( sample_sql ) ;
 	
-		db::Connection::StatementPtr insert_sample_stmnt = outputter.connection().get_statement( insert_sample_sql ) ;
+		genfile::db::Connection::StatementPtr insert_sample_stmnt = outputter.connection().get_statement( insert_sample_sql ) ;
 
 		for( std::size_t sample_i = 0; sample_i < number_of_samples; ++sample_i ) {
 			if( getter(sample_i) != sample_data.get_entry( sample_i, "ID_1" )) {

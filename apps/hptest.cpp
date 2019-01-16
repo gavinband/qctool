@@ -40,7 +40,7 @@
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/GPThresholdingGTSetter.hpp"
 
-#include "db/Error.hpp"
+#include "genfile/db/Error.hpp"
 
 #include "metro/constants.hpp"
 #include "metro/regression/Design.hpp"
@@ -595,7 +595,7 @@ private:
 			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( db::Error const& e ) {
+		catch( genfile::db::Error const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << ") with the following statement: \""
 				<< e.sql()
 				<< "\".\n" ;

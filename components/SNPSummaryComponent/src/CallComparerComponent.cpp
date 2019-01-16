@@ -20,8 +20,8 @@
 
 #include "statfile/BuiltInTypeStatSink.hpp"
 
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
 
 #include "components/SNPSummaryComponent/PairwiseCallComparer.hpp"

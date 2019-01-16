@@ -12,8 +12,8 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "components/SampleSummaryComponent/FlatTableDBOutputter.hpp"
 #include "qcdb/DBOutputter.hpp"
 
@@ -26,7 +26,7 @@ namespace sample_stats {
 		std::string const& analysis_description,
 		qcdb::DBOutputter::Metadata const& metadata,
 		genfile::CohortIndividualSource const& samples,
-		boost::optional< db::Connection::RowId > analysis_id
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples, analysis_id ) ) ;
 	}
@@ -37,7 +37,7 @@ namespace sample_stats {
 		std::string const& analysis_description,
 		qcdb::DBOutputter::Metadata const& metadata,
 		genfile::CohortIndividualSource const& samples,
-		boost::optional< db::Connection::RowId > analysis_id
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, samples, analysis_id ) ) ;
 	}
@@ -48,12 +48,12 @@ namespace sample_stats {
 		std::string const& analysis_description,
 		qcdb::DBOutputter::Metadata const& metadata,
 		genfile::CohortIndividualSource const& samples, // unused at present
-		boost::optional< db::Connection::RowId > analysis_id
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	):
 		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) + "SampleData" )
 	{
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 240 ) ;
 		m_outputter.connection().run_statement(
 				"CREATE TABLE IF NOT EXISTS Sample ( "
 				"analysis_id INTEGER NOT NULL REFERENCES Entity( id ), "
@@ -113,7 +113,7 @@ namespace sample_stats {
 	}
 	
 	void FlatTableDBOutputter::store_block() {
-		db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 3600 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 3600 ) ;
 
 		if( !m_insert_data_sql.get() ) {
 			create_schema() ;
@@ -228,7 +228,7 @@ namespace sample_stats {
 			m_values.clear() ;
 		}
 		if( options & qcdb::eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
+			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 600 ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS SampleIndex ON Sample( id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON " + m_table_name + "( sample_id )" ) ;
 			m_outputter.connection().run_statement( "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index2 ON " + m_table_name + "( analysis_id, sample_id )" ) ;
@@ -246,8 +246,8 @@ namespace sample_stats {
 		}
 	}
 
-	db::Connection::RowId FlatTableDBOutputter::get_or_create_sample( genfile::VariantEntry const& identifier, std::size_t index ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId FlatTableDBOutputter::get_or_create_sample( genfile::VariantEntry const& identifier, std::size_t index ) const {
+		genfile::db::Connection::RowId result ;
 
 		if( identifier.is_missing() ) {
 			throw genfile::BadArgumentError( "impl::FlatTableDBOutputter::get_or_create_sample()", "identifier=NA" ) ;
@@ -270,7 +270,7 @@ namespace sample_stats {
 			m_insert_sample_statement->reset() ;
 		}
 		else {
-			result = m_find_sample_statement->get< db::Connection::RowId >( 0 ) ;
+			result = m_find_sample_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 		}
 
 		m_find_sample_statement->reset() ;
@@ -278,7 +278,7 @@ namespace sample_stats {
 		return result ;
 	}
 	
-	void FlatTableDBOutputter::store_data_for_sample( db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) {
+	void FlatTableDBOutputter::store_data_for_sample( genfile::db::Connection::RowId analysis_id, std::size_t sample_index, genfile::VariantEntry const& sample_id ) {
 		m_insert_data_sql->bind( 1, analysis_id ) ;
 		m_insert_data_sql->bind( 2, sample_id ) ;
 		

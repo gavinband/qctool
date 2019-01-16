@@ -329,13 +329,13 @@ void SQLiteHaplotypesSNPDataSink::finalise_impl() {
 }
 
 void SQLiteHaplotypesSNPDataSink::flush_data( std::size_t const data_count ) {
-	db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
+	genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter->connection().open_transaction( 600 ) ;
 
 #if DEBUG_SQLITEHAPLOTYPESSNPDATASINK
 	std::cerr << "Flushing " << data_count << " elements..." ;
 	std::size_t max_data_size = 0 ;
 #endif
-	std::vector< db::Connection::RowId > variant_ids( data_count ) ;
+	std::vector< genfile::db::Connection::RowId > variant_ids( data_count ) ;
 	for( std::size_t i = 0; i < data_count; ++i ) {
 		variant_ids[i] = m_outputter->get_or_create_variant( m_snps[i] ) ;
 	}

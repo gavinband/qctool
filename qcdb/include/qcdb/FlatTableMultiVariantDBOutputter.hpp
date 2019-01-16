@@ -15,8 +15,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/CohortIndividualSource.hpp"
 #include "genfile/VariantEntry.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/DBOutputter.hpp"
 
@@ -70,7 +70,7 @@ namespace qcdb {
 		std::vector< std::string > m_key_entry_names ;
 		std::string m_table_name ;
 		std::size_t const m_max_variants_per_block ;
-		db::Connection::StatementPtr m_insert_data_sql ;
+		genfile::db::Connection::StatementPtr m_insert_data_sql ;
 		std::vector< Key > m_keys ;
 		typedef boost::bimap< std::string, std::size_t > VariableMap ;
 		VariableMap m_variables ;
@@ -83,8 +83,8 @@ namespace qcdb {
 		void create_schema() ;
 		void store_data_for_variants(
 			std::size_t const key_i,
-			db::Connection::RowId const analysis_id,
-			std::vector< db::Connection::RowId > const& variant_ids
+			genfile::db::Connection::RowId const analysis_id,
+			std::vector< genfile::db::Connection::RowId > const& variant_ids
 		) ;
 	} ;
 }

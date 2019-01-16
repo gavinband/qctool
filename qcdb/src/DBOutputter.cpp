@@ -13,8 +13,8 @@
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/VariantEntry.hpp"
 #include "genfile/Error.hpp"
-#include "db/Connection.hpp"
-#include "db/SQLStatement.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLStatement.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "qcdb/DBOutputter.hpp"
 
@@ -46,7 +46,7 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		boost::optional< db::Connection::RowId > analysis_id,
+		boost::optional< genfile::db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	) {
 		return UniquePtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ) ) ;
@@ -56,7 +56,7 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		boost::optional< db::Connection::RowId > analysis_id,
+		boost::optional< genfile::db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	) {
 		return SharedPtr( new DBOutputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ) ) ;
@@ -69,10 +69,10 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		boost::optional< db::Connection::RowId > analysis_id,
+		boost::optional< genfile::db::Connection::RowId > analysis_id,
 		std::string const& snp_match_fields
 	):
-		m_connection( db::Connection::create( filename )),
+		m_connection( genfile::db::Connection::create( filename )),
 		m_analysis_name( analysis_name ),
 		m_analysis_chunk( analysis_description ),
 		m_metadata( metadata ),
@@ -84,11 +84,11 @@ namespace qcdb {
 			m_connection->run_statement( "PRAGMA journal_mode = OFF" ) ;
 			m_connection->run_statement( "PRAGMA synchronous = OFF" ) ;
 		}
-		catch( db::Error const& ) {
+		catch( genfile::db::Error const& ) {
 			std::cerr << "qcdb::DBOutputter::DBOutputter(): unable to set PRAGMA synchronous=OFF, is another connection using this database?" ;
 		}
 
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS Variant ( id INTEGER PRIMARY KEY, rsid TEXT, chromosome TEXT, position INTEGER, alleleA TEXT, alleleB TEXT )"
@@ -164,7 +164,7 @@ namespace qcdb {
 
 	void DBOutputter::finalise( long options ) {
 		if( options & eCreateIndices ) {
-			db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
+			genfile::db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 			m_connection->run_statement(
 				"CREATE INDEX IF NOT EXISTS Variant_rsid_index ON Variant( rsid )"
 			) ;
@@ -172,7 +172,7 @@ namespace qcdb {
 				"CREATE INDEX IF NOT EXISTS VariantIdentifierVariantIndex ON VariantIdentifier( variant_id )"
 			) ;
 		}
-		db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
+		genfile::db::Connection::ScopedTransactionPtr transaction = m_connection->open_transaction( 7200 ) ;
 		end_analysis( m_analysis_id.get() ) ;
 	}
 
@@ -212,7 +212,7 @@ namespace qcdb {
 						"Could not find an analysis with the given name and chunk."
 					) ;
 				}
-				db::Connection::RowId const id = m_find_analysis_statement->get< db::Connection::RowId >( 0 ) ;
+				genfile::db::Connection::RowId const id = m_find_analysis_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 				if( id != m_analysis_id.get() ) {
 					throw genfile::BadArgumentError(
 						"qcdb::DBOutputter::store_metadata()",
@@ -227,7 +227,7 @@ namespace qcdb {
 					m_analysis_chunk
 				) ;
 			}
-		} catch( db::StatementStepError const& e ) {
+		} catch( genfile::db::StatementStepError const& e ) {
 			throw genfile::BadArgumentError( "qcdb::DBOutputter::store_metadata()", "analysis_name=\"" + m_analysis_name + "\"", "An analysis with name \"" + m_analysis_name + "\" and chunk \"" + m_analysis_chunk + "\" already exists" ) ;
 		}
 
@@ -252,16 +252,16 @@ namespace qcdb {
 		m_insert_variable_statement->reset() ;
 	}
 	
-	void DBOutputter::start_analysis( db::Connection::RowId const analysis_id ) const {
-		db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
+	void DBOutputter::start_analysis( genfile::db::Connection::RowId const analysis_id ) const {
+		genfile::db::Connection::StatementPtr stmnt = m_connection->get_statement( "INSERT INTO AnalysisStatus( analysis_id, started, status ) VALUES( ?, ?, ? )" ) ;
 		stmnt->bind( 1, analysis_id ) ;
 		stmnt->bind( 2, appcontext::get_current_time_as_string() ) ;
 		stmnt->bind( 3, "incomplete" ) ;
 		stmnt->step() ;
 	}
 
-	void DBOutputter::end_analysis( db::Connection::RowId const analysis_id ) const {
-		db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
+	void DBOutputter::end_analysis( genfile::db::Connection::RowId const analysis_id ) const {
+		genfile::db::Connection::StatementPtr stmnt = m_connection->get_statement( "UPDATE AnalysisStatus SET completed = ?, status = ? WHERE analysis_id == ?" ) ;
 		stmnt->bind( 1, appcontext::get_current_time_as_string() ) ;
 		stmnt->bind( 2, "success" ) ;
 		stmnt->bind( 3, analysis_id ) ;
@@ -269,8 +269,8 @@ namespace qcdb {
 	}
 
 #if 0	
-	db::Connection::RowId DBOutputter::get_or_create_entity_internal( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::get_or_create_entity_internal( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
+		genfile::db::Connection::RowId result ;
 		// Look in our variable cache first
 		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
 		if( where != m_entity_map.end() ) {
@@ -285,15 +285,15 @@ namespace qcdb {
 			if( m_find_entity_statement->empty() ) {
 				result = create_entity_internal( name, description, class_id ) ;
 			} else {
-				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+				result = m_find_entity_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 			}
 			m_find_entity_statement->reset() ;
 		}
 		return result ;
 	}
 	
-	db::Connection::RowId DBOutputter::create_entity_internal( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::create_entity_internal( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
+		genfile::db::Connection::RowId result ;
 		m_insert_entity_statement
 			->bind( 1, name )
 			.bind( 2, description )
@@ -310,8 +310,8 @@ namespace qcdb {
 	}
 
 #endif
-	db::Connection::RowId DBOutputter::create_analysis( std::string const& name, std::string const& description ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::create_analysis( std::string const& name, std::string const& description ) const {
+		genfile::db::Connection::RowId result ;
 		m_insert_analysis_statement
 			->bind( 1, name )
 			.bind( 2, description )
@@ -324,8 +324,8 @@ namespace qcdb {
 	}
 
 #if 0
-	db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< db::Connection::RowId > class_id ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
+		genfile::db::Connection::RowId result ;
 		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
 		if( where != m_entity_map.end() ) {
 			result = where->second ;
@@ -339,14 +339,14 @@ namespace qcdb {
 				result = create_entity_internal( name, description, class_id ) ;
 				create_entity_relationship( result, m_used_by, m_analysis_id.get() ) ;
 			} else {
-				result = m_find_entity_statement->get< db::Connection::RowId >( 0 ) ;
+				result = m_find_entity_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 			}
 			m_find_entity_statement->reset() ;
 		}
 		return result ;
 	}
 
-	void DBOutputter::create_entity_relationship( db::Connection::RowId entity1_id, db::Connection::RowId relationship_id, db::Connection::RowId entity2_id ) const {
+	void DBOutputter::create_entity_relationship( genfile::db::Connection::RowId entity1_id, genfile::db::Connection::RowId relationship_id, genfile::db::Connection::RowId entity2_id ) const {
 		m_insert_entity_relationship_statement
 			->bind( 1, entity1_id )
 			.bind( 2, relationship_id )
@@ -356,8 +356,8 @@ namespace qcdb {
 		m_insert_entity_relationship_statement->reset() ;
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_entity_data( db::Connection::RowId const entity_id, db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::get_or_create_entity_data( genfile::db::Connection::RowId const entity_id, genfile::db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const {
+		genfile::db::Connection::RowId result ;
 
 		m_find_entity_data_statement
 			->bind( 1, entity_id )
@@ -372,20 +372,20 @@ namespace qcdb {
 			result = m_connection->get_last_insert_row_id() ;
 			m_insert_entity_data_statement->reset() ;
 		} else {
-			result = m_find_entity_data_statement->get< db::Connection::RowId >( 0 ) ;
+			result = m_find_entity_data_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 		}
 		m_find_entity_data_statement->reset() ;
 		return result ;
 	}
 #endif
 
-	db::Connection::RowId DBOutputter::set_analysis_property(
-		db::Connection::RowId const analysis_id,
+	genfile::db::Connection::RowId DBOutputter::set_analysis_property(
+		genfile::db::Connection::RowId const analysis_id,
 		std::string const& property,
 		genfile::VariantEntry const& value,
 		std::string const& aux
 	) const {
-		db::Connection::RowId result ;
+		genfile::db::Connection::RowId result ;
 
 		m_insert_analysis_property_statement
 			->bind( 1, analysis_id )
@@ -398,13 +398,13 @@ namespace qcdb {
 		return result ;
 	}
 
-	void DBOutputter::add_alternative_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const {
+	void DBOutputter::add_alternative_variant_identifier( genfile::db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const {
 		if( identifier != rsid  && identifier != "---" && identifier != "." ) {
 			add_variant_identifier( variant_id, identifier ) ;
 		}
 	}
 
-	void DBOutputter::add_variant_identifier( db::Connection::RowId const variant_id, std::string const& identifier ) const {
+	void DBOutputter::add_variant_identifier( genfile::db::Connection::RowId const variant_id, std::string const& identifier ) const {
 		m_find_variant_identifier_statement
 			->bind( 1, variant_id )
 			.bind( 2, identifier )
@@ -419,8 +419,8 @@ namespace qcdb {
 		m_find_variant_identifier_statement->reset() ;
 	}
 
-	db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
-		db::Connection::RowId result ;
+	genfile::db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
+		genfile::db::Connection::RowId result ;
 		if( snp.get_position().chromosome().is_missing() ) {
 			m_find_variant_statement->bind_NULL( 1 ) ;
 		} else {
@@ -466,7 +466,7 @@ namespace qcdb {
 				1
 			) ;
 		} else {
-			result = m_find_variant_statement->get< db::Connection::RowId >( 0 ) ;
+			result = m_find_variant_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;
 			add_alternative_variant_identifier( result, snp.get_primary_id(), rsid ) ;
 			snp.get_identifiers(
