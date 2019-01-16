@@ -9,6 +9,7 @@
 #include <string>
 #include <sstream>
 #include <boost/optional.hpp>
+#include <boost/format.hpp>
 #include "genfile/snp_data_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
@@ -131,6 +132,13 @@ namespace genfile {
 	{}
 
 	SNPDataSource::~SNPDataSource() {}
+
+	void SNPDataSource::get_sample_ids( GetSampleIds callback ) const {
+		boost::format fmt( "sample_%d" ) ;
+		for( std::size_t i = 0; i < number_of_samples(); ++i ) {
+			callback( i, (fmt % i).str() ) ;
+		}
+	}
 
 	void SNPDataSource::reset_to_start() {
 		reset_to_start_impl() ;

@@ -229,6 +229,8 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "hom" )
 		;
+		
+		options.option_implies_option( "-infer-ploidy-from", "-s" ) ;
 
 /*	    options[ "-i" ]
 	        .set_description( 	"Path of intensity file(s) to input.  "
@@ -1073,7 +1075,6 @@ private:
 			) ;
 		}
 
-#if 1
 		open_data_sources(
 			m_mangled_options.gen_filenames(),
 			m_options.check( "-s" ) ? m_options.get_values< std::string >( "-s" ) : boost::optional< std::vector< std::string > >(),
@@ -1081,65 +1082,6 @@ private:
 			&m_snp_data_source,
 			&m_samples
 		) ;
-#else
-		m_snp_data_source = open_snp_data_sources(
-			m_mangled_options.gen_filenames(),
-			m_options.check( "-flip-to-match-cohort1" )
-		) ;
-	
-		if( !m_samples ) {
-			m_samples = create_dummy_samples( m_snp_data_source ) ;
-		}
-
-		if( m_samples->get_number_of_individuals() != m_snp_data_source->number_of_samples() ) {
-			throw genfile::MismatchError(
-				"QCToolCmdLineContext::unsafe_open_samples()",
-				m_samples->get_source_spec(),
-				"number of samples = " + genfile::string_utils::to_string( m_samples->get_number_of_individuals() ),
-				"expected number of samples = " + genfile::string_utils::to_string( m_snp_data_source->number_of_samples() )
-			) ;
-		}
-
-		if( m_options.check( "-merge-in" )) {
-			m_snp_data_source = open_merged_data_sources( m_options.get_values< std::string >( "-merge-in" ) ) ;
-		}
-
-		if( m_options.check( "-infer-ploidy-from" )) {
-			std::string const sex_column = m_options.get< std::string >( "-infer-ploidy-from" ) ;
-			std::vector< char > sexes( m_samples->size(), '.' ) ;
-			for( std::size_t i = 0; i < m_samples->size(); ++i ) {
-				genfile::VariantEntry const& entry = m_samples->get_entry( i, sex_column ) ;
-				if( !entry.is_missing() ) {
-					std::string const sex = genfile::string_utils::to_lower( entry.as< std::string >() ) ;
-					if( sex == "1" || sex == "m" || sex == "male" ) {
-						sexes[i] = 'm' ;
-					} else if( sex == "2" || sex == "f" || sex == "female" ) {
-						sexes[i] = 'f' ;
-					} else {
-						throw genfile::MalformedInputError(
-							m_samples->get_source_spec(),
-							"Malformed sex value \"" + sex + "\"",
-							i,
-							m_samples->get_column_spec().find_column( sex_column )
-						) ;
-					}
-				}
-			}
-		
-			m_snp_data_source.reset(
-				genfile::PloidyConvertingSNPDataSource::create(
-					m_snp_data_source,
-					boost::bind( &genfile::get_ploidy_from_sex, sexes, _1, _2 )
-				).release()
-			) ;
-		}
-
-		if( m_options.check( "-threshold" )) {
-			m_snp_data_source.reset(
-				new genfile::ThreshholdingSNPDataSource( m_snp_data_source, m_options.get< double >( "-threshold" ))
-			) ;
-		}
-#endif
 
 		if( m_options.check( "-sample-data" )) {
 			m_samples = open_sample_data( m_samples, m_options.get_values< std::string > ( "-sample-data" )) ;
