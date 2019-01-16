@@ -52,8 +52,8 @@ namespace metro {
 			
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
 
-			Point const& get_parameters() const {
-				return m_ll->get_parameters() ;
+			Point const& parameters() const {
+				return m_ll->parameters() ;
 			}
 
 			double get_value_of_function() const {

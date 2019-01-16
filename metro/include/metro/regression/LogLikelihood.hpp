@@ -43,7 +43,7 @@ namespace metro {
 			virtual IntegerMatrix identify_parameters() const = 0 ;
 
 			virtual void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) = 0 ;
-			virtual Point const& get_parameters() const = 0 ;
+			virtual Point const& parameters() const = 0 ;
 			virtual double get_value_of_function() const = 0 ;
 			virtual Vector get_value_of_first_derivative() const = 0 ;
 			virtual Matrix get_value_of_second_derivative() const = 0 ;

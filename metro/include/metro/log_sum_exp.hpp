@@ -7,6 +7,7 @@
 #ifndef METRO_LOG_SUM_EXP_HPP
 #define METRO_LOG_SUM_EXP_HPP
 
+#include <vector>
 #include <Eigen/Core>
 
 namespace metro {
@@ -39,6 +40,10 @@ namespace metro {
 		Eigen::MatrixXd const exponential = ( data - Eigen::MatrixXd::Constant( data.rows(), data.cols(), max_value ) ).array().exp() ;
 		return max_value + std::log( exponential.array().sum() ) ;
 	}
+
+	// Ditto but assuming all values are present.
+	template<>
+	double log_sum_exp( std::vector< double > const& data ) ;
 
 	void rowwise_log_sum_exp( Eigen::MatrixXd const&, Eigen::VectorXd* result ) ;
 	void rowwise_log_sum_exp( Eigen::MatrixXd const&, Eigen::MatrixXd const& nonmissingness, Eigen::VectorXd* result ) ;

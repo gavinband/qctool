@@ -32,9 +32,9 @@ namespace metro {
 		typedef boost::function< double ( SelectedStates const& ) > ComputeLL ;
 		struct StateHash {
 		public:
-		  size_t operator()(const SelectedStates &p) const {
-		    return boost::hash_value(p);
-		  }
+			size_t operator()(const SelectedStates &p) const {
+				return boost::hash_value(p);
+			}
 		} ;
 
 		typedef std::unordered_map< SelectedStates, double, StateHash > Store ;
@@ -50,6 +50,7 @@ namespace metro {
 
 		/* Return our store of states visited so far */ 
 		Store const& visited_states() const ;
+		void visited_states( boost::function< void( SelectedStates const&, double ) > callback ) const ;
 	
 	private:
 		std::size_t const m_N ;

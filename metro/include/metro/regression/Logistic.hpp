@@ -50,7 +50,7 @@ namespace metro {
 
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
 
-			Point const& get_parameters() const ;
+			Point const& parameters() const ;
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
 			Matrix get_value_of_second_derivative() const ;

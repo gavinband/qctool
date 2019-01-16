@@ -13,6 +13,7 @@
 #include "metro/ModifiedCholesky.hpp"
 #include "metro/ModifiedNewtonRaphson.hpp"
 #include "metro/regression/fit_model.hpp"
+#include "metro/Snptest25StoppingCondition.hpp"
 
 #define USE_MODIFIED_NR 1
 #define DEBUG 1
@@ -39,41 +40,8 @@ namespace metro {
 			function.evaluate_at( point, 2 ) ;
 			double const ll = function.get_value_of_function() ;
 			m_solver.compute( -function.get_value_of_second_derivative() ) ;
-
-			// Compute derivative normalised to standard Gaussian space.
-			// Theory: if -I = LLᵗ then Σ=(Lᵗ)⁻¹L⁻¹.
-			// We assume the log-likelihood looks like this:
-			// f(x) = s(Lᵗ(x-x₀)) + O((x-x₀)³)
-			// near the true maximum x₀, where s is the standard multivariate normal
-			// log-density.  Then
-			// f'(x) = -L Lᵗ (x-x₀) + O((x-x₀)²)   (expressed as a column vector).
-			// We put a convergence condition on the corresponding derivative in s-space, given by
-			// z = L⁻¹ f'(x) = -Lᵗ(x-x₀) + O((x-x₀)²)
-			// This has the nice interpretation of being invariant to changes in scale of the
-			// domain or range of the function, and also of being interpretable as a distance
-			// to the maximum in the uncorrelated-variable space that is the domain of s.
-
-			// Note further that the next step is (Lᵗ)⁻¹ (L⁻¹ f'(x)) so we have to
-			// perform this computation anyway.  Conceptually a condition on the magnitude
-			// of z is half-way between a condition on the magnitude of f' and on the magnitude
-			// of the next jump.  A condition on z is independent of the scale of the function.
-
-			// What could go wrong with this scheme?
-			// If the function is not well-approximated by a quadratic then 
-			// If the derivative is large but L has large entries it could be that 
-			// z is small.
-
-			//
-			// Could this scheme go wrong away from the maximum?  Well it might stop early if
-			// L⁻¹ has small values.
-			// TODO: use special form of regression problem to show this is avoided.
-			Vector step = function.get_value_of_first_derivative() ;
-			double const derivativeOneNorm = step.array().abs().maxCoeff() ;
-			m_solver.matrixL().solveInPlace( step ) ;
-			//double const rescaledDerivativeOneNorm = step.array().abs().maxCoeff() ;
-
-			// Compute the next step and the directional derivative
-			m_solver.matrixL().transpose().solveInPlace( step ) ;
+			double const derivativeOneNorm = function.get_value_of_first_derivative().array().abs().maxCoeff() ;
+			Vector step = m_solver.solve( function.get_value_of_first_derivative() ) ;
 			double directional_derivative = function.get_value_of_first_derivative().transpose() * step ;
 
 			// We stop when the rescaled derivative is within tolerance
@@ -85,7 +53,7 @@ namespace metro {
 			) ;
 
 			if( m_tracer ) {
-				m_tracer( m_iteration, m_target_ll, point, function.get_value_of_first_derivative(), step, converged ) ;
+				m_tracer( m_iteration, ll, m_target_ll, point, function.get_value_of_first_derivative(), step, converged ) ;
 			}
 
 			if(
@@ -122,15 +90,15 @@ namespace metro {
 				}
 			} else {
 	#if 1
-				Eigen::VectorXd parameters = metro::find_maximum_by_modified_newton_raphson_with_line_search(
-					ll, starting_point, stopping_condition
-				) ;
+			Eigen::VectorXd parameters = metro::find_maximum_by_modified_newton_raphson_with_line_search(
+				ll, starting_point, stopping_condition
+			) ;
 	#else
 				metro::Snptest25StoppingCondition< metro::regression::LogLikelihood > stopping_condition(
 					ll,
-					options().get< double >( "-tolerance" ),
-					options().get< std::size_t >( "-max-iterations" ),
-					(appcontext::OstreamTee*)(0)
+					0.01,
+					100,
+					0
 					//&get_ui_context().logger()
 				) ;
 

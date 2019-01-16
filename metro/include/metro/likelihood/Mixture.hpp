@@ -53,10 +53,18 @@ namespace metro {
 				m_total_weight += weight ;
 			}
 			
+			int number_of_parameters() const {
+				int result = 0 ;
+				for( std::size_t i = 0; i < m_components.size(); ++i ) {
+					result += m_components[i].parameters().size() ;
+				}
+				return result ;
+			}
+			
 			// Evaluate at a given set of parameters expressed as a single vector.
 			// Parameters are taken in order of the components.
-			void evaluate_at( Vector const& parameters ) {
-				evaluate_at( parameters, DataSubset( DataRange( 0, m_data->rows() ))) ;
+			void evaluate_at( Vector const& parameters, int numberOfDerivatives = 2 ) {
+				evaluate_at( parameters, DataSubset( DataRange( 0, m_data->rows() )), numberOfDerivatives ) ;
 			}
 
 			// Evaluate at a given set of parameters expressed as a single vector,
@@ -66,7 +74,7 @@ namespace metro {
 			// Parameters for second component, (normalised) weight for second component
 			// ...
 			// Parameters for last component.  No weight is included for last component as weights sum to one.
-			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& data_subset, int numberOfDerivatives = 2 ) {
 				{
 					int param_i = 0 ;
 					double total_weight = 0 ;
@@ -134,7 +142,7 @@ namespace metro {
 				return compute_parameters() ;
 			}
 
-			std::string get_spec() const {
+			std::string get_summary() const {
 				return "Mixture" ;
 			}
 

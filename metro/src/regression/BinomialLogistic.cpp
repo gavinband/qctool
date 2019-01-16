@@ -513,7 +513,7 @@ namespace metro {
 #endif
 		}
 		
-		BinomialLogistic::Point const& BinomialLogistic::get_parameters() const {
+		BinomialLogistic::Point const& BinomialLogistic::parameters() const {
 			return m_parameters ;
 		}
 

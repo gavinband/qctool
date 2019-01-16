@@ -41,7 +41,7 @@ namespace metro {
 				}
 			}
 
-			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ) ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ), int numberOfDerivatives = 2 ) {
 				assert( subset.number_of_subranges() == 1 && subset[0].begin() == 0 && subset[0].end() == 1 ) ;
 				assert( parameters.size() == m_data.rows() * m_data.cols() ) ;
 				for( std::size_t i = 0; i < m_multinomials.size(); ++i ) {
@@ -85,7 +85,7 @@ namespace metro {
 				return result ;
 			}
 
-			std::string get_spec() const { return "ProductOfMultinomials" ; }
+			std::string get_summary() const { return "ProductOfMultinomials" ; }
 			
 			Vector parameters() const {
 				Vector result( m_data.rows() * m_data.cols() ) ;

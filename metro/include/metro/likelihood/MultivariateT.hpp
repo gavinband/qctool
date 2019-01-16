@@ -66,7 +66,7 @@ namespace metro {
 			Matrix const& sigma() const { return m_sigma ; }
 			Matrix const& data() const { return m_data ; }
 			
-			std::string get_spec() const { return "MultivariateT" ; }
+			std::string get_summary() const { return "MultivariateT" ; }
 
 
 			// Behaves as if calling set_data() (below) with unit weights.
@@ -99,7 +99,7 @@ namespace metro {
 			// Parameters are taken in order as the p entries of the mean vector,
 			// followed by the p(p+1)/2 entries of the lower triangle of the
 			// variance-covariance matrix taken in column-major order.
-			void evaluate_at( Vector const& parameters ) {
+			void evaluate_at( Vector const& parameters, int numberOfDerivatives = 2 ) {
 				evaluate_at( parameters, DataRange( 0, m_data->rows() )) ;
 			}
 
@@ -107,7 +107,7 @@ namespace metro {
 			// Parameters are taken in order as the p entries of the mean vector,
 			// followed by the p(p+1)/2 entries of the lower triangle of the
 			// variance-covariance matrix taken in column-major order.
-			void evaluate_at( Vector const& parameters, DataSubset const& data_subset ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& data_subset, int numberOfDerivatives = 2 ) {
 				assert( parameters.size() == m_parameters.size() ) ;
 				assert( m_data ) ;
 				unpack_parameters( parameters, &m_mean, &m_sigma ) ;

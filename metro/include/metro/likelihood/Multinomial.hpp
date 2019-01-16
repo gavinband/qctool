@@ -38,7 +38,7 @@ namespace metro {
 				return *this ;
 			}
 
-			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ) ) {
+			void evaluate_at( Vector const& parameters, DataSubset const& subset = DataRange( 0, 1 ), int numberOfDerivatives = 2 ) {
 				assert( subset.number_of_subranges() == 1 && subset[0].begin() == 0 && subset[0].end() == 1 ) ;
 				assert( parameters.size() == m_counts.size() ) ;
 				m_parameters = parameters ;
@@ -82,7 +82,7 @@ namespace metro {
 			Vector parameters() const { return m_parameters ; }
 			Vector const& get_data() const { return m_counts ; }
 			
-			std::string get_spec() const { return "Multinomial" ; }
+			std::string get_summary() const { return "Multinomial" ; }
 		private:
 			Vector m_counts ;
 			Vector m_parameters ;

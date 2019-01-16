@@ -10,6 +10,18 @@
 // #define DEBUG 1
 
 namespace metro {
+#if DEBUG
+	namespace {
+		std::ostream& operator<<( std::ostream& out, std::vector< std::size_t > const& states ) {
+			out << "[" ;
+			for( std::size_t j = 0; j < states.size(); ++j ) {
+				out << ((j>0)?",":"") << states[j] ;
+			}
+			return out << "]" ;
+		}
+	}
+#endif
+	
 	ShotgunStochasticSearch::ShotgunStochasticSearch(
 		std::size_t n,
 		ShotgunStochasticSearch::ComputeLL compute_ll,
@@ -46,13 +58,27 @@ namespace metro {
 			if( where == m_lls.end() ) {
 				lls[i] = m_compute_ll( new_states[i] ) ;
 				m_lls.insert( std::make_pair( new_states[i], lls[i] ) ) ;
+#if DEBUG
+				std::cerr << "INSERTED: " << new_states[i] << ", " << lls[i] << ".\n" ;
+#endif
 			} else {
 				lls[i] = where->second ;
 			}
 		}
-	
-		double const total_ll = std::accumulate( lls.begin(), lls.end(), 0.0 ) ;
-		// Pick a new state at random
+
+		// Values are assumed to be on log scale
+		double const max_ll = *std::max_element( lls.begin(), lls.end() ) ;
+#if DEBUG
+		std::cerr << "ShotgunStochasticSearch::update(): Maximum likelihood is " << max_ll << ".\n" ;
+#endif
+		for( std::size_t i = 0; i < lls.size(); ++i ) {
+			lls[i] = std::exp( lls[i] - max_ll ) ;
+		}
+#if DEBUG
+		for( std::size_t i = 0; i < std::min( lls.size(), 10ul ); ++i ) {
+			std::cerr << "LLs[" << i << "] = " << lls[i] << "\n" ;
+		}
+#endif
 		boost::random::discrete_distribution< std::size_t, double > dist( lls ) ;
 		m_current_state = new_states[ dist(m_rng) ] ;
 		
@@ -62,6 +88,15 @@ namespace metro {
 	ShotgunStochasticSearch::Store const& ShotgunStochasticSearch::visited_states() const {
 		return m_lls ;
 	}
+	
+	void ShotgunStochasticSearch::visited_states( boost::function< void( SelectedStates const&, double ) > callback ) const {
+		Store::const_iterator i = m_lls.begin() ;
+		Store::const_iterator end = m_lls.end() ;
+		for( ; i != end; ++i ) {
+			callback( i->first, i->second ) ;
+		}
+	}
+	
 	
 	void ShotgunStochasticSearch::generate_deletions(
 		std::vector< ShotgunStochasticSearch::SelectedStates >* result

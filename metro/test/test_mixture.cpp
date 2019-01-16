@@ -32,11 +32,11 @@ namespace {
 			m_n = data.rows() ;
 		}
 
-		void evaluate_at( Vector const& parameters ) {
-			evaluate_at( parameters, metro::DataRange( 0, m_n )) ;
+		void evaluate_at( Vector const& parameters, int numberOfDerivatives = 2 ) {
+			evaluate_at( parameters, metro::DataRange( 0, m_n ), numberOfDerivatives ) ;
 		}
 
-		void evaluate_at( Vector const& parameters, metro::DataSubset const& subset ) {
+		void evaluate_at( Vector const& parameters, metro::DataSubset const& subset, int numberOfDerivatives = 2 ) {
 			assert( parameters.size() == 1 ) ;
 			m_parameters = parameters ;
 		}
@@ -52,11 +52,13 @@ namespace {
 			assert(0) ;
 		}
 		
+		int number_of_parameters() const { return m_parameters.size() ; }
+
 		Eigen::VectorXd parameters() const {
 			return m_parameters ;
 		}
 
-		std::string get_spec() const {
+		std::string get_summary() const {
 			return "ConstantLogLikelihood" ;
 		}
 

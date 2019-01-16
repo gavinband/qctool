@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 #include <Eigen/Core>
+#include <Eigen/Cholesky>
 #include "boost/function.hpp"
 #include "metro/ModifiedCholesky.hpp"
 #include "metro/SmoothFunction.hpp"
@@ -21,7 +22,7 @@ namespace metro {
 			typedef SmoothFunction Function ;
 			typedef Eigen::VectorXd Vector ;
 			typedef Eigen::MatrixXd Matrix ;
-			typedef boost::function< void( int iteration, double target_ll, Vector const& point, Vector const& derivative, Vector const& step, bool converged ) > Tracer ;
+			typedef boost::function< void( int iteration, double ll, double target_ll, Vector const& point, Vector const& derivative, Vector const& step, bool converged ) > Tracer ;
 		public:
 			virtual ~Stepper() ;
 			virtual bool diverged() const = 0 ;
@@ -37,6 +38,7 @@ namespace metro {
 			std::size_t number_of_iterations() const ;
 
 			bool step( Function& function, Vector const& point, Vector* result ) ;
+			void reset() ;
 
 		private:
 			double const m_tolerance ;
@@ -44,7 +46,7 @@ namespace metro {
 			Tracer m_tracer ;
 			int m_iteration ;
 			metro::ModifiedCholesky< Matrix > m_solver ;
-			//Eigen::LLT< Matrix > m_solver ;
+			//Eigen::LDLT< Matrix > m_solver ;
 			//Eigen::ColPivHouseholderQR< Matrix > m_solver ;
 			double m_target_ll ;
 		} ;

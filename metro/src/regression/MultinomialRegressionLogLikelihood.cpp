@@ -134,7 +134,7 @@ namespace metro {
 #endif
 		}
 		
-		MultinomialRegressionLogLikelihood::Vector const& MultinomialRegressionLogLikelihood::get_parameters() const {
+		MultinomialRegressionLogLikelihood::Vector const& MultinomialRegressionLogLikelihood::parameters() const {
 			return m_parameter_vector ;
 		}
 		

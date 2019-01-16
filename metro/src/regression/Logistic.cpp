@@ -222,7 +222,7 @@ namespace metro {
 #endif
 		}
 		
-		Logistic::Point const& Logistic::get_parameters() const {
+		Logistic::Point const& Logistic::parameters() const {
 			return m_parameters ;
 		}
 
