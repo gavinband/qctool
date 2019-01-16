@@ -605,6 +605,16 @@ private:
 		using namespace metro::regression ;
 		using metro::SampleRange ;
 		
+		double const minus_infinity = -std::numeric_limits< double >::infinity() ;
+		double const log_weight = ( (pick.size() == 0) || (pick.size() > 5) )
+			? minus_infinity
+			: (pick.size() * std::log( 1.0 / store.number_of_variants() )) ;
+	
+		if( log_weight == minus_infinity ) {
+			// Disallowed state, don't bother fitting.
+			return minus_infinity ;
+		}
+
 		boost::format parameter_format( "%s%d/%s" ) ;
 		
 		assert( pick.size() < 6 ) ;
@@ -639,7 +649,7 @@ private:
 			) ;
 			prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 10, 10 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 			prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
@@ -708,11 +718,6 @@ private:
 		ll.design().set_predictors( predictors, nonmissing_samples ) ;
 		LogUnnormalisedPosterior posterior( ll, prior ) ;
 
-		double const minus_infinity = -std::numeric_limits< double >::infinity() ;
-		double const log_weight = ( (pick.size() == 0) || (pick.size() > 5) )
-			? minus_infinity
-			: (pick.size() * std::log( 1.0 / store.number_of_variants() )) ;
-	
 		double posterior_weight = minus_infinity ;
 		double result = minus_infinity ;
 
