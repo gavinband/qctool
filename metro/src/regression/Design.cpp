@@ -231,7 +231,6 @@ namespace metro {
 					}
 					out << std::setw( widths[j+1] ) << std::defaultfloat << std::setprecision(3) ;
 					if( j > 0 & j <= P ) {
-						double const m = mean_predictors(i,j-1) ;
 						out << mean_predictors(i,j-1) ;
 					} else if( matrix()(i,j) == matrix()(i,j) ){
 						out << matrix()(i,j) ;

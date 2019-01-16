@@ -418,15 +418,15 @@ private:
 		try {
 			unsafe_process() ;
 		} catch( genfile::InputError const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
+			ui().logger() << "!! Error (" << e.what() << "): " << e.format_message() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::FileNotFoundError const& e ) {
-			get_ui_context().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
+			ui().logger() << "\nError: No file matching \"" << e.filespec() << "\" could be found.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		catch( genfile::db::Error const& e ) {
-			get_ui_context().logger() << "!! Error (" << e.what() << ") with the following statement: \""
+			ui().logger() << "!! Error (" << e.what() << ") with the following statement: \""
 				<< e.sql()
 				<< "\".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
@@ -495,8 +495,17 @@ private:
 		genfile::CohortIndividualSource const& samples,
 		std::vector< std::string > const& covariates
 	) {
-		get_ui_context().logger() << "Adding covariates...\n" ;
-
+		ui().logger() << "Adding covariates...\n" ;
+		{
+			std::set< std::string > uniqueCovariates( covariates.begin(), covariates.end() ) ;
+			if( uniqueCovariates.size() != covariates.size() ) {
+				throw genfile::BadArgumentError(
+					"add_covariates()",
+					"covariates=\"" + genfile::string_utils::join( covariates, " " ) + "\"",
+					"Covariates should not be duplicated."
+				) ;
+			}
+		}
 		genfile::CohortIndividualSource::ColumnSpec const& spec = samples.get_column_spec() ;
 		for( std::size_t i = 0; i < covariates.size(); ++i ) {
 			std::string const& covariateName = covariates[i] ;
@@ -616,7 +625,8 @@ private:
 		}
 
 		boost::format parameter_format( "%s%d/%s" ) ;
-		
+		bool const debug = options().check( "-debug" ) ;
+
 		assert( pick.size() < 6 ) ;
 		Eigen::MatrixXd predictors = Eigen::MatrixXd::Zero( store.number_of_samples(), 10 ) ;
 		std::vector< metro::SampleRange > nonmissing_samples( 1, metro::SampleRange( 0, store.number_of_samples() )) ;
@@ -669,7 +679,7 @@ private:
 
 		// Set up a trace for model fitting iterations.
 		CholeskyStepper::Tracer tracer ;
-		if( options().check( "-debug" )) {
+		if( debug ) {
 			tracer = [this] ( 
 				int iteration,
 				double ll,
@@ -679,7 +689,7 @@ private:
 				CholeskyStepper::Vector const& step,
 				bool converged
 			) {
-				this->get_ui_context().logger()
+				this->ui().logger()
 					<< " ITERATION: " << iteration << "\n"
 					<< "        LL: " << ll << "\n"
 					<< "    TARGET: " << target_ll << "\n"
@@ -698,6 +708,9 @@ private:
 		{
 			NullLLStore::const_iterator where = null_ll_store.find( nonmissing_samples ) ;
 			if( where == null_ll_store.end() ) {
+				if( debug ) {
+					this->ui().logger() << "---> fitting NULL...\n" ;
+				}
 				ll.design().set_predictors( Eigen::MatrixXd::Zero( store.number_of_samples(), 10 ), nonmissing_samples ) ;
 				LogUnnormalisedPosterior posterior( ll, null_prior ) ;
 				metro::regression::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
@@ -722,6 +735,9 @@ private:
 		double result = minus_infinity ;
 
 		if( log_weight > minus_infinity ) {
+			if( debug ) {
+				this->ui().logger() << "---> fitting full...\n" ;
+			}
 			metro::regression::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
 			std::pair< bool, int > fit = metro::regression::fit_model(
 				posterior,
