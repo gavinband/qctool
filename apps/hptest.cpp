@@ -1429,6 +1429,7 @@ private:
 			if( options().check( "-debug" )) {
 				tracer = [this] ( 
 					int iteration,
+					double ll,
 					double target_ll,
 					CholeskyStepper::Vector const& point,
 					CholeskyStepper::Vector const& first_derivative,
@@ -1437,6 +1438,7 @@ private:
 				) {
 					this->get_ui_context().logger()
 						<< " ITERATION:" << iteration << "\n"
+						<< "        LL:" << ll << "\n"
 						<< "    TARGET:" << target_ll << "\n"
 						<< "     POINT:" << point.transpose() << "\n"
 						<< "DERIVATIVE:" << first_derivative.transpose() << "\n"
@@ -1454,7 +1456,7 @@ private:
 			std::pair< bool, int > result = metro::regression::fit_model(
 				ll,
 				model_name,
-				Eigen::VectorXd::Zero( ll.get_parameters().size() ),
+				Eigen::VectorXd::Zero( ll.parameters().size() ),
 				stopping_condition,
 				&comments
 			) ;
@@ -1471,7 +1473,7 @@ private:
 			output.store_data_for_key(
 				variants,
 				model_name + ":degrees_of_freedom",
-				int( ll.get_parameters().size() - lls[0].get_parameters().size() )
+				int( ll.parameters().size() - lls[0].parameters().size() )
 			) ;
 		
 			if( ( model > 0 || output_models == "all" ) && result.first ) {
@@ -1561,7 +1563,7 @@ private:
 		std::string const output_parameters = options().get< std::string >( "-output-parameters" ) ;
 		if( options().get< std::string >( "-output-parameters" ) == "all" ) {
 			lower = 0 ;
-			upper = ll.get_parameters().size() ;
+			upper = ll.parameters().size() ;
 		} else if( output_parameters == "genetic" ) {
 			lower = 1 ;
 			upper = lower + ll.design().number_of_predictors() ;
@@ -1590,7 +1592,7 @@ private:
 		metro::regression::LogLikelihood::IntegerMatrix const parameter_identity = ll.identify_parameters() ;
 		using genfile::string_utils::to_string ;
 
-		Vector const& parameters = ll.get_parameters() ;
+		Vector const& parameters = ll.parameters() ;
 
 		for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 			int const i = parametersToOutput[parameter_i] ;
@@ -1647,8 +1649,8 @@ private:
 		// The point is that we have an (approximate) estimate of the unnormalised posterior
 		// under the null and alternative models.  The normalising constant gives us the
 		// posterior.
-		Vector const& alternative_parameters = ll.get_parameters() ;
-		Vector const& null_parameters = null_ll.get_parameters() ;
+		Vector const& alternative_parameters = ll.parameters() ;
+		Vector const& null_parameters = null_ll.parameters() ;
 		double const log_2pi = std::log( 2.0 * 3.1415926535897932384626 ) ;
 		double const log_numerator
 			= ll.get_value_of_function()
@@ -1721,8 +1723,8 @@ private:
 		qcdb::MultiVariantStorage& output,
 		std::vector< std::string >* comments
 	) const {
-		Vector const& parameters = ll.get_parameters() ;
-		Vector const& null_parameters = null_ll.get_parameters() ;
+		Vector const& parameters = ll.parameters() ;
+		Vector const& null_parameters = null_ll.parameters() ;
 		// Now output the test statistic and p-value
 		double p_value = compute_lrt_pvalue(
 			null_ll.get_value_of_function(), ll.get_value_of_function(),
