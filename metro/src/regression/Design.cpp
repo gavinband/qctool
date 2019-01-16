@@ -206,6 +206,7 @@ namespace metro {
 
 			std::vector< std::size_t > widths( D + 1 ) ;
 			widths[0] = 9 ;
+			std::size_t const n_top = 8 ;
 			out << "        outcome   " ;
 			for( int j = 0; j < D; ++j ) {
 				std::string const name = m_design_matrix_column_names[j]  ;
@@ -223,7 +224,7 @@ namespace metro {
 				} else {
 					out << std::setw(widths[0]) << "NA" ;
 				}
-				out << (( i == 6 ) ? " ~ " : "   " ) ;
+				out << (( i == n_top ) ? " ~ " : "   " ) ;
 				for( int j = 0; j < D; ++j ) {
 					if( j > 0 ) {
 						out << std::setw(1) << " " ;
@@ -240,7 +241,7 @@ namespace metro {
 				}
 				out << "\n" ;
 			
-				if( i == 6 && N > 8 ) {
+				if( i == n_top && N > 8 ) {
 					for( int i2 = 0; i2 < 3; ++i2 ) {
 						out << std::setw(8) << " " ;
 						out << std::setw(widths[0]) << "." ;
@@ -253,7 +254,7 @@ namespace metro {
 						}
 						out << "\n" ;
 					}
-					i = N - 5 ;
+					i = N - n_top + 1 ;
 				}
 			}
 			return out.str() ;
