@@ -145,7 +145,6 @@ namespace qcdb {
 			create_columns() ;
 		}
 		for( std::size_t key_i = 0; key_i < m_keys.size(); ++key_i ) {
-
 			// output key
 			Key const& key = m_keys[ key_i ] ;
 			for( std::size_t i = 0; i < key.size(); ++i ) {
@@ -160,6 +159,12 @@ namespace qcdb {
 				<< variant.get_position().position()
 				<< variant.get_allele(0)
 				<< (( variant.number_of_alleles() < 2 ) ? "." : variant.get_alleles_as_string( ",", 1, variant.number_of_alleles() )) ;
+			}
+			genfile::MissingValue const NA ;
+			for( std::size_t i = key.size(); i < m_key_entry_names.size(); ++i ) {
+				(*m_sink)
+					<< NA << NA << NA
+					<< NA << NA << NA ;
 			}
 
 			// output variables
