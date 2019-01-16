@@ -11,6 +11,7 @@
 #include <boost/function.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/timer/timer.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/discrete_distribution.hpp>
@@ -179,6 +180,9 @@ public:
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-debug" ]
 			.set_description( "Output debugging information." ) ;
+		options [ "-log" ]
+			.set_description( "Specify that " + globals::program_name + " should write a log file to the given file." )
+			.set_takes_single_value() ;
 	}
 } ;
 
@@ -749,6 +753,8 @@ private:
 		// Do a test search for now
 		NullLLStore null_ll_store ;
 
+		ui().logger() << "Running shutgun stochastic search...\n" ;
+
 		metro::ShotgunStochasticSearch ss(
 			store.number_of_variants(),
 			[this, &store, &ll, &null_ll_store]( metro::ShotgunStochasticSearch::SelectedStates const& s ) {
@@ -758,11 +764,19 @@ private:
 		) ;
 
 		for( std::size_t i = 0; i < 100; ++i ) {
+			boost::timer::cpu_timer timer ;
 			metro::ShotgunStochasticSearch::SelectedStates const& pick = ss.update() ;
-			std::cerr << print_state( store.number_of_variants(), pick ) << ".\n" ;
+			
+			ui().logger() << "Iteration " << i << ": "
+				<< "took " << boost::timer::format( timer.elapsed(), 2, "%ts" )
+				<< ", state is: " << print_state( store.number_of_variants(), pick )
+				<< "\n" ;
 		}
-		
+
+		ui().logger() << "Outputting search results...\n" ;
 		output_search_results( ss, store ) ;
+
+		ui().logger() << "Fine-mapping complete.\n" ;
 	}
 	
 	void output_search_results(
