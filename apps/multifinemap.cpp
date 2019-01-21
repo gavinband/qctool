@@ -47,7 +47,7 @@
 
 namespace bfs = boost::filesystem ;
 
-#define DEBUG 1
+// #define DEBUG 1
 // #define DEBUG_DOSAGESTORE 1
 
 namespace globals {
@@ -637,11 +637,11 @@ private:
 		for( std::size_t i = 0; i < 5; ++i ) {
 			null_prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 1000, 1000 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 			null_prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 1000, 1000 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 		}
 		
@@ -663,17 +663,17 @@ private:
 			) ;
 			prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 100, 100 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 		}
 		for( std::size_t i = pick.size(); i < 5; ++i ) {
 			prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 1000, 1000 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 			prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 1000, 1000 )
+				metro::distributions::LogF::create( 32, 32 )
 			) ;
 		}
 
@@ -704,6 +704,8 @@ private:
 		// The null model does not depend on the SNPs, but might depend on the missing samples.
 		// We cache the value for speed if the nonmissing samples don't change.
 		std::vector< std::string > comments ;
+		// null_ll will be log-marginal likelihood of null model
+		// i.e. logarithm of prior x likelihood, integrated over parameters.
 		double null_ll = 0.0 ;
 		{
 			NullLLStore::const_iterator where = null_ll_store.find( nonmissing_samples ) ;
@@ -721,7 +723,9 @@ private:
 					stopping_condition,
 					&comments
 				) ;
-				null_ll = posterior.get_value_of_function() ;
+					
+				null_ll = laplace_approximate( posterior ) ;
+				//null_ll = posterior.get_value_of_function() ;
 				where = null_ll_store.insert( std::make_pair( nonmissing_samples, null_ll ) ).first ;
 			} else {
 				null_ll = where->second ;
@@ -747,7 +751,8 @@ private:
 				&comments
 			) ;
 			if( fit.first ) {
-				result = posterior.get_value_of_function() - null_ll + log_weight ;
+				result = laplace_approximate( posterior ) - null_ll + log_weight ;
+				//result = posterior.get_value_of_function() - null_ll + log_weight ;
 			}
 
 #if DEBUG
@@ -768,6 +773,17 @@ private:
 		}
 		
 		return result ;
+	}
+	
+	// Compute laplace approximation.
+	// It is assumed that the function has already been maximised.
+	double laplace_approximate( metro::SmoothFunction const& function ) const {
+		double const fx = function.get_value_of_function() ;
+		metro::SmoothFunction::Matrix const& H = function.get_value_of_second_derivative() ;
+		double const log_2pi = std::log( 2.0 * 3.1415926535897932384626 ) ;
+		Eigen::ColPivHouseholderQR< metro::SmoothFunction::Matrix > solver( -H ) ;
+		return
+			fx + 0.5 * ( function.number_of_parameters() * log_2pi - solver.logAbsDeterminant() ) ;
 	}
 
 	void run_search( DosageStore& store, metro::regression::LogLikelihood& ll ) {
