@@ -296,9 +296,6 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-o" ]
 			.set_description( "Specify the output filename stub." )
 			.set_takes_single_value() ;
-		options[ "-odb" ]
-			.set_description( "Specify the name of a database file to output." )
-			.set_takes_single_value() ;
 		options[ "-output-cols" ]
 			.set_description( "Specify a comma-separated list of columns that should appear in the output files."
 				" Possible columns are \"SNPID\", \"rsid\", \"chromosome\", \"position\", \"allele1\", \"allele2\", and \"cM_from_start_of_chromosome\"."
@@ -1838,17 +1835,16 @@ private:
 			pick_tags.resize( max_num_picks, boost::optional< std::string >() ) ;
 		}
 
-		std::string filename_stub = options().get< std::string >( "-o" ) ;
-		
-		std::string const formatstring = ( boost::format( filename_stub + ".%%0%dd" ) % number_of_digits ).str() ;
 //		std::cerr << "FORMAT STRING: " << formatstring << ".\n" ;
+		std::string const& filename = options().get< std::string >( "-o" ) ;
 		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::vector< std::size_t > picked_snps = pick_snps( snps, pick_tags ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
-			write_output( i, snps, recombination_offsets, picked_snps, genes, ( boost::format( formatstring ) % i ).str() ) ;
+			write_output( i, snps, recombination_offsets, picked_snps, genes, filename ) ;
 		}
 	}
+	
 
 	std::vector< std::size_t > pick_snps(
 		std::vector< TaggedSnp > const& snps,
@@ -1936,12 +1932,30 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele1" ), output_columns.end() ) ;
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
-		qcdb::Storage::SharedPtr storage = qcdb::FlatFileOutputter::create_shared(
-			filename,
-			options().get< std::string >( "-analysis-name" ),
-			options().get_values_as_map()
-		) ;
-
+		qcdb::Storage::SharedPtr storage ;
+		{
+			std::vector< std::string > file_spec = parse_filespec( filename ) ;
+			if( file_spec[0] == "sqlite" ) {
+				qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
+					file_spec[1],
+					options().get< std::string >( "-analysis-name" ),
+					options().get< std::string >( "-analysis-chunk" ),
+					options().get_values_as_map(),
+					options().get< std::string >( "-compare-variants-by" )
+				) ;
+				if( file_spec.size() == 3 ) {
+					table_storage->set_table_name( file_spec[2] ) ;
+				}
+				storage = table_storage ;
+			} else {
+				assert( file_spec[0] == "flat" ) ;
+				storage = qcdb::FlatFileOutputter::create_shared(
+					file_spec[1],
+					options().get< std::string >( "-analysis-name" ),
+					options().get_values_as_map()
+				) ;
+			}
+		}
 		// Setup output columns
 		if( options().check( "-match-tag" )) {
 			storage->add_variable( "tag" ) ;
@@ -2000,6 +2014,45 @@ private:
 		}
 		
 		storage->finalise() ;
+	}
+
+	std::vector< std::string > parse_filespec( std::string spec ) const {
+		std::vector< std::string > result(2) ;
+		result[0] = "flat" ;
+		
+		// First get rid of leading sqlite specifier, if any.
+		if( spec.size() >= 9 && spec.substr( 0, 9 ) == "sqlite://" ) {
+			result[0] = "sqlite" ;
+			spec = spec.substr( 9, spec.size() ) ;
+		}
+
+		std::vector< std::string > elts = genfile::string_utils::split( spec, ":" ) ;
+		assert( elts.size() > 0 ) ;
+
+		if( elts[0].size() >= 7 && elts[0].substr( elts[0].size() - 7, 7 ) == ".sqlite" ) {
+			result[0] = "sqlite" ;
+		}
+		result[1] = elts[0] ;
+
+		if( elts.size() > 2 ) {
+			throw genfile::BadArgumentError(
+				"QCToolProcessor::parse_filespec()",
+				"spec=\"" + spec + "\"",
+				"Expected format for filespec is <filename> or sqlite://<filename>[:<tablename>]."
+			) ;
+		}
+		if( elts.size() == 2 ) {
+			if( result[0] != "sqlite" ) {
+				throw genfile::BadArgumentError(
+					"QCToolProcessor::parse_filespec()",
+					"spec=\"" + spec + "\"",
+					"Table spec is not expected unless a sqlite file is specified (i.e. sqlite://<filename>:<tablename>)"
+				) ;
+			}
+			result.push_back( elts[1] ) ;
+		}
+		
+		return( result ) ;
 	}
 
 	void write_output(
