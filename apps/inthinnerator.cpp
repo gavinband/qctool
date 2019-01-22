@@ -1124,8 +1124,48 @@ namespace genes {
 			}
 			return result ;
 		}
+
+		std::pair< std::vector< Feature const* >, genfile::VariantEntry > find_nearest_genes(
+			genfile::GenomePosition const& genomePosition
+		) {
+			genfile::Chromosome const& chromosome = genomePosition.chromosome() ;
+			genfile::Position const& position = genomePosition.position() ;
+			// Genes are ordered by start then by end.
+			// We walk through all genes on the chromosome and figure out the nearest gene.
+			
+			std::vector< Feature const* > result ;
+			if( m_genes.find( chromosome ) == m_genes.end() ) {
+				return std::make_pair( result, genfile::MissingValue() ) ;
+			}
+			ChromosomeGeneSet const& chromosomeGenes = m_genes.at( chromosome ) ;
+
+			if( chromosomeGenes.size() == 0 ) {
+				return std::make_pair( result, genfile::MissingValue() ) ;
+			}
+			ChromosomeGeneSet::const_iterator i = chromosomeGenes.begin() ;
+			ChromosomeGeneSet::const_iterator const end_i = chromosomeGenes.end() ;
+			double min_distance = std::numeric_limits< std::size_t >::max() ;
+			for( ; i != end_i; ++i ) {
+				double const distance = compute_distance( position, *i ) ;
+				if( distance == min_distance ) {
+					result.push_back( &(*i) ) ;
+				} else if( distance < min_distance ) {
+					result.clear() ;
+					result.push_back( &(*i) ) ;
+					min_distance = distance ;
+				}
+			}
+			return std::make_pair( result, min_distance ) ;
+		}
 	private:
 		GeneMap m_genes ;
+		
+		std::size_t compute_distance( std::size_t position, Feature const& feature ) {
+			int const rightDistance = int( position ) - int( feature.end().position() ) ;
+			int const leftDistance = int( feature.start().position() ) - int( position ) ;
+			std::size_t distance = std::max( std::max( leftDistance, rightDistance ), 0 ) ;
+			return distance ;
+		}
 	} ;
 	
 	Genes::UniquePtr load_genes_from_refGene(
@@ -1913,6 +1953,8 @@ private:
 			storage->add_variable( output_columns[i] ) ;
 		}
 		if( genes.get() ) {
+			storage->add_variable( "nearest_gene" ) ;
+			storage->add_variable( "distance_to_nearest_gene" ) ;
 			storage->add_variable( "nearest_gene_in_region" ) ;
 			storage->add_variable( "all_genes_in_region" ) ;
 		}
@@ -2093,8 +2135,9 @@ private:
 								theseGenes.str()
 							) ;
 						}
-			
 					}
+
+					
 
 					std::ostringstream theseGenes ;
 					for( GeneNames::left_const_iterator name_i = geneNames.left.begin(); name_i != geneNames.left.end(); ++name_i ) {

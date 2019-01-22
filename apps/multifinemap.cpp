@@ -168,6 +168,9 @@ public:
 			.set_takes_values(1)
 			.set_default_value(5)
 		;
+		options[ "-additive" ]
+			.set_description( "Specify that only additive effects are allowed for" ) ;
+		;
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
@@ -634,14 +637,17 @@ private:
 		metro::IndependentParameterDistribution prior( ll.get_parameter_names() ) ;
 		metro::IndependentParameterDistribution null_prior( ll.get_parameter_names() ) ;
 
+		double const add_prior_obs = 32.0 ;
+		double const het_prior_obs = options().check( "-additive" ) ? 1000.0 : 32.0 ;
+
 		for( std::size_t i = 0; i < 5; ++i ) {
 			null_prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( add_prior_obs, add_prior_obs )
 			) ;
 			null_prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( het_prior_obs, het_prior_obs )
 			) ;
 		}
 		
@@ -659,21 +665,21 @@ private:
 			) ;
 			prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( add_prior_obs, add_prior_obs )
 			) ;
 			prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( het_prior_obs, het_prior_obs )
 			) ;
 		}
 		for( std::size_t i = pick.size(); i < 5; ++i ) {
 			prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( add_prior_obs, add_prior_obs )
 			) ;
 			prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( 32, 32 )
+				metro::distributions::LogF::create( het_prior_obs, het_prior_obs )
 			) ;
 		}
 
