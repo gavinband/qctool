@@ -302,16 +302,19 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 				" The special value \"all\" indicates that all available columns will be output." )
 			.set_takes_single_value()
 			.set_default_value( "all" ) ;
-		options[ "-table-name" ]
-			.set_description( "Specify a name for the table to use when using -odb." )
-			.set_takes_single_value() ;
 		options[ "-headers" ]
 			.set_description( "Specify this to force output of column headersomit column headers in the output files." ) ;
 		options[ "-no-headers" ]
 			.set_description( "Specify this to suppress output of column headers in the output files." ) ;
+		options[ "-compare-variants-by" ]
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
+				" (position, rsid, snpid, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,alleles,ids" ) ;
 
-		options.option_excludes_option( "-o", "-odb" ) ;
-		options.option_excludes_option( "-odb", "-o" ) ;
 		options.option_excludes_option( "-headers", "-no-headers" ) ;
 		options.option_implies_option( "-headers", "-o" ) ;
 		options.option_implies_option( "-no-headers", "-o" ) ;
@@ -1279,8 +1282,8 @@ private:
 	}
 	
 	void unsafe_process() {
-		if( !options().check( "-o" ) && ! options().check( "-odb" ) ) {
-			get_ui_context().logger() << "You must supply either -o or -odb.\n" ;
+		if( !options().check( "-o" ) ) {
+			get_ui_context().logger() << "You must supply -o.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		genfile::GeneticMap::UniquePtr map ;
