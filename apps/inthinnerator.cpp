@@ -2151,6 +2151,34 @@ private:
 				}
 			}
 
+			if( genes.get() ) {
+				std::pair<
+					std::vector< genes::Feature const* >,
+					genfile::VariantEntry
+				> const nearest_genes
+						= genes->find_nearest_genes( snps[snp_i].snp().get_position() ) ;
+
+				// Avoid repeated names
+				std::vector< std::string > geneNames ;
+				for( std::size_t k = 0; k < nearest_genes.first.size(); ++k ) {
+					geneNames.push_back( nearest_genes.first[k]->name() ) ;
+				}
+				std::sort( geneNames.begin(), geneNames.end() ) ;
+				std::vector< std::string >::const_iterator where = std::unique( geneNames.begin(), geneNames.end() ) ;
+				geneNames.resize( where - geneNames.begin() ) ;
+				std::string const combinedName = genfile::string_utils::join( geneNames, "," ) ;
+				storage.store_per_variant_data(
+					snps[snp_i].snp(),
+					"nearest_gene",
+					combinedName
+				) ;
+				storage.store_per_variant_data(
+					snps[snp_i].snp(),
+					"distance_to_nearest_gene",
+					nearest_genes.second
+				) ;
+			}
+			
 			progress_context.notify_progress( snp_index+1, snps.size() ) ;
 		}
 	}
