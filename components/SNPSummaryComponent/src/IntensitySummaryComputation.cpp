@@ -41,6 +41,7 @@ namespace snp_summary_component {
 			assert( m_nonmissingness.cols() == 2 ) ;
 		}
 	
+#if 0
 		Eigen::RowVectorXd mean ;
 		Eigen::MatrixXd covariance ;
 
@@ -50,13 +51,15 @@ namespace snp_summary_component {
 			mean,
 			covariance
 		) ;
-	
-		callback( "mean_X", mean(0) ) ;
-		callback( "mean_Y", mean(1) ) ;
+#endif
+		double total_nonmissing = ( m_nonmissingness.rowwise().sum().array() > 0 ).cast< double >().sum() ;
+		callback( "mean_X", m_intensities.col(0).sum() / m_nonmissingness.col(0).sum() ) ;
+		callback( "mean_Y", m_intensities.col(1).sum() / m_nonmissingness.col(1).sum() ) ;
+		callback( "mean_X+Y", (m_intensities.sum() / ( 0.5 * m_nonmissingness.sum() ))) ;
+#if 0
 		callback( "var_X", covariance(0,0) ) ;
 		callback( "var_Y", covariance(1,1) ) ;
 		callback( "cov_XY",covariance(0,1) ) ;
-	
 		for( int g = 0; g < 3; ++g ) {
 			m_nonmissingness_by_genotype = m_nonmissingness ;
 
@@ -84,6 +87,7 @@ namespace snp_summary_component {
 			callback( stub + ":var_Y", covariance(1,1) ) ;
 			callback( stub + ":cov_XY",covariance(0,1) ) ;
 		}
+#endif
 	}
 
 	std::string IntensitySummaryComputation::get_summary( std::string const& prefix, std::size_t column_width ) const {
