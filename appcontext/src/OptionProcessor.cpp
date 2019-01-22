@@ -348,6 +348,9 @@ namespace appcontext {
 	std::string OptionProcessor::get_default_value( std::string const& arg ) const {
 		std::map< std::string, OptionDefinition >::const_iterator defn_i
 			= m_option_definitions.find( arg ) ;
+		if( defn_i == m_option_definitions.end() ) {
+			std::cerr << "Argument \"" + arg + "\" not found.\n" ;
+		}
 		assert( defn_i != m_option_definitions.end() ) ;
 		assert( defn_i->second.has_default_value() ) ;
 		return defn_i->second.default_value() ;

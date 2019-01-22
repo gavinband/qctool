@@ -42,6 +42,8 @@
 #include "genfile/db/Error.hpp"
 #include "genfile/ToGP.hpp"
 #include "genfile/CrossCohortCovariateValueMapping.hpp"
+#include "genfile/CommonSNPFilter.hpp"
+#include "genfile/VariantIdentifyingDataFilteringSNPDataSource.hpp"
 
 #include "qcdb/FlatFileMultiVariantOutputter.hpp"
 
@@ -92,6 +94,14 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
+	    options[ "-filetype" ]
+			.set_description(
+				"Specify the filetype of the genotype files specified by -g. "
+				"By default, qctool will guess the file type.  Use this option to override that guess. "
+				"Possible types are: \"" + genfile::string_utils::join( genfile::SNPDataSource::get_file_types(), "\",\"" ) + "\"." )
+			.set_takes_single_value()
+			.set_default_value( "guess" ) ;
+
 	    options[ "-assume-chromosome" ]
 	        .set_description( "Chromosome to assume if not in genetic data." )
 			.set_takes_single_value() ;
@@ -105,6 +115,8 @@ public:
 			.set_description( "Name of column containing outcome.  Currently must be a binary outcome." )
 			.set_takes_single_value()
 			.set_is_required() ;
+		
+		options.declare_group( "Input filtering options" ) ;
 		options[ "-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
@@ -116,6 +128,14 @@ public:
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+			.set_takes_values_until_next_option() ;
+		options[ "-incl-ranges" ]
+			.set_description( "Like -incl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to include in the analysis." )
+			.set_takes_values_until_next_option() ;
+		options[ "-excl-ranges" ]
+			.set_description( "Like -excl-range, but read the ranges from the specified file."
+				"The file must contain a whitespace-separated list of genomic ranges to exclude from the analysis." )
 			.set_takes_values_until_next_option() ;
 		
 		options.declare_group( "Output file options" ) ;
@@ -459,19 +479,113 @@ private:
 	DosageStore::UniquePtr load_genotypes() {
 		appcontext::UIContext::ProgressContext progress_context = ui().get_progress_context( "Loading data" ) ;
 		DosageStore::UniquePtr store = DosageStore::create() ;
-		genfile::Chromosome hint ;
-		if( options().check( "-assume-chromosome" ) ) {
-			hint = options().get< std::string >( "-assume-chromosome" ) ;
-		}
 		store->load(
-			genfile::SNPDataSource::create( options().get< std::string >( "-g" ), hint ),
+			open_snp_data_source( options().get< std::string >( "-g" ) ),
 			progress_context
 		) ;
 		ui().logger() << store->get_summary() ;
 		return store ;
 	}
 	
+	genfile::SNPDataSource::UniquePtr
+	open_snp_data_source( std::string const& filename ) const {
+		genfile::Chromosome chromosome_hint ;
+		std::string chromosome_indicator ;
+		if( options().check_if_option_was_supplied( "-assume-chromosome" )) {
+			chromosome_indicator = options().get_value< std::string >( "-assume-chromosome" ) ;
+		}
+		if( chromosome_indicator != "" ) {
+			chromosome_hint = chromosome_indicator ;
+		}
 
+		genfile::SNPDataSource::UniquePtr source ;
+
+		std::pair< std::string, std::string > uf = genfile::uniformise( filename ) ;
+
+		{
+			boost::optional< genfile::vcf::MetadataParser::Metadata > metadata ;
+//			if( m_options.check( "-metadata" )) {
+//				metadata = genfile::vcf::StrictMetadataParser(
+//					m_options.get_value< std::string >( "-metadata" )
+//				).get_metadata() ;
+//			}
+			source = genfile::SNPDataSource::create(
+				filename,
+				chromosome_hint,
+				metadata,
+				options().get< std::string >( "-filetype" )
+			) ;
+		}
+		
+		genfile::CommonSNPFilter::UniquePtr snp_filter = construct_snp_filter() ;
+		// Filter SNPs if necessary
+		if( snp_filter.get() ) {
+			genfile::VariantIdentifyingDataFilteringSNPDataSource::UniquePtr snp_filtering_source
+				= genfile::VariantIdentifyingDataFilteringSNPDataSource::create(
+					source,
+					genfile::VariantIdentifyingDataTest::UniquePtr( snp_filter.release() )
+				) ;
+
+			source.reset(
+				snp_filtering_source.release()
+			) ;
+		}
+		
+		return source ;
+	}
+
+	genfile::CommonSNPFilter::UniquePtr construct_snp_filter() const {
+		genfile::CommonSNPFilter::UniquePtr snp_filter ;
+
+		if( options().check_if_option_was_supplied_in_group( "Input filtering options" )) {
+			snp_filter.reset( new genfile::CommonSNPFilter ) ;
+			if( options().check_if_option_was_supplied( "-incl-range" )) {
+				std::vector< std::string > specs = options().get_values< std::string >( "-incl-range" ) ;
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+					snp_filter->include_snps_in_range(
+						genfile::GenomePositionRange::parse( specs[i] )
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-excl-range" )) {
+				std::vector< std::string > specs = options().get_values< std::string >( "-excl-range" ) ;
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+					snp_filter->exclude_snps_in_range(
+						genfile::GenomePositionRange::parse( specs[i] )
+					) ;
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-incl-ranges" )) {
+				std::vector< std::string > files = options().get_values< std::string >( "-incl-ranges" ) ;
+				for( std::string const& filename: files ) {
+					std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+					std::string range ;
+					while( (*in) >> range ) {
+						snp_filter->include_snps_in_range(
+							genfile::GenomePositionRange::parse( range )
+						) ;
+					}
+				}
+			}
+
+			if( options().check_if_option_was_supplied( "-excl-ranges" )) {
+				std::vector< std::string > files = options().get_values< std::string >( "-excl-ranges" ) ;
+				for( std::string const& filename: files ) {
+					std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+					std::string range ;
+					while( (*in) >> range ) {
+						snp_filter->exclude_snps_in_range(
+							genfile::GenomePositionRange::parse( range )
+						) ;
+					}
+				}
+			}
+		}
+		return snp_filter ;
+	}
+	
 	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( std::size_t number_of_samples ) {
 		typedef std::vector< std::string > Names ;
 		typedef std::vector< metro::SampleRange > SampleRanges ;
@@ -796,7 +910,7 @@ private:
 		// Do a test search for now
 		NullLLStore null_ll_store ;
 
-		ui().logger() << "Running shutgun stochastic search...\n" ;
+		ui().logger() << "Running shotgun stochastic search...\n" ;
 
 		metro::ShotgunStochasticSearch ss(
 			store.number_of_variants(),

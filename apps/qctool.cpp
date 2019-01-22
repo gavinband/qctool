@@ -1821,193 +1821,197 @@ private:
 		}
 		return result ;
 	}
-		
+
 	genfile::CommonSNPFilter* get_snp_filter() const {
 		if( !m_snp_filter.get() ) {
-			genfile::CommonSNPFilter::UniquePtr snp_filter ;
+			m_snp_filter = construct_snp_filter() ;
+		}
+		return m_snp_filter.get() ;
+	}
+		
+	genfile::CommonSNPFilter::UniquePtr construct_snp_filter() const {
+		genfile::CommonSNPFilter::UniquePtr snp_filter ;
 
-			if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
-				snp_filter.reset( new genfile::CommonSNPFilter ) ;
+		if( m_options.check_if_option_was_supplied_in_group( "SNP exclusion options" )) {
+			snp_filter.reset( new genfile::CommonSNPFilter ) ;
 
-				if( m_options.check_if_option_was_supplied( "-excl-variants" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-variants" ) ;
-				
-					BOOST_FOREACH( std::string const& filename, files ) {
-						genfile::SNPDataSource::UniquePtr source ;
-						try {
-							source.reset(
-								new statfile::SNPDataSourceAdapter(
-									statfile::BuiltInTypeStatSource::open(
-										genfile::wildcard::find_files_by_chromosome( filename )
-									)
-								)
-							) ;
-						} catch( genfile::InputError const& e ) {
-							source.reset(
-								genfile::SNPDataSourceChain::create(
-									genfile::wildcard::find_files_by_chromosome( filename )
-								).release()
-							) ;
-						}
-						snp_filter->exclude_snps(
-							source->list_snps(),
-							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-variants" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-variants" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						genfile::SNPDataSource::UniquePtr source ;
-						try {
-							source.reset(
-								new statfile::SNPDataSourceAdapter(
-									statfile::BuiltInTypeStatSource::open(
-										genfile::wildcard::find_files_by_chromosome( filename )
-									)
-								)
-							) ;
-						} catch( genfile::InputError const& e ) {
-							std::cerr << "Uh-oh...\n" ;
-							source.reset(
-								genfile::SNPDataSourceChain::create(
-									genfile::wildcard::find_files_by_chromosome( filename )
-								).release()
-							) ;
-						}
-						snp_filter->include_snps(
-							source->list_snps(),
-							genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->exclude_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::SNPIDs
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snpids" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->include_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::SNPIDs
-						) ;
-					}
-				}
-
-
-				if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->exclude_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::RSIDs
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-rsids" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->include_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::RSIDs
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-excl-positions" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-positions" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->exclude_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::Positions
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-positions" )) {
-					std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-positions" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						snp_filter->include_snps_in_file(
-							filename,
-							genfile::CommonSNPFilter::Positions
-						) ;
-					}
-				}
-				if( m_options.check_if_option_was_supplied( "-excl-variants-matching" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-variants-matching" ) ;
-					BOOST_FOREACH( std::string const& spec, specs ) {
-						snp_filter->exclude_snps_matching(
-							spec
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-variants-matching" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-variants-matching" ) ;
-					BOOST_FOREACH( std::string const& spec, specs ) {
-						snp_filter->include_snps_matching(
-							spec
-						) ;
-					}
-				}
+			if( m_options.check_if_option_was_supplied( "-excl-variants" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-variants" ) ;
 			
-				if( m_options.check_if_option_was_supplied( "-incl-range" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-range" ) ;
-					for ( std::size_t i = 0; i < specs.size(); ++i ) {
+				BOOST_FOREACH( std::string const& filename, files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					try {
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
+							)
+						) ;
+					} catch( genfile::InputError const& e ) {
+						source.reset(
+							genfile::SNPDataSourceChain::create(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							).release()
+						) ;
+					}
+					snp_filter->exclude_snps(
+						source->list_snps(),
+						genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-variants" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-variants" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					genfile::SNPDataSource::UniquePtr source ;
+					try {
+						source.reset(
+							new statfile::SNPDataSourceAdapter(
+								statfile::BuiltInTypeStatSource::open(
+									genfile::wildcard::find_files_by_chromosome( filename )
+								)
+							)
+						) ;
+					} catch( genfile::InputError const& e ) {
+						std::cerr << "Uh-oh...\n" ;
+						source.reset(
+							genfile::SNPDataSourceChain::create(
+								genfile::wildcard::find_files_by_chromosome( filename )
+							).release()
+						) ;
+					}
+					snp_filter->include_snps(
+						source->list_snps(),
+						genfile::VariantIdentifyingData::CompareFields( m_options.get_value< std::string >( "-compare-variants-by" ) )
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-excl-snpids" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-snpids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-snpids" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-snpids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::SNPIDs
+					) ;
+				}
+			}
+
+
+			if( m_options.check_if_option_was_supplied( "-excl-rsids" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-rsids" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-rsids" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::RSIDs
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-excl-positions" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-excl-positions" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->exclude_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-positions" )) {
+				std::vector< std::string > files = m_options.get_values< std::string > ( "-incl-positions" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					snp_filter->include_snps_in_file(
+						filename,
+						genfile::CommonSNPFilter::Positions
+					) ;
+				}
+			}
+			if( m_options.check_if_option_was_supplied( "-excl-variants-matching" )) {
+				std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-variants-matching" ) ;
+				BOOST_FOREACH( std::string const& spec, specs ) {
+					snp_filter->exclude_snps_matching(
+						spec
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-variants-matching" )) {
+				std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-variants-matching" ) ;
+				BOOST_FOREACH( std::string const& spec, specs ) {
+					snp_filter->include_snps_matching(
+						spec
+					) ;
+				}
+			}
+		
+			if( m_options.check_if_option_was_supplied( "-incl-range" )) {
+				std::vector< std::string > specs = m_options.get_values< std::string >( "-incl-range" ) ;
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+					snp_filter->include_snps_in_range(
+						genfile::GenomePositionRange::parse( specs[i] )
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-excl-range" )) {
+				std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-range" ) ;
+				for ( std::size_t i = 0; i < specs.size(); ++i ) {
+					snp_filter->exclude_snps_in_range(
+						genfile::GenomePositionRange::parse( specs[i] )
+					) ;
+				}
+			}
+
+			if( m_options.check_if_option_was_supplied( "-incl-ranges" )) {
+				std::vector< std::string > files = m_options.get_values< std::string >( "-incl-ranges" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+					std::string range ;
+					while( (*in) >> range ) {
 						snp_filter->include_snps_in_range(
-							genfile::GenomePositionRange::parse( specs[i] )
+							genfile::GenomePositionRange::parse( range )
 						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-excl-range" )) {
-					std::vector< std::string > specs = m_options.get_values< std::string >( "-excl-range" ) ;
-					for ( std::size_t i = 0; i < specs.size(); ++i ) {
-						snp_filter->exclude_snps_in_range(
-							genfile::GenomePositionRange::parse( specs[i] )
-						) ;
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-incl-ranges" )) {
-					std::vector< std::string > files = m_options.get_values< std::string >( "-incl-ranges" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
-						std::string range ;
-						while( (*in) >> range ) {
-							snp_filter->include_snps_in_range(
-								genfile::GenomePositionRange::parse( range )
-							) ;
-						}
-					}
-				}
-
-				if( m_options.check_if_option_was_supplied( "-excl-ranges" )) {
-					std::vector< std::string > files = m_options.get_values< std::string >( "-excl-ranges" ) ;
-					BOOST_FOREACH( std::string const& filename, files ) {
-						std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
-						std::string range ;
-						while( (*in) >> range ) {
-							snp_filter->exclude_snps_in_range(
-								genfile::GenomePositionRange::parse( range )
-							) ;
-						}
 					}
 				}
 			}
-			m_snp_filter = snp_filter ;
+
+			if( m_options.check_if_option_was_supplied( "-excl-ranges" )) {
+				std::vector< std::string > files = m_options.get_values< std::string >( "-excl-ranges" ) ;
+				BOOST_FOREACH( std::string const& filename, files ) {
+					std::auto_ptr< std::istream > in = genfile::open_text_file_for_input( filename ) ;
+					std::string range ;
+					while( (*in) >> range ) {
+						snp_filter->exclude_snps_in_range(
+							genfile::GenomePositionRange::parse( range )
+						) ;
+					}
+				}
+			}
 		}
-		return m_snp_filter.get() ;
+		return snp_filter ;
 	}
 	
 	void move_to_next_output_file( std::size_t index ) {
