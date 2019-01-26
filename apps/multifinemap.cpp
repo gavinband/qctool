@@ -717,7 +717,7 @@ private:
 	}
 
 
-	typedef std::map< std::vector< metro::SampleRange >, double > NullLLStore ;
+	typedef std::map< std::vector< metro::SampleRange >, std::pair< Eigen::VectorXd, double > > NullLLStore ;
 
 	double test_variant(
 		metro::ShotgunStochasticSearch::SelectedStates const& pick,
@@ -757,11 +757,11 @@ private:
 		for( std::size_t i = 0; i < 5; ++i ) {
 			null_prior.set_prior(
 				(parameter_format % "add" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( add_prior_obs, add_prior_obs )
+				metro::distributions::LogF::create( 10000.0, 10000.0 )
 			) ;
 			null_prior.set_prior(
 				(parameter_format % "het" % (i+1) % ll.design().get_outcome_name(1) ).str(),
-				metro::distributions::LogF::create( het_prior_obs, het_prior_obs )
+				metro::distributions::LogF::create( 10000.0, 10000.0 )
 			) ;
 		}
 		
@@ -827,6 +827,7 @@ private:
 		// null_ll will be log-marginal likelihood of null model
 		// i.e. logarithm of prior x likelihood, integrated over parameters.
 		double null_ll = 0.0 ;
+		Eigen::VectorXd null_parameters ;
 		{
 			NullLLStore::const_iterator where = null_ll_store.find( nonmissing_samples ) ;
 			if( where == null_ll_store.end() ) {
@@ -845,10 +846,20 @@ private:
 				) ;
 					
 				null_ll = laplace_approximate( posterior ) ;
+				null_parameters = posterior.parameters() ;
 				//null_ll = posterior.get_value_of_function() ;
-				where = null_ll_store.insert( std::make_pair( nonmissing_samples, null_ll ) ).first ;
+				where = null_ll_store.insert(
+					NullLLStore::value_type(
+						nonmissing_samples,
+						NullLLStore::mapped_type(
+							ll.parameters(),
+							null_ll
+						)
+					)
+				).first ;
 			} else {
-				null_ll = where->second ;
+				null_parameters = where->second.first ;
+				null_ll = where->second.second ;
 			}
 		}
 
@@ -866,7 +877,7 @@ private:
 			std::pair< bool, int > fit = metro::regression::fit_model(
 				posterior,
 				"full",
-				Eigen::VectorXd::Zero( ll.identify_parameters().rows() ),
+				null_parameters,
 				stopping_condition,
 				&comments
 			) ;
