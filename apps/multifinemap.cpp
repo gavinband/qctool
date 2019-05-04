@@ -981,7 +981,7 @@ private:
 		) ;
 
 		double const total_log_weight = metro::log_sum_exp( posterior_weights ) ;
-		std::cerr << "TOTAL LOG WEIGHT:" << total_log_weight << "\n" ;
+		ui().logger() << "TOTAL LOG WEIGHT:" << total_log_weight << "\n" ;
 		int count = 0 ;
 		for( OrderedStates::const_iterator i = ordered_states.begin(); i != ordered_states.end(); ++i, ++count ) {
 			metro::ShotgunStochasticSearch::SelectedStates const& states = i->second ;
@@ -1006,7 +1006,7 @@ private:
 			) ;
 			outputter->store_data_for_key(
 				variants,
-				"logposterior",
+				"posterior",
 				std::exp( i->first - total_log_weight )
 			) ;
 		}
