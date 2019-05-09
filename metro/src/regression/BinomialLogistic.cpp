@@ -13,6 +13,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include "metro/regression/BinomialLogistic.hpp"
 #include "metro/intersect_ranges.hpp"
+#include "metro/summation.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
@@ -356,16 +357,16 @@ namespace metro {
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				int const start_row = included_samples[i].begin() ;
 				int const end_row = included_samples[i].end() ;
-				(*result) +=
-					// take likelihood terms for these samples...
+				// Compute the log-likelihood for this block of samples as:
+				// the sum over samples of...
+				(*result) += neumaier_sum(
+					// the likelihood terms for these samples...
 					hx.block( start_row, 0, end_row - start_row, hx.cols() )
-					 // ...sum over predictor levels...
+					 // ...summed over predictor levels...
 					.rowwise().sum()
-					// ...take logarithm...
-					.array()
-					.log()
-					// ...and sum over samples
-					.sum() ;
+					// ...and logarithm-ed...
+					.array().log()
+				) ;
 			}
 		}
 
