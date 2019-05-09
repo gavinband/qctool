@@ -42,6 +42,7 @@ namespace genfile {
 			else {
 				OffsetFlippedAlleleSetter flipped_setter( setter, m_number_of_samples, m_flip, 0 ) ;
 				m_base_reader->get( spec, flipped_setter ) ;
+				setter.finalise() ;
 			}
 			return *this ;
 		}

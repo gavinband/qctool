@@ -2,7 +2,7 @@
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.0.3
+${QCTOOL}	../../build/release/qctool_v2.0.4
 
 *** Settings ***
 Library	OperatingSystem
@@ -77,6 +77,9 @@ Filters SNPs
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-snpids": "data/bad_snp_snpids.txt", "ofiletype": "gen" }	data/test.filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "excl-positions": "data/bad_snp_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "assume-chromosome": "1", "excl-positions": "data/bad_snp_genomic_positions.txt", "ofiletype": "gen" }	data/test.filtered.gen
+
+Updates strand
+	RunsCommandWithExactOutput	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "strand": "data/test.strand", "ofiletype": "bgen", "flip-to-match-allele": "ref_allele", "assume-chromosome": "1" }	data/test.aligned.bgen
 
 Threshholds Genotypes
 	RunsCommandWithExactOutput	{ "g": [ "data/tothreshhold.gen" ], "s": [ "data/tothreshhold.sample" ], "og": "<tmp>", "threshold": "0.9", "ofiletype": "dosage" }	data/tothreshhold.dosage

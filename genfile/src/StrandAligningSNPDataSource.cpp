@@ -10,7 +10,6 @@
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/VariantIdentifyingData.hpp"
 #include "genfile/StrandAligningSNPDataSource.hpp"
-#include "genfile/OffsetFlippedAlleleSetter.hpp"
 #include "genfile/AlleleFlippingVariantDataReader.hpp"
 #include "genfile/get_set.hpp"
 #include "genfile/Error.hpp"

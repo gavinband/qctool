@@ -52,7 +52,9 @@ class QctoolRunner:
 			'ofiletype', 'filetype',
 			'annotate-bed3', 'annotate-bed4',
 			'merge-in', 'assume-chromosome',
-			'threshold', 'reorder', 'infer-ploidy-from'
+			'threshold', 'reorder', 'infer-ploidy-from',
+			'strand', 'flip-to-match-allele',
+			'bgen-bits'
 		]:
 			if values.get( option, None ) is not None:
 				cmd.extend( [ '-%s' % option ] )
