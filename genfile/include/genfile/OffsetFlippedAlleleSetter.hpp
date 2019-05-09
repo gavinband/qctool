@@ -82,7 +82,10 @@ namespace genfile {
 		void set_value( std::size_t, double const value ) { store( value ) ; }
 
 		void finalise() {
-			m_setter.finalise() ;
+			// We do not call m_setter.finalise() here, as a use case of this class
+			// is joining multiple datasets and this may not be the last.
+			// User should therefore handle calling the setter's finalise() method.
+			// m_setter.finalise() ;
 		}
 		
 	private:
