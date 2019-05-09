@@ -347,6 +347,10 @@ namespace genfile {
 			(*map)[ name ] = type ;
 		}
 
+		void add_spec_to_vector( std::vector< std::pair< std::string, std::string > >* map, std::string const& name, std::string const& type ) {
+			map->push_back( std::make_pair( name, type )) ;
+		}
+
 		struct RackVariantDataReader: public VariantDataReader
 		{
 			RackVariantDataReader( SNPDataSourceRack& rack ):
@@ -395,28 +399,32 @@ namespace genfile {
 					return ;
 				}
 
-				typedef std::map< std::string, std::string > SetOfThings ;
-				SetOfThings things ;
+				typedef std::vector< std::pair< std::string, std::string > > SpecList ;
+				typedef std::map< std::string, std::string > SpecMap ;
+				SpecList orderedSpecs ;
+				SpecMap specs ;
 				for( std::size_t i = 0; i < m_data_readers.size(); ++i ) {
-					SetOfThings these_things ;
+					SpecList these_specs_ordered ;
 					m_data_readers[0]->get_supported_specs(
 						boost::bind(
-							&add_spec_to_map,
-							&these_things,
+							&add_spec_to_vector,
+							&these_specs_ordered,
 							_1,
 							_2
 						)
 					) ;
+					SpecMap these_specs( these_specs_ordered.begin(), these_specs_ordered.end() ) ;
 					if( i == 0 ) {
-						things = these_things ;
+						orderedSpecs = these_specs_ordered ;
+						specs = these_specs ;
 					}
 					else {
-						for( SetOfThings::iterator thing_i = things.begin(); thing_i != things.end(); ) {
-							SetOfThings::iterator where = these_things.find( thing_i->first ) ;
+						for( SpecMap::iterator thing_i = specs.begin(); thing_i != specs.end(); ) {
+							SpecMap::iterator where = these_specs.find( thing_i->first ) ;
 
-							if( where == these_things.end() ) {
-								SetOfThings::iterator this_thing = thing_i++ ;
-								things.erase( this_thing ) ;
+							if( where == these_specs.end() ) {
+								SpecMap::iterator this_thing = thing_i++ ;
+								specs.erase( this_thing ) ;
 							}
 							else{
 								++thing_i ;
@@ -424,8 +432,11 @@ namespace genfile {
 						}
 					}
 				}
-				for( SetOfThings::const_iterator thing_i = things.begin(); thing_i != things.end(); ++thing_i ) {
-					setter( thing_i->first, thing_i->second ) ;
+				for( std::size_t i = 0; i < orderedSpecs.size(); ++i ) {
+					SpecMap::const_iterator where = specs.find( orderedSpecs[i].first ) ;
+					if( where != specs.end() ) {
+						setter( where->first, where->second ) ;
+					}
 				}
 			}
 
