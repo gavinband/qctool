@@ -58,9 +58,9 @@ namespace genfile {
 		}
 
 		void set_flip( char flip ) {
-            assert( flip == '+' || flip == '?' || flip == '-' ) ;
-            m_flip = flip ;
-        }
+			assert( flip == '+' || flip == '?' || flip == '-' ) ;
+			m_flip = flip ;
+		}
 		std::size_t get_flip() const { return m_flip ; }
 		
 		bool set_sample( std::size_t n ) {
@@ -81,7 +81,12 @@ namespace genfile {
 		void set_value( std::size_t, Integer const value ) { store( value ) ; }
 		void set_value( std::size_t, double const value ) { store( value ) ; }
 
-		void finalise() {}
+		void finalise() {
+			// We do not call m_setter.finalise() here, as a use case of this class
+			// is joining multiple datasets and this may not be the last.
+			// User should therefore handle calling the setter's finalise() method.
+			// m_setter.finalise() ;
+		}
 		
 	private:
 		VariantDataReader::PerSampleSetter& m_setter ;

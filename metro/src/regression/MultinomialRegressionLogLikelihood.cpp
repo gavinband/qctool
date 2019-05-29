@@ -14,6 +14,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include "metro/regression/MultinomialRegressionLogLikelihood.hpp"
 #include "metro/intersect_ranges.hpp"
+#include "metro/summation.hpp"
 #include "genfile/Error.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 
@@ -303,9 +304,16 @@ namespace metro {
 					ConstMatrixBlock block_of_F = F.block( sample, outcome_i * number_of_predictor_levels, 1, number_of_predictor_levels ) ;
 					result->row( sample ) = predictor_probabilities.row( sample ).array() * block_of_F.array() ;
 				}
-				// Compute the log-likelihood.
-				*value_of_function += result->block( start_row, 0, end_row - start_row, number_of_predictor_levels ).rowwise().sum().array().log().sum() ;
-
+				// Compute the log-likelihood for this block of samples as:
+				// the sum over samples of...
+				*value_of_function += neumaier_sum(
+					// the likelihood terms for these samples...
+					result->block( start_row, 0, end_row - start_row, number_of_predictor_levels )
+					 // ...summed over predictor levels...
+						.rowwise().sum()
+					 // ...and logarithm-ed...
+						.array().log()
+				) ;
 				// Now renormalise this block of A.
 				for( int sample = start_row; sample < end_row; ++sample ) {
 					result->row( sample ) /= result->row( sample ).sum() ;

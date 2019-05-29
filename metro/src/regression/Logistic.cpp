@@ -13,6 +13,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include "metro/regression/Logistic.hpp"
 #include "metro/intersect_ranges.hpp"
+#include "metro/summation.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
@@ -255,8 +256,8 @@ namespace metro {
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 				int const start_row = included_samples[i].begin() ;
 				int const end_row = included_samples[i].end() ;
-				m_value_of_function += (
-					V.block( start_row, 0, end_row - start_row, V.cols() ).rowwise().sum().array().log().sum()
+				m_value_of_function += neumaier_sum(
+					V.block( start_row, 0, end_row - start_row, V.cols() ).rowwise().sum().array().log()
 				) ;
 			}
 		}
