@@ -45,7 +45,7 @@
 #include "statfile/BuiltInTypeStatSourceChain.hpp"
 #include "statfile/DelimitedStatSource.hpp"
 
-#include "db/SQLite3Connection.hpp"
+#include "genfile/db/SQLite3Connection.hpp"
 #include "genfile/FromFilesGeneticMap.hpp"
 //#include "FileUtil.hpp"
 #include "qcdb/Storage.hpp"
@@ -296,25 +296,25 @@ struct InthinneratorOptionProcessor: public appcontext::CmdLineOptionProcessor
 		options[ "-o" ]
 			.set_description( "Specify the output filename stub." )
 			.set_takes_single_value() ;
-		options[ "-odb" ]
-			.set_description( "Specify the name of a database file to output." )
-			.set_takes_single_value() ;
 		options[ "-output-cols" ]
 			.set_description( "Specify a comma-separated list of columns that should appear in the output files."
 				" Possible columns are \"SNPID\", \"rsid\", \"chromosome\", \"position\", \"allele1\", \"allele2\", and \"cM_from_start_of_chromosome\"."
 				" The special value \"all\" indicates that all available columns will be output." )
 			.set_takes_single_value()
 			.set_default_value( "all" ) ;
-		options[ "-table-name" ]
-			.set_description( "Specify a name for the table to use when using -odb." )
-			.set_takes_single_value() ;
 		options[ "-headers" ]
 			.set_description( "Specify this to force output of column headersomit column headers in the output files." ) ;
 		options[ "-no-headers" ]
 			.set_description( "Specify this to suppress output of column headers in the output files." ) ;
+		options[ "-compare-variants-by" ]
+			.set_description( "By default, matching SNPs between cohorts uses all the available fields"
+				" (position, rsid, snpid, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,alleles,ids" ) ;
 
-		options.option_excludes_option( "-o", "-odb" ) ;
-		options.option_excludes_option( "-odb", "-o" ) ;
 		options.option_excludes_option( "-headers", "-no-headers" ) ;
 		options.option_implies_option( "-headers", "-o" ) ;
 		options.option_implies_option( "-no-headers", "-o" ) ;
@@ -1124,8 +1124,48 @@ namespace genes {
 			}
 			return result ;
 		}
+
+		std::pair< std::vector< Feature const* >, genfile::VariantEntry > find_nearest_genes(
+			genfile::GenomePosition const& genomePosition
+		) {
+			genfile::Chromosome const& chromosome = genomePosition.chromosome() ;
+			genfile::Position const& position = genomePosition.position() ;
+			// Genes are ordered by start then by end.
+			// We walk through all genes on the chromosome and figure out the nearest gene.
+			
+			std::vector< Feature const* > result ;
+			if( m_genes.find( chromosome ) == m_genes.end() ) {
+				return std::make_pair( result, genfile::MissingValue() ) ;
+			}
+			ChromosomeGeneSet const& chromosomeGenes = m_genes.at( chromosome ) ;
+
+			if( chromosomeGenes.size() == 0 ) {
+				return std::make_pair( result, genfile::MissingValue() ) ;
+			}
+			ChromosomeGeneSet::const_iterator i = chromosomeGenes.begin() ;
+			ChromosomeGeneSet::const_iterator const end_i = chromosomeGenes.end() ;
+			double min_distance = std::numeric_limits< std::size_t >::max() ;
+			for( ; i != end_i; ++i ) {
+				double const distance = compute_distance( position, *i ) ;
+				if( distance == min_distance ) {
+					result.push_back( &(*i) ) ;
+				} else if( distance < min_distance ) {
+					result.clear() ;
+					result.push_back( &(*i) ) ;
+					min_distance = distance ;
+				}
+			}
+			return std::make_pair( result, min_distance ) ;
+		}
 	private:
 		GeneMap m_genes ;
+		
+		std::size_t compute_distance( std::size_t position, Feature const& feature ) {
+			int const rightDistance = int( position ) - int( feature.end().position() ) ;
+			int const leftDistance = int( feature.start().position() ) - int( position ) ;
+			std::size_t distance = std::max( std::max( leftDistance, rightDistance ), 0 ) ;
+			return distance ;
+		}
 	} ;
 	
 	Genes::UniquePtr load_genes_from_refGene(
@@ -1234,7 +1274,7 @@ private:
 			get_ui_context().logger() << "!! Error (" << e.what() << "): The file \"" << e.filename() << "\" could not be opened.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( db::StatementStepError const& e ) {
+		catch( genfile::db::StatementStepError const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): error with SQL: " << e.sql() << "\n"
 				<< e.description() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
@@ -1242,8 +1282,8 @@ private:
 	}
 	
 	void unsafe_process() {
-		if( !options().check( "-o" ) && ! options().check( "-odb" ) ) {
-			get_ui_context().logger() << "You must supply either -o or -odb.\n" ;
+		if( !options().check( "-o" ) ) {
+			get_ui_context().logger() << "You must supply -o.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		genfile::GeneticMap::UniquePtr map ;
@@ -1798,17 +1838,16 @@ private:
 			pick_tags.resize( max_num_picks, boost::optional< std::string >() ) ;
 		}
 
-		std::string filename_stub = options().get< std::string >( "-o" ) ;
-		
-		std::string const formatstring = ( boost::format( filename_stub + ".%%0%dd" ) % number_of_digits ).str() ;
 //		std::cerr << "FORMAT STRING: " << formatstring << ".\n" ;
+		std::string const& filename = options().get< std::string >( "-o" ) ;
 		for( std::size_t i = start_N; i < (start_N+N); ++i ) {
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::vector< std::size_t > picked_snps = pick_snps( snps, pick_tags ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
-			write_output( i, snps, recombination_offsets, picked_snps, genes, ( boost::format( formatstring ) % i ).str() ) ;
+			write_output( i, snps, recombination_offsets, picked_snps, genes, filename ) ;
 		}
 	}
+	
 
 	std::vector< std::size_t > pick_snps(
 		std::vector< TaggedSnp > const& snps,
@@ -1896,12 +1935,30 @@ private:
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele1" ), output_columns.end() ) ;
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "allele2" ), output_columns.end() ) ;
 
-		qcdb::Storage::SharedPtr storage = qcdb::FlatFileOutputter::create_shared(
-			filename,
-			options().get< std::string >( "-analysis-name" ),
-			options().get_values_as_map()
-		) ;
-
+		qcdb::Storage::SharedPtr storage ;
+		{
+			std::vector< std::string > file_spec = parse_filespec( filename ) ;
+			if( file_spec[0] == "sqlite" ) {
+				qcdb::FlatTableDBOutputter::SharedPtr table_storage = qcdb::FlatTableDBOutputter::create_shared(
+					file_spec[1],
+					options().get< std::string >( "-analysis-name" ),
+					options().get< std::string >( "-analysis-chunk" ),
+					options().get_values_as_map(),
+					options().get< std::string >( "-compare-variants-by" )
+				) ;
+				if( file_spec.size() == 3 ) {
+					table_storage->set_table_name( file_spec[2] ) ;
+				}
+				storage = table_storage ;
+			} else {
+				assert( file_spec[0] == "flat" ) ;
+				storage = qcdb::FlatFileOutputter::create_shared(
+					file_spec[1],
+					options().get< std::string >( "-analysis-name" ),
+					options().get_values_as_map()
+				) ;
+			}
+		}
 		// Setup output columns
 		if( options().check( "-match-tag" )) {
 			storage->add_variable( "tag" ) ;
@@ -1913,6 +1970,8 @@ private:
 			storage->add_variable( output_columns[i] ) ;
 		}
 		if( genes.get() ) {
+			storage->add_variable( "nearest_gene" ) ;
+			storage->add_variable( "distance_to_nearest_gene" ) ;
 			storage->add_variable( "nearest_gene_in_region" ) ;
 			storage->add_variable( "all_genes_in_region" ) ;
 		}
@@ -1958,6 +2017,45 @@ private:
 		}
 		
 		storage->finalise() ;
+	}
+
+	std::vector< std::string > parse_filespec( std::string spec ) const {
+		std::vector< std::string > result(2) ;
+		result[0] = "flat" ;
+		
+		// First get rid of leading sqlite specifier, if any.
+		if( spec.size() >= 9 && spec.substr( 0, 9 ) == "sqlite://" ) {
+			result[0] = "sqlite" ;
+			spec = spec.substr( 9, spec.size() ) ;
+		}
+
+		std::vector< std::string > elts = genfile::string_utils::split( spec, ":" ) ;
+		assert( elts.size() > 0 ) ;
+
+		if( elts[0].size() >= 7 && elts[0].substr( elts[0].size() - 7, 7 ) == ".sqlite" ) {
+			result[0] = "sqlite" ;
+		}
+		result[1] = elts[0] ;
+
+		if( elts.size() > 2 ) {
+			throw genfile::BadArgumentError(
+				"QCToolProcessor::parse_filespec()",
+				"spec=\"" + spec + "\"",
+				"Expected format for filespec is <filename> or sqlite://<filename>[:<tablename>]."
+			) ;
+		}
+		if( elts.size() == 2 ) {
+			if( result[0] != "sqlite" ) {
+				throw genfile::BadArgumentError(
+					"QCToolProcessor::parse_filespec()",
+					"spec=\"" + spec + "\"",
+					"Table spec is not expected unless a sqlite file is specified (i.e. sqlite://<filename>:<tablename>)"
+				) ;
+			}
+			result.push_back( elts[1] ) ;
+		}
+		
+		return( result ) ;
 	}
 
 	void write_output(
@@ -2093,8 +2191,9 @@ private:
 								theseGenes.str()
 							) ;
 						}
-			
 					}
+
+					
 
 					std::ostringstream theseGenes ;
 					for( GeneNames::left_const_iterator name_i = geneNames.left.begin(); name_i != geneNames.left.end(); ++name_i ) {
@@ -2108,6 +2207,34 @@ private:
 				}
 			}
 
+			if( genes.get() ) {
+				std::pair<
+					std::vector< genes::Feature const* >,
+					genfile::VariantEntry
+				> const nearest_genes
+						= genes->find_nearest_genes( snps[snp_i].snp().get_position() ) ;
+
+				// Avoid repeated names
+				std::vector< std::string > geneNames ;
+				for( std::size_t k = 0; k < nearest_genes.first.size(); ++k ) {
+					geneNames.push_back( nearest_genes.first[k]->name() ) ;
+				}
+				std::sort( geneNames.begin(), geneNames.end() ) ;
+				std::vector< std::string >::const_iterator where = std::unique( geneNames.begin(), geneNames.end() ) ;
+				geneNames.resize( where - geneNames.begin() ) ;
+				std::string const combinedName = genfile::string_utils::join( geneNames, "," ) ;
+				storage.store_per_variant_data(
+					snps[snp_i].snp(),
+					"nearest_gene",
+					combinedName
+				) ;
+				storage.store_per_variant_data(
+					snps[snp_i].snp(),
+					"distance_to_nearest_gene",
+					nearest_genes.second
+				) ;
+			}
+			
 			progress_context.notify_progress( snp_index+1, snps.size() ) ;
 		}
 	}
