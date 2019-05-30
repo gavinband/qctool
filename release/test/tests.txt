@@ -2,7 +2,8 @@
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.0.4
+${QCTOOL}	../../build/release/qctool_v2.0.5
+${INTHINNERATOR}	../../build/release/inthinnerator_v2.0.5
 
 *** Settings ***
 Library	OperatingSystem
