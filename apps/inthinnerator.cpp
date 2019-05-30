@@ -1279,7 +1279,7 @@ private:
 			get_ui_context().logger() << "!! Error (" << e.what() << "): The file \"" << e.filename() << "\" could not be opened.\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( genfile::db::StatementStepError const& e ) {
+		catch( db::StatementStepError const& e ) {
 			get_ui_context().logger() << "!! Error (" << e.what() << "): error with SQL: " << e.sql() << "\n"
 				<< e.description() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
