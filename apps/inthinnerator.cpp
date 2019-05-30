@@ -121,10 +121,13 @@ namespace {
 		
 		genfile::VariantIdentifyingData const& snp() const { return m_snp ; }
 		boost::optional< std::string > const tag() const { return m_tag ; }
+		std::string const datum( std::size_t i ) const { return m_data[i] ; }
 
+		void add_data( std::vector< std::string > const& data ) { m_data = data ; }
 	private:
 		genfile::VariantIdentifyingData m_snp ;
 		boost::optional< std::string > m_tag ;
+		std::vector< std::string > m_data ;
 	} ;
 
 	bool operator<( TaggedSnp const& left, TaggedSnp const& right ) {
@@ -1243,6 +1246,8 @@ private:
 	SNPPicker::UniquePtr m_snp_picker ;
 	bool m_write_incl_list, m_write_excl_list ;
 
+	std::vector< TaggedSnp > m_variants ;
+	std::vector< std::string > m_extra_column_names ;
 private:
 	void process() {
 		try {
@@ -1293,17 +1298,22 @@ private:
 			get_ui_context().logger() << "Loaded: " << map->get_summary() << "\n";
 		}
 
-		std::vector< TaggedSnp > snps = get_list_of_snps( options().get_value< std::string >( "-g" ), map ) ;
+		get_variants(
+			options().get_value< std::string >( "-g" ),
+			map,
+			&m_variants,
+			&m_extra_column_names
+		) ;
 		boost::optional< std::vector< double > > recombination_offsets ;
 		if( map.get() ) {
 			recombination_offsets = get_recombination_offsets(
-				snps.size(),
-				boost::bind( &impl::get_snp, boost::cref( snps ), _1 ),
+				m_variants.size(),
+				boost::bind( &impl::get_snp, boost::cref( m_variants ), _1 ),
 				*map
 			) ;
 		}
-		m_proximity_test = get_proximity_test( snps, map ) ;
-		m_snp_picker = get_snp_picker( snps ) ;
+		m_proximity_test = get_proximity_test( m_variants, map ) ;
+		m_snp_picker = get_snp_picker( m_variants ) ;
 
 		// Write an inclusion list either if user specified -write-incl-list, or didn't specify any output.
 		m_write_incl_list = !options().check_if_option_was_supplied( "-suppress-included" ) ;
@@ -1317,9 +1327,9 @@ private:
 			genes = genes::load_genes_from_refGene( filename, progress_context, options().get< bool >( "-take-longest-transcript" ) ) ;
 		}
 		
-		write_summary( map, snps, *m_proximity_test, *m_snp_picker ) ;
+		write_summary( map, *m_proximity_test, *m_snp_picker ) ;
 		
-		perform_thinnings( snps, recombination_offsets, genes ) ;
+		perform_thinnings( recombination_offsets, genes ) ;
 	}
 	
 	genfile::GeneticMap::UniquePtr load_genetic_map() {
@@ -1380,16 +1390,22 @@ private:
 		return filter ;
 	}
 
-	std::vector< TaggedSnp > get_list_of_snps( std::string const& filename, genfile::GeneticMap::UniquePtr const& map ) const {
+	void get_variants(
+		std::string const& filename,
+		genfile::GeneticMap::UniquePtr const& map,
+		std::vector< TaggedSnp >* result,
+		std::vector< std::string >* other_column_names
+	) const {
 		std::vector< TaggedSnp > filtered_snps ;
+		std::vector< std::string > names ;
 		try {
-			filtered_snps = get_list_of_snps_from_gen_file( filename ) ;
+			 get_variants_from_gen_file( filename, &filtered_snps ) ;
 		}
 		catch( std::exception const& e ) {
 			get_ui_context().logger() << "File \"" << filename << "\" is not a GEN-style file.  Trying text format with columns SNPID rsid chromosome position...\n" ;
 			// Not a GEN format file.  Try a different format.
 			boost::optional< std::string > tag_column = ( options().check( "-tag-column" ) ? options().get< std::string >( "-tag-column" ) : boost::optional< std::string >() ) ;
-			filtered_snps = get_list_of_snps_from_text_file( filename, tag_column ) ;
+			get_variants_from_text_file( filename, tag_column, &filtered_snps, &names ) ;
 		}
 		
 		genfile::CommonSNPFilter::UniquePtr filter = get_filter() ;
@@ -1406,13 +1422,14 @@ private:
 			)
 		) ;
 
-		filtered_snps = genfile::utility::select_entries( filtered_snps, indices_of_included_snps ) ;
-
-		return filtered_snps ;
+		*result = genfile::utility::select_entries( filtered_snps, indices_of_included_snps ) ;
+		*other_column_names = names ;
 	}
 
-	std::vector< TaggedSnp > get_list_of_snps_from_gen_file( std::string const& filename ) const {
-		std::vector< TaggedSnp > filtered_snps ;
+	void get_variants_from_gen_file(
+		std::string const& filename,
+		std::vector< TaggedSnp >* result
+	 ) const {
 		genfile::SNPDataSource::UniquePtr source ;
 		{
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Opening genotype files" ) ;
@@ -1433,16 +1450,22 @@ private:
 		}
 		{
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
-			source->list_snps( boost::bind( &impl::add_snp, &filtered_snps, _1, boost::optional< std::string >() ), boost::ref( progress_context ) ) ;
+			source->list_snps(
+				boost::bind(
+					&impl::add_snp,
+					result, _1, boost::optional< std::string >()
+				),
+				boost::ref( progress_context )
+			) ;
 		}
-		return filtered_snps ;
 	}
 	
-	std::vector< TaggedSnp > get_list_of_snps_from_text_file(
+	void get_variants_from_text_file(
 		std::string const& filename,
-		boost::optional< std::string > tag_column
+		boost::optional< std::string > tag_column,
+		std::vector< TaggedSnp >* result,
+		std::vector< std::string >* other_column_names = 0
 	) const {
-		std::vector< TaggedSnp > filtered_snps ;
 		UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Loading SNP list" ) ;
 
 		statfile::BuiltInTypeStatSourceChain::UniquePtr chain(
@@ -1454,7 +1477,15 @@ private:
 		boost::optional< std::size_t > tag_column_index
 			= tag_column ? chain->index_of_column( tag_column.get() ): boost::optional< std::size_t >() ;
 		;
-
+		
+		if( other_column_names ) {
+			for( std::size_t i = 6; i < chain->number_of_columns(); ++i ) {
+				if( !tag_column_index || i != *tag_column_index ) {
+					other_column_names->push_back( chain->name_of_column(i) ) ;
+				}
+			}
+		}
+		
 		std::string SNPID ;
 		std::string rsid ;
 		std::string chromosome ;
@@ -1462,6 +1493,7 @@ private:
 		std::string alleleA = "?" ;
 		std::string alleleB = "?" ;
 		std::string tag_string ;
+		std::string elt ;
 		while(
 			(*chain)
 				>> SNPID
@@ -1472,6 +1504,7 @@ private:
 			alleleA.clear() ;
 			alleleB.clear() ;
 			boost::optional< std::string > tag ;
+			std::vector< std::string > other_columns ;
 
 			if( chain->has_column( "alleleA" ) ) {
 				(*chain) >> alleleA ;
@@ -1482,30 +1515,38 @@ private:
 			}
 
 			if( tag_column_index ) {
-				(*chain)
-					>> statfile::ignore( tag_column_index.get() - chain->current_column() )
-					>> tag_string ;
+				while( chain->current_column() < tag_column_index ) {
+					(*chain) >> elt ;
+					other_columns.push_back( elt ) ;
+				}
+				(*chain) >> tag_string ;
 				tag = tag_string ;
+			}
+			while( chain->current_column() < chain->number_of_columns() ) {
+				(*chain) >> elt ;
+				other_columns.push_back( elt ) ;
 			}
 			
 			// std::cerr << "Read SNP: " << SNPID << " " << rsid << " " << chromosome << " " << position << ".\n" ;
-			filtered_snps.push_back(
-				TaggedSnp(
-					genfile::VariantIdentifyingData(
-						SNPID,
-						rsid,
-						genfile::GenomePosition( chromosome, position ),
-						alleleA,
-						alleleB	
-					),
-					tag
-				)
+			
+			TaggedSnp snp(
+				genfile::VariantIdentifyingData(
+					SNPID,
+					rsid,
+					genfile::GenomePosition( chromosome, position ),
+					alleleA,
+					alleleB	
+				),
+				tag
 			) ;
+			if( other_column_names ) {
+				snp.add_data( other_columns ) ;
+			}
+			result->push_back( snp ) ;
+
 			(*chain) >> statfile::ignore_all() ;
 			progress_context.notify_progress( chain->number_of_rows_read(), chain->number_of_rows() ) ;
 		}
-		
-		return filtered_snps ;
 	}
 
 	std::vector< double > get_recombination_offsets(
@@ -1769,7 +1810,6 @@ private:
 
 	void write_summary(
 		genfile::GeneticMap::UniquePtr const& map,
-		std::vector< TaggedSnp > const& snps_in_source,
 		ProximityTest const& proximity_test,
 		SNPPicker const& snp_picker
 	) const {
@@ -1787,16 +1827,16 @@ private:
 			get_ui_context().logger() << "\n" ;
 		}
 		
-		get_ui_context().logger() << "- There are " << snps_in_source.size() << " genotyped SNPs in these chromosomes." ;
-		if( snps_in_source.empty() ) {
+		get_ui_context().logger() << "- There are " << m_variants.size() << " genotyped SNPs in these chromosomes." ;
+		if( m_variants.empty() ) {
 			get_ui_context().logger() << ".\n" ;
 		}
 		else {
 			get_ui_context().logger() << "  The first few are:\n" ;
-			for( std::size_t i = 0; i < std::min( snps_in_source.size(), std::size_t(5) ); ++i ) {
-				get_ui_context().logger() << "  " << snps_in_source[i].snp() ;
-				if( snps_in_source[i].tag() ) {
-					get_ui_context().logger() << " (tag=\"" << snps_in_source[i].tag().get() << "\")...\n" ;
+			for( std::size_t i = 0; i < std::min( m_variants.size(), std::size_t(5) ); ++i ) {
+				get_ui_context().logger() << "  " << m_variants[i].snp() ;
+				if( m_variants[i].tag() ) {
+					get_ui_context().logger() << " (tag=\"" << m_variants[i].tag().get() << "\")...\n" ;
 				}
 			}
 			get_ui_context().logger() << "  .\n  .\n  .\n" ;
@@ -1813,10 +1853,10 @@ private:
 	}
 
 	void perform_thinnings(
-		std::vector< TaggedSnp > const& snps,
 		boost::optional< std::vector< double > > const& recombination_offsets,
 		genes::Genes::UniquePtr const& genes
 	) const {
+		std::vector< TaggedSnp > const& snps = m_variants ;
 		std::size_t const N = options().get_value< std::size_t >( "-N" ) ;
 		assert( N > 0 ) ;
 		std::size_t const start_N = options().get_value< std::size_t >( "-start-N" ) ;
@@ -1825,9 +1865,11 @@ private:
 
 		std::vector< boost::optional< std::string > > pick_tags ;
 		if( options().check( "-match-tag" )) {
-			std::vector< TaggedSnp > snps_to_match = get_list_of_snps_from_text_file(
+			std::vector< TaggedSnp > snps_to_match ;
+			get_variants_from_text_file(
 				options().get< std::string >( "-match-tag" ),
-				options().get< std::string >( "-tag-column" )
+				options().get< std::string >( "-tag-column" ),
+				&snps_to_match
 			) ;
 
 			pick_tags.resize( snps_to_match.size() ) ;
@@ -1844,10 +1886,9 @@ private:
 			get_ui_context().logger() << "Picking " << (i+1) << " of " << N << "..." ;
 			std::vector< std::size_t > picked_snps = pick_snps( snps, pick_tags ) ;
 			get_ui_context().logger() << picked_snps.size() << " SNPs picked.\n" ;
-			write_output( i, snps, recombination_offsets, picked_snps, genes, filename ) ;
+			write_output( i, recombination_offsets, picked_snps, genes, filename ) ;
 		}
 	}
-	
 
 	std::vector< std::size_t > pick_snps(
 		std::vector< TaggedSnp > const& snps,
@@ -1920,12 +1961,12 @@ private:
 	
 	void write_output(
 		std::size_t const iteration,
-		std::vector< TaggedSnp > const& snps,
 		boost::optional< std::vector< double > > const& recombination_offsets,
 		std::vector< std::size_t > const& picked_snps,
 		genes::Genes::UniquePtr const& genes,
 		std::string const& filename
 	) const {
+		std::vector< TaggedSnp > const& snps = m_variants ;
 		std::vector< std::string > output_columns = get_output_columns() ;
 		// remove crud we don't want in the output.
 		output_columns.erase( std::remove( output_columns.begin(), output_columns.end(), "rsid" ), output_columns.end() ) ;
@@ -1975,13 +2016,15 @@ private:
 			storage->add_variable( "nearest_gene_in_region" ) ;
 			storage->add_variable( "all_genes_in_region" ) ;
 		}
+		for( std::size_t i = 0; i < m_extra_column_names.size(); ++i ) {
+			storage->add_variable( m_extra_column_names[i] ) ;
+		}
 
 		if( m_write_incl_list ) {
 			UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Writing included SNPs to \"" + filename + "\"" ) ;
 			write_output(
 				"picked",
 				iteration,
-				snps,
 				recombination_offsets,
 				picked_snps,
 				genes,
@@ -2006,7 +2049,6 @@ private:
 			write_output(
 				"excluded",
 				iteration,
-				snps,
 				recombination_offsets,
 				unpicked_snps,
 				genes,
@@ -2061,7 +2103,6 @@ private:
 	void write_output(
 		std::string const& result,
 		std::size_t const& iteration,
-		std::vector< TaggedSnp > const& snps,
 		boost::optional< std::vector< double > > const& recombination_offsets,
 		std::vector< std::size_t > const& indices_of_snps_to_output,
 		genes::Genes::UniquePtr const& genes,
@@ -2069,6 +2110,7 @@ private:
 		std::vector< std::string > const& output_columns,
 		UIContext::ProgressContext& progress_context
 	) const {
+		std::vector< TaggedSnp > const& snps = m_variants ;
 		using genfile::string_utils::to_string ;
 		progress_context.notify_progress( 0, snps.size() ) ;
 		bool const by_tag = options().check( "-match-tag" ) ;
@@ -2193,8 +2235,6 @@ private:
 						}
 					}
 
-					
-
 					std::ostringstream theseGenes ;
 					for( GeneNames::left_const_iterator name_i = geneNames.left.begin(); name_i != geneNames.left.end(); ++name_i ) {
 						theseGenes << (name_i == geneNames.left.begin() ? "" : "," ) << ( geneFormat % name_i->second % (name_i->first / 1000)).str() ;
@@ -2203,6 +2243,16 @@ private:
 						snps[snp_i].snp(),
 						"all_genes_in_region",
 						theseGenes.str()
+					) ;
+				}
+			}
+			
+			if( m_extra_column_names.size() > 0 ) {
+				for( std::size_t i = 0; i < m_extra_column_names.size(); ++i ) {
+					storage.store_per_variant_data(
+						snps[snp_i].snp(),
+						m_extra_column_names[i],
+						snps[snp_i].datum(i)
 					) ;
 				}
 			}
@@ -2316,6 +2366,8 @@ private:
 				) ;
 			}
 		}
+		
+		admissible_cols.insert( m_extra_column_names.begin(), m_extra_column_names.end() ) ;
 		return output_cols ;
 	}
 
