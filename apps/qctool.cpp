@@ -30,13 +30,9 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "appcontext/CmdLineOptionProcessor.hpp"
-#include "appcontext/OptionProcessor.hpp"
-#include "appcontext/get_current_time_as_string.hpp"
-//#include "FileUtil.hpp"
+#include "appcontext/appcontext.hpp"
 
 #include "genfile/db/Error.hpp"
-
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
@@ -83,8 +79,6 @@
 
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-
-#include "appcontext/appcontext.hpp"
 
 #include "worker/QueuedMultiThreadedWorker.hpp"
 #include "worker/SynchronousWorker.hpp"
