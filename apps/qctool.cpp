@@ -580,8 +580,8 @@ public:
 
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
 
-		options.option_implies_option( "-excl-samples", "-s" ) ;
-		options.option_implies_option( "-incl-samples", "-s" ) ;
+		options.option_implies_option( "-excl-samples-where", "-s" ) ;
+		options.option_implies_option( "-incl-samples-where", "-s" ) ;
 	}
 } ;
 
@@ -2443,9 +2443,9 @@ private:
 				m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
 			}
 		}
-		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_clauses() != 0 ) {
-			m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
-		}
+		//if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_clauses() != 0 ) {
+		//	m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
+		//}
 	}
 	
 	void check_for_warnings() {
