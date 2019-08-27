@@ -392,14 +392,7 @@ namespace snp_summary_component {
 		}
 		
 		void compute_autosomal_info( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
-			double theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
-
-			// for the new info measure, we use data augmentation adding a single allele of each type
-			// This makes info better behaved at low frequencies
-			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
-			//double const theta_est = ( 1 + genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 + 2.0 * genotypes.sum() ) ;
-
-			// ...but don't actually do that; it is less conservative at rare SNPs.
+			double const theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
 			double const theta_est = theta_mle ;
 			
 			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
@@ -414,7 +407,7 @@ namespace snp_summary_component {
 
 			double const info = 1.0 - (
 				compute_sum_of_variances( levels, genotypes, fallback_distribution )
-				/ ( genotypes.sum() * 2.0 * theta_est * ( 1 - theta_est ) )
+				/ ( genotypes.rows() * 2.0 * theta_est * ( 1 - theta_est ) )
 			) ;
 
 			double const impute_info = 1.0 - (
@@ -509,7 +502,7 @@ namespace snp_summary_component {
 					+ ( genotypes.rowwise().sum().array() * diploids.array() ).sum() 
 				) ;
 
-				info = 1.0 + (info / totalProb) ;
+				info = 1.0 + (info / (haploids.sum() + diploids.sum() )) ;
 			}
 			
 			{
@@ -572,9 +565,7 @@ namespace snp_summary_component {
 			// std::cerr << "compute_variance: levels = " << levels.transpose() << ", levels_squared = " << levels_squared.transpose() << ", probs = " << probs.transpose() << ", variance = " << variance << ".\n" ;
 			return variance ;
 		}
-		
 	} ;
-
 }
 
 SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
