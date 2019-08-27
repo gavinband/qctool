@@ -57,7 +57,7 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-sequence" ]
 				.set_description( "Specify the path of a file containing sequence to load." )
 				.set_is_required()
-				.set_takes_single_value() ;
+				.set_takes_values_until_next_option() ;
 			;
 		}
 		{
