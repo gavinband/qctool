@@ -15,7 +15,6 @@
 #include "genfile/MissingValue.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "components/SNPSummaryComponent/GenomeSequence.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
@@ -123,7 +122,7 @@ public:
 			argv,
 			"-log"
 		),
-		m_sequence( GenomeSequence::create( options().get< std::string >( "-sequence" ), get_ui_context().get_progress_context( "Reading sequence" ) ) ),
+		m_sequence( GenomeSequence::create( options().get_values< std::string >( "-sequence" ), get_ui_context().get_progress_context( "Reading sequence" ) ) ),
 		m_kmer_size( options().get< std::size_t >( "-kmer-size" ) ),
 		m_ranges( parse_ranges( options().get_values< std::string >( "-range" ) ) )
 	{
@@ -157,7 +156,7 @@ public:
 			get_ui_context().logger() << "!! (" << e.what() << "): " << e.format_message() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
-		catch( genfile::db::StatementPreparationError const& e ) {
+		catch( db::StatementPreparationError const& e ) {
 			get_ui_context().logger() << "!! (" << e.what() << "): " << e.description() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
@@ -241,7 +240,7 @@ private:
 		std::string const& filename = options().get< std::string >( "-o" ) ;
 
 		if( filename.size() > 7 && filename.substr( filename.size() - 7, 7 ) == ".sqlite" ) {
-			snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
+			qcdb::FlatTableDBOutputter::SharedPtr outputter = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get< std::string >( "-analysis-chunk" ),
