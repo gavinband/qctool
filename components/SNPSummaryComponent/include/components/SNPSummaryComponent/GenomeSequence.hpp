@@ -57,7 +57,7 @@ private:
 	boost::optional< std::string > m_organism ;
 	
 	void load_sequence( std::vector< std::string > const& filenames, ProgressCallback callback ) ;
-	void load_sequence( std::string const& filename ) ;
+	void load_sequence( std::string const& name, std::string const& filename ) ;
 } ;
 
 #endif

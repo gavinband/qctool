@@ -43,7 +43,15 @@ void GenomeSequence::load_sequence(
 	ProgressCallback callback
 ) {
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		load_sequence( filenames[i] ) ;
+		std::vector< std::string > const elts = genfile::string_utils::split( filenames[i], "=" ) ;
+		if( elts.size() != 2 ) {
+			throw genfile::BadArgumentError(
+				"GenomeSequence::load_sequence()",
+				"filenames[" + genfile::string_utils::to_string(i) + "]=\"" + filenames[i] + "\"",
+				"Filespec should be in the form: name=<path to fasta file>"
+			) ;
+		}
+		load_sequence( elts[0], elts[1] ) ;
 		if( callback ) {
 			callback( i + 1, filenames.size() ) ;
 		}
@@ -51,6 +59,7 @@ void GenomeSequence::load_sequence(
 }
 
 void GenomeSequence::load_sequence(
+	std::string const& name,
 	std::string const& filename
 ) {
 	using genfile::string_utils::to_string ;
@@ -116,7 +125,7 @@ void GenomeSequence::load_sequence(
 					if( m_data.find( sequenceName ) != m_data.end() ) {
 						throw genfile::DuplicateKeyError( filename, "sequence name=\"" + sequenceName + "\"" ) ;
 					}
-					m_data[ sequenceName ] = ChromosomeRangeAndSequence(
+					m_data[ name + ":" + sequenceName ] = ChromosomeRangeAndSequence(
 						std::make_pair( sequenceStart, sequenceStart + sequence.size() ),
 						sequence
 					) ;
