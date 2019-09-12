@@ -14,6 +14,7 @@
 #include "metro/ModifiedCholesky.hpp"
 #include "metro/CholeskyStepper.hpp"
 
+BOOST_AUTO_TEST_SUITE( test_modified_newton_raphson ) ;
 
 namespace impl {
 	typedef metro::SmoothFunction FunctionBase ;
@@ -153,7 +154,7 @@ namespace impl {
 			
 			FunctionBase::Vector direction = m_target - v ;
 
-			if( direction.array().abs().maxCoeff() < 1E-6 ) {
+			if( direction.array().abs().maxCoeff() < 1E-3 ) {
 				return false ;
 			} else {
 				(*search_direction) = 10.0 * direction ;
@@ -234,14 +235,38 @@ AUTO_TEST_CASE( test_cholesky_stepper_direction_1d ) {
 	typedef impl::FunctionBase::Matrix Matrix ;
 	impl::Multimodal1d_1 function ;
 	metro::CholeskyStepper stepper( 1E-12, 100 ) ;
-
+#if 0
+		[]( int iteration,
+			double ll,
+			double target_ll,
+			metro::CholeskyStepper::Vector const& point,
+			metro::CholeskyStepper::Vector const& first_derivative,
+			metro::CholeskyStepper::Vector const& step,
+			bool converged
+		) {
+			std::cerr
+				<< " ITERATION:" << iteration << "\n"
+				<< "        LL:" << ll << "\n"
+				<< "    TARGET:" << target_ll << "\n"
+				<< "     POINT:" << point.transpose() << "\n"
+				<< "DERIVATIVE:" << first_derivative.transpose() << "\n"
+				<< "      STEP:" << step.transpose() << "\n"
+				<< " CONVERGED:" << ( converged ? "yes" : "no" ) << "\n" ;
+		}
+	 ) ;
+#endif
 	Vector point( 1 ) ;
-	for( point(0) = -10; point(0) < 10; point(0) += 0.01 ) {
+	// start at -10.005 to avoid meeting maxima or minima
+	for( point(0) = -10.005; point(0) < 10; point(0) += 0.01 ) {
+		stepper.reset() ;
 		// Check that the solver always finds an ascent direction
 		function.evaluate_at( point ) ;
 		Vector h ;
-		stepper.step( function, point, &h ) ;
+		BOOST_CHECK( stepper.step( function, point, &h ) ) ;
 		double directional_derivative = function.get_value_of_first_derivative().transpose() * h ;
+		//std::cerr << "x = " << point(0) << ", function = " << function.get_value_of_function()
+		//	<< ", derivative = " << function.get_value_of_first_derivative().transpose() << ", "
+		//	<< "DD = " << directional_derivative << ".\n" ;
 		BOOST_CHECK_GT( directional_derivative, 0 ) ;
 	}
 }
@@ -253,8 +278,10 @@ AUTO_TEST_CASE( test_cholesky_stepper_direction_2d ) {
 	metro::CholeskyStepper stepper( 1E-12, 100 ) ;
 
 	Vector point( 2 ) ;
-	for( point(0) = -10; point(0) < 10; point(0) += 0.025 ) {
-		for( point(1) = -10; point(1) < 10; point(1) += 0.025 ) {
+	// start at -10.01 so we do not reach 0 (where there is a maximum)
+	for( point(0) = -10.01; point(0) < 10; point(0) += 0.025 ) {
+		for( point(1) = -10.01; point(1) < 10; point(1) += 0.025 ) {
+			stepper.reset() ;
 			function.evaluate_at( point ) ;
 			Vector h ;
 			stepper.step( function, point, &h ) ;
@@ -264,12 +291,10 @@ AUTO_TEST_CASE( test_cholesky_stepper_direction_2d ) {
 	}
 }
 
-AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_overshoot_1d ) {
+AUTO_TEST_CASE( test_modified_ewton_raphson_overshoot_1d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	impl::Multimodal1d_1 function ;
 	
-	ModifiedCholeskySolver< impl::Multimodal1d_1 > solver ;
-
 	// For 1d function 1, maxima are at -1 and 1.
 	Vector target ;
 	target.setZero(1) ;
@@ -284,11 +309,11 @@ AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_overshoot_1d ) {
 			overshoot
 		) ;
 
-		BOOST_CHECK_CLOSE( result(0), -1, 1E-7 ) ;
+		BOOST_CHECK_CLOSE( result(0), -1, 0.1 ) ;
 	}
 }
 
-AUTO_TEST_CASE( test_ascent_direction_newton_raphson_overshoot_2d ) {
+AUTO_TEST_CASE( test_newton_raphson_overshoot_2d ) {
 	typedef impl::FunctionBase::Vector Vector ;
 	impl::Multimodal2d_1 function ;
 
@@ -306,31 +331,8 @@ AUTO_TEST_CASE( test_ascent_direction_newton_raphson_overshoot_2d ) {
 			overshoot
 		) ;
 
-		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
-		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
-	}
-}
-
-AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_overshoot_2d ) {
-	typedef impl::FunctionBase::Vector Vector ;
-	impl::Multimodal2d_1 function ;
-
-	Vector maximum ;
-	maximum.setZero(2) ;
-	maximum(0) = -sqrt(5) ;
-	maximum(1) = -sqrt(5) ;
-
-	{
-		impl::OvershootTarget< impl::Multimodal2d_1 > overshoot( maximum ) ;
-		Vector start = Vector::Constant(2,-1) ;
-		Vector result = metro::find_maximum_by_modified_newton_raphson_with_line_search(
-			function,
-			start,
-			overshoot
-		) ;
-
-		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
-		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 0.1 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 0.1 ) ;
 	}
 }
 
@@ -347,9 +349,9 @@ AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_2d ) {
 			solver
 		) ;
 			
-		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
-		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
-		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 0.1 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 0.1 ) ;
+		std::cerr << "test_newton_raphson_overshoot_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
 	}
 	{	
 		metro::CholeskyStepper solver( 1E-12, 100 ) ;
@@ -361,9 +363,9 @@ AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_2d ) {
 			solver
 		) ;
 			
-		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
-		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
-		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 0.1 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 0.1 ) ;
+		std::cerr << "test_newton_raphson_overshoot_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
 	}
 	{
 		metro::CholeskyStepper solver( 1E-12, 100 ) ;
@@ -376,8 +378,10 @@ AUTO_TEST_CASE( test_modified_cholesky_newton_raphson_2d ) {
 			solver
 		) ;
 			
-		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 1E-5 ) ;
-		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 1E-5 ) ;
-		std::cerr << "test_modified_cholesky_newton_raphson_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
+		BOOST_CHECK_CLOSE( result(0), -std::sqrt(5), 0.1 ) ;
+		BOOST_CHECK_CLOSE( result(1), -std::sqrt(5), 0.1 ) ;
+		std::cerr << "test_newton_raphson_overshoot_2d: took " << solver.number_of_iterations() << " iterations.\n" ;
 	}
 }
+
+BOOST_AUTO_TEST_SUITE_END()

@@ -115,7 +115,7 @@ namespace metro {
 				<< ".\n" ;
 #endif
 				lambda *= 0.875 ; // (1-1/8), exactly representable in float
-				if( (function.get_value_of_function() - current_function_value) == 0 || lambda < 0.1 ) {
+				if( (function.get_value_of_function() - current_function_value) == 0 || lambda < 0.05 ) {
 					lambda = 0 ;
 					break ;
 				}
