@@ -53,7 +53,8 @@
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
-#include "metro/regression/fit_model.hpp"
+#include "metro/fit_model.hpp"
+#include "metro/CholeskyStepper.hpp"
 
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -1425,15 +1426,15 @@ private:
 			LogLikelihood& ll = lls[model] ;
 			std::string const& model_name = model_names[model] ;
 
-			CholeskyStepper::Tracer tracer ;
+			metro::CholeskyStepper::Tracer tracer ;
 			if( options().check( "-debug" )) {
 				tracer = [this] ( 
 					int iteration,
 					double ll,
 					double target_ll,
-					CholeskyStepper::Vector const& point,
-					CholeskyStepper::Vector const& first_derivative,
-					CholeskyStepper::Vector const& step,
+					metro::CholeskyStepper::Vector const& point,
+					metro::CholeskyStepper::Vector const& first_derivative,
+					metro::CholeskyStepper::Vector const& step,
 					bool converged
 				) {
 					this->get_ui_context().logger()
@@ -1447,13 +1448,13 @@ private:
 				} ;
 			}
 
-			CholeskyStepper stopping_condition(
+			metro::CholeskyStepper stopping_condition(
 					options().get_value< double >( "-tolerance" ),
 					options().get_value< double >( "-max-iterations" ),
 					tracer
 				) ;
 
-			std::pair< bool, int > result = metro::regression::fit_model(
+			std::pair< bool, int > result = metro::fit_model(
 				ll,
 				model_name,
 				Eigen::VectorXd::Zero( ll.parameters().size() ),
