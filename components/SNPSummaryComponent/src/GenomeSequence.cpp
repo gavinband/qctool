@@ -107,20 +107,25 @@ void GenomeSequence::load_sequence(
 					sequence.clear() ;
 					line_count = 0 ;
 					state = eSequence ;
-					std::cerr << "GenomeSequence::load_sequence(): read header: \"" << sequenceName << "\".\n" ;
+					//std::cerr << "GenomeSequence::load_sequence(): read header: \"" << sequenceName << "\".\n" ;
 				}
 			} else if( state == eSequence ) {
 				 sequence.insert( sequence.end(), p, segment_end ) ;
 				 ++line_count ;
 				 if( (segment_end == (p_end-1)) || ((segment_end < (p_end-1)) && (*(segment_end+1) == '>')) ) {
- 					std::cerr << "GenomeSequence::load_sequence(): read sequence: \"" << std::string( sequence.begin(), sequence.end() ) << "\".\n" ;
+ 					//std::cerr << "GenomeSequence::load_sequence(): read sequence: \"" << std::string( sequence.begin(), sequence.end() ) << "\".\n" ;
 					// end of sequence.
 					// Store this in our map.
 					std::size_t colon = sequenceName.find( ':' ) ;
 					std::size_t dash = sequenceName.find( '-' ) ;
 					uint32_t sequenceStart = 1 ;
 					if( colon != -1 && dash != -1 && dash > colon ) {
-						sequenceStart = genfile::string_utils::to_repr< uint32_t >( sequenceName.substr( colon + 1, dash - colon - 1 )) ;
+						try {
+							sequenceStart = genfile::string_utils::to_repr< uint32_t >( sequenceName.substr( colon + 1, dash - colon - 1 )) ;
+						}
+						catch( genfile::string_utils::StringConversionError const& e ) {
+							// ignore
+						}
 					}
 					if( m_data.find( sequenceName ) != m_data.end() ) {
 						throw genfile::DuplicateKeyError( filename, "sequence name=\"" + sequenceName + "\"" ) ;
