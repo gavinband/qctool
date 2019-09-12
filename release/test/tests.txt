@@ -111,6 +111,7 @@ Produces well-formed snp stats output
 
 Computes correct snp stats
 	CheckRun	Rscript	--vanilla	stats_test.R	--qctool	${QCTOOL}
+	CheckRun	Rscript	--vanilla	info_test.R	--qctool	${QCTOOL}
 
 Correctly merges files
 	${filenames}=	Run Qctool	{ "g": ["data/merge1.gen"], "s": [ "data/merge1.sample" ], "merge-in": [ "data/merge2.gen", "data/merge2.sample" ], "og": "<tmp>", "ofiletype": "gen" }	ok

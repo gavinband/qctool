@@ -1,3 +1,4 @@
+
 compute.info <- function( genotypes, ploidy ) {
 	stopifnot(length( which( !ploidy %in% c( 1, 2 ))) == 0 )
 
@@ -77,7 +78,34 @@ simulate.genotypes <- function( number.of.samples = 10, number.of.snps = 10 ) {
 	)
 }
 
-data = simulate.genotypes( 1000, 100 )
+library( argparse )
+parser <- ArgumentParser( description = 'Generate and test snp and samples stats for randomly generated genotype files')
+parser$add_argument(
+	"--samples",
+	type = "integer",
+	nargs = 1,
+	help = "Number of samples to simulate",
+	default = 100
+)
+parser$add_argument(
+	"--variants",
+	type = "integer",
+	nargs = 1,
+	help = "Number of samples to simulate",
+	default = 1000
+)
+parser$add_argument(
+	"--qctool",
+	type = "character",
+	nargs = 1,
+	help = "Path to qctool executable",
+	default = "../../build/release/qctool_v2.0-dev"
+)
+opts = parser$parse_args()
+
+options(width=200)
+
+data = simulate.genotypes( opts$samples, opts$variants )
 
 genfile = tempfile()
 write.table(
@@ -88,7 +116,7 @@ write.table(
 	sep = ' '
 )
 statsfile = tempfile()
-system( sprintf( "qctool_v2.1-dev -g %s -snp-stats -osnp %s -filetype gen", genfile, statsfile ))
+system( sprintf( "%s -g %s -snp-stats -osnp %s -filetype gen", opts$qctool, genfile, statsfile ))
 qctool.stats = read.table( statsfile, head = T, as.is=T )
 
 stats = data.frame()
