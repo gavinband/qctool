@@ -1675,10 +1675,11 @@ private:
 			Matrix const approxSamplingCovariance = posterior_covariance * ll_information * posterior_covariance ;
 			Eigen::ColPivHouseholderQR< Matrix > solver( approxSamplingCovariance ) ;
 			Vector const z = solver.solve( alternative_parameters ) ;
+#if 0
 			std::cerr << "      Posterior covariance:\n" << posterior_covariance << ",\n" ;
 			std::cerr << "Approx sampling covariance:\n" << approxSamplingCovariance << ".\n" ;
 			std::cerr << "                  Approx Z:\n" << z << ".\n" ;
-			
+#endif		
 			using genfile::string_utils::to_string ;
 			for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 				int const i = parametersToOutput[parameter_i] ;
