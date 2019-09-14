@@ -1461,7 +1461,9 @@ private:
 				stopping_condition,
 				&comments
 			) ;
+
 #if DEBUG
+			std::cerr << "hptest::test(): fit model in " << result.second << " iterations with " << ( result.first ? "convergence" : "no convergence" ) << ".\n" ;
 			for( std::size_t i = 0; i < ll.identify_parameters().rows(); ++i ) {
 				std::cerr << "model " << "NAME OF PARAMETER " << i << ": \"" << ll.get_parameter_name(i) << "\".\n" ;
 			}
@@ -1469,7 +1471,7 @@ private:
 		
 			output.store_data_for_key( variants, model_name + ":converged", result.first ? "1" : "0" ) ;
 			output.store_data_for_key( variants, model_name + ":iterations", result.second ) ;
-			output.store_data_for_key( variants, model_name + ":fit_time", boost::timer::format( timer.elapsed(), 3, "%t" ) ) ;
+			output.store_data_for_key( variants, model_name + ":fit_time", boost::timer::format( timer.elapsed(), 4, "%t" ) ) ;
 			output.store_data_for_key( variants, model_name + ":ll", ll.get_value_of_function() ) ;
 			output.store_data_for_key(
 				variants,

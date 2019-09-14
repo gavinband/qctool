@@ -35,7 +35,7 @@ namespace metro {
 	public:
 		virtual ~Stepper() ;
 		virtual bool diverged() const = 0 ;
-		virtual bool step( Function& function, Vector const& point, Vector* result ) = 0 ;
+		virtual bool step( Function& function, Vector* result ) = 0 ;
 		virtual std::size_t number_of_iterations() const = 0 ;
 	} ;
 

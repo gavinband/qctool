@@ -30,6 +30,9 @@ namespace impl {
 			assert( point.size() == 1 ) ;
 			m_point = point ;
 		}
+
+		void evaluate( int const number_of_derivatives = 0 ) {}
+		
 		double get_value_of_function() const {
 			assert( m_point.size() == 1 ) ;
 			return -std::pow( m_point(0), 4 ) + 2 * std::pow( m_point(0), 2 ) ;
@@ -46,6 +49,7 @@ namespace impl {
 			) ;
 		}
 		int number_of_parameters() const { return 1 ; }
+		Vector const& parameters() const { return m_point ; }
 		
 		std::string get_summary() const { return "Multimodal1d_1" ; }
 	private:
@@ -75,6 +79,9 @@ namespace impl {
 			assert( point.size() == 2 ) ;
 			m_point = point ;
 		}
+
+		void evaluate( int const number_of_derivatives = 0 ) {}
+		
 		double get_value_of_function() const {
 			return -0.1 * ( std::pow( m_point(0), 4 ) + std::pow( m_point(1), 4 ) )
 				+ m_point(0) * m_point(0)
@@ -98,6 +105,7 @@ namespace impl {
 		}
 
 		int number_of_parameters() const { return 2 ; }
+		Vector const& parameters() const { return m_point ; }
 
 		std::string get_summary() const { return "Multimodal2d_1" ; }
 
@@ -130,6 +138,7 @@ namespace impl {
 		}
 
 		int number_of_parameters() const { return 2 ; }
+		Vector const& parameters() const { return m_point ; }
 
 		std::string get_summary() const { return "Rosenbrock" ; }
 
@@ -148,10 +157,10 @@ namespace impl {
 			m_target( target )
 		{}
 		
-		bool step( Function& function, FunctionBase::Vector const& v, FunctionBase::Vector* search_direction ) {
+		bool step( Function& function, FunctionBase::Vector* search_direction ) {
 			// walk toward the target but go ten times too far.
+			FunctionBase::Vector const& v = function.parameters() ;
 			assert( v.size() == m_target.size() ) ;
-			
 			FunctionBase::Vector direction = m_target - v ;
 
 			if( direction.array().abs().maxCoeff() < 1E-3 ) {
@@ -262,7 +271,7 @@ AUTO_TEST_CASE( test_cholesky_stepper_direction_1d ) {
 		// Check that the solver always finds an ascent direction
 		function.evaluate_at( point ) ;
 		Vector h ;
-		BOOST_CHECK( stepper.step( function, point, &h ) ) ;
+		BOOST_CHECK( stepper.step( function, &h ) ) ;
 		double directional_derivative = function.get_value_of_first_derivative().transpose() * h ;
 		//std::cerr << "x = " << point(0) << ", function = " << function.get_value_of_function()
 		//	<< ", derivative = " << function.get_value_of_first_derivative().transpose() << ", "
@@ -284,7 +293,7 @@ AUTO_TEST_CASE( test_cholesky_stepper_direction_2d ) {
 			stepper.reset() ;
 			function.evaluate_at( point ) ;
 			Vector h ;
-			stepper.step( function, point, &h ) ;
+			stepper.step( function, &h ) ;
 			double const directional_derivative = function.get_value_of_first_derivative().transpose() * h ;
 			BOOST_CHECK_GT( directional_derivative, 0 ) ;
 		}

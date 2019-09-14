@@ -108,7 +108,7 @@ namespace metro {
 			Design& set_predictors(
 				Matrix const& levels,
 				Matrix const& probabilities,
-				SampleRanges const& included_samples
+				SampleRanges const& nonmissingness
 			) ;
 
 			// Set predictors without uncertainty

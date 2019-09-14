@@ -21,7 +21,7 @@ namespace metro {
 	public:
 		CholeskyStepper( double tolerance, int max_iterations, Tracer tracer = Tracer()) ;
 
-		bool step( Function& function, Vector const& point, Vector* result ) ;
+		bool step( Function& function, Vector* result ) ;
 
 		bool diverged() const ;
 		std::size_t number_of_iterations() const ;

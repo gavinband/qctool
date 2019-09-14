@@ -134,9 +134,20 @@ namespace metro {
 				m_sigma = sigma ;
 				m_data_subset = data_subset ;
 
+#if DEBUG_MULTIVARIATE_T
+					std::cerr << "metro::likelihood::MultivariateT::evaluate_at():\n"
+						<< " m_data_subset " << m_data_subset << "\n"
+						<< " m_mean " << m_mean.transpose() << "\n"
+						<< " m_sigma = \n" << m_sigma << "\n" 
+						<< " m_log_determinant = " << m_log_determinant << "\n" ;
+#endif				
+
 				// Pack parameters into the parameter vector
 				pack_parameters( mean, m_sigma, &m_parameters ) ;
+				evaluate() ;
+			}
 
+			void evaluate( int const numberOfDerivatives = 2 ) {
 				// We compute up-front some quantities that are useful
 				// when computing the log-likelihood.
 				m_ldlt.compute( m_sigma ) ;
@@ -147,14 +158,6 @@ namespace metro {
 				m_Z = (
 					m_mean_centred_data.array() * m_A.transpose().array()
 				).rowwise().sum() ;
-
-#if DEBUG_MULTIVARIATE_T
-					std::cerr << "metro::likelihood::MultivariateT::evaluate_at():\n"
-						<< " m_data_subset " << m_data_subset << "\n"
-						<< " m_mean " << m_mean.transpose() << "\n"
-						<< " m_sigma = \n" << m_sigma << "\n" 
-						<< " m_log_determinant = " << m_log_determinant << "\n" ;
-#endif				
 			}
 
 			// Get the value of the log-likelihood for the given data,

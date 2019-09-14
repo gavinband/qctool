@@ -51,6 +51,7 @@ namespace metro {
 			IntegerMatrix identify_parameters() const ;
 			
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
 
 			Point const& parameters() const {
 				return m_ll->parameters() ;

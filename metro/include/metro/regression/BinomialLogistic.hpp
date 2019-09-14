@@ -38,7 +38,9 @@ namespace metro {
 			static UniquePtr create( Design& ) ;
 			static UniquePtr create( Design::UniquePtr ) ;
 			BinomialLogistic( Design& ) ;
+			BinomialLogistic( Design&, std::vector< metro::SampleRange > included_samples ) ;
 			BinomialLogistic( Design::UniquePtr ) ;
+			BinomialLogistic( Design::UniquePtr, std::vector< metro::SampleRange > included_samples ) ;
 			~BinomialLogistic() ;
 			
 			regression::Design& design() const { return *m_design ; }
@@ -50,6 +52,7 @@ namespace metro {
 			IntegerMatrix identify_parameters() const ;
 
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
 
 			Point const& parameters() const ;
 			double get_value_of_function() const ;
@@ -63,13 +66,10 @@ namespace metro {
 			bool m_design_owned ;
 			GetParameterName m_get_parameter_name ;
 			Point m_parameters ;
-			enum State {
-				e_Uncomputed = 0,
-				e_ComputedFunction = 1,
-				e_Computed1stDerivative = 2,
-				e_Computed2ndDerivative = 4
-			} ;
-			uint32_t m_state ;
+			std::vector< metro::SampleRange > m_included_samples ;
+			std::vector< metro::SampleRange > m_evaluated_samples ;
+			int m_numberOfDerivativesComputed ;
+			int m_numberOfCDLDerivativesComputed ;
 
 			Matrix m_outcome_probabilities ;
 			
@@ -103,7 +103,7 @@ namespace metro {
 				std::vector< metro::SampleRange > const& included_samples,
 				int const numberOfDerivatives
 			) ;
-			
+
 			// Calculate matrix of probabilities of outcome per genotype, given the parameters.
 			void calculate_outcome_probabilities( Vector const& parameters, Matrix const& phenotypes, Matrix* result ) const ;
 			void compute_value_of_loglikelihood(

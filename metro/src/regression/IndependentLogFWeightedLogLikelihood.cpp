@@ -98,6 +98,16 @@ namespace metro {
 		
 		void IndependentLogFWeightedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			m_ll->evaluate_at( parameters, numberOfDerivatives ) ;
+			evaluate_impl( numberOfDerivatives ) ;
+		}
+
+		void IndependentLogFWeightedLogLikelihood::evaluate( int const numberOfDerivatives ) {
+			m_ll->evaluate( numberOfDerivatives ) ;
+			evaluate_impl( numberOfDerivatives ) ;
+		}
+	
+		void IndependentLogFWeightedLogLikelihood::evaluate_impl( int const numberOfDerivatives ) {
+			Vector const& parameters = m_ll->parameters() ;
 			m_value_of_function = m_constant ;
 			m_value_of_first_derivative.setZero( parameters.size() ) ;
 			m_value_of_second_derivative.setZero( parameters.size(), parameters.size() ) ;
@@ -113,7 +123,7 @@ namespace metro {
 				m_value_of_second_derivative( parameter_index, parameter_index ) = -(m_alpha[i] + m_beta[i]) * l * (1-l) ;
 			}
 		}
-	
+
 		IndependentLogFWeightedLogLikelihood::Vector IndependentLogFWeightedLogLikelihood::get_prior_mode() const {
 			Vector result = Vector::Zero( m_value_of_first_derivative.size() ) ;
 			for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {

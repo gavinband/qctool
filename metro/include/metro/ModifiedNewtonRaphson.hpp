@@ -46,7 +46,7 @@ namespace metro {
 	template< typename Function, typename Stepper >
 	typename Function::Vector find_maximum_by_modified_newton_raphson_with_line_search(
 		Function& function,
-		typename Function::Vector currentPoint,
+		typename Function::Vector const& startingPoint,
 		Stepper& stepper,
 		double const line_search_tolerance = 0.1
 	)
@@ -58,11 +58,9 @@ namespace metro {
 		Vector first_derivative ;
 		Vector h ;
 		for(
-			function.evaluate_at( currentPoint, 1 ) ;
-//			function.evaluate_at( currentPoint, 1 ) ; // needs likelihood optimisation
-			stepper.step( function, currentPoint, &h ) ;
-			function.evaluate_at( currentPoint, 1 )
-//			function.evaluate_at( currentPoint, 1 ) // needs likelihood optimisation
+			function.evaluate_at( startingPoint, 1 ) ;
+			stepper.step( function, &h ) ;
+			function.evaluate( 1 )
 		) {
 			double const current_function_value = function.get_value_of_function() ;
 			first_derivative = function.get_value_of_first_derivative() ;
@@ -70,7 +68,7 @@ namespace metro {
 
 #if DEBUG_NEWTON_RAPHSON
 			std::cerr << "MNR: --------------------------\n" ;
-			std::cerr << "MNR: point is                 : " << currentPoint.transpose() << ".\n" ;
+			std::cerr << "MNR: point is                 : " << function.parameters().transpose() << ".\n" ;
 			std::cerr << "MNR: first derivative is      : " << first_derivative.transpose() << " with 1-norm " << oneNorm( first_derivative ) << ".\n" ;
 			std::cerr << "MNR: line search direction is : " << h.transpose() << ".\n" ;
 			std::cerr << "MNR: current function value is: " << std::setprecision(25) << current_function_value << ".\n" ;
@@ -92,6 +90,7 @@ namespace metro {
 			bool const useArmijo = (( directional_derivative / std::abs( current_function_value )) > 10 * epsilon ) ;
 			bool const useDerivative = !useArmijo ;
 			double const derivativeOneNorm = oneNorm( first_derivative ) ;
+			Vector const& currentPoint = function.parameters() ;
 			for(
 				function.evaluate_at( currentPoint + lambda * h, useDerivative ? 1 : 0 ) ;
 				!(
@@ -129,14 +128,12 @@ namespace metro {
 				<< ( function.get_value_of_function() - current_function_value )
 				<< ".\n" ;
 #endif
-			
-			currentPoint += lambda * h ;
 		}
 #if DEBUG_NEWTON_RAPHSON
 		std::cerr << "MNR: point = " << currentPoint.transpose() << ", function = " << function.get_value_of_function()
 			<< ",\nfirst derivative = " << function.get_value_of_first_derivative().transpose() << ".\n" ;
 #endif
-		return currentPoint ;
+		return function.parameters() ;
 	}
 }
 

@@ -41,14 +41,18 @@ namespace metro {
 	int IndependentParameterDistribution::number_of_parameters() const {
 		return m_parameter_names.size() ;
 	};
-	
+
 	void IndependentParameterDistribution::evaluate_at(
 		Point const& parameters,
 		int const numberOfDerivatives
 	) {
 		m_parameters = parameters ;
+		evaluate() ;
+	}
+
+	void IndependentParameterDistribution::evaluate( int const ) {
 		for( std::size_t i = 0; i < m_densities.size(); ++i ) {
-			m_densities[i].evaluate_at( parameters(i) ) ;
+			m_densities[i].evaluate_at( m_parameters(i) ) ;
 		}
 	}
 	

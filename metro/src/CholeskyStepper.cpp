@@ -27,9 +27,10 @@ namespace metro {
 		assert( tolerance > 0 ) ;
 	}
 	
-	bool CholeskyStepper::step( Function& function, Vector const& point, Vector* result ) {
+	bool CholeskyStepper::step( Function& function, Vector* result ) {
 		++m_iteration ;
-		function.evaluate_at( point, 2 ) ;
+		//std::cerr << "CholeskyStepper::step(): calling evaluate()...\n" ;
+		function.evaluate( 2 ) ;
 		double const ll = function.get_value_of_function() ;
 		m_solver.compute( -function.get_value_of_second_derivative() ) ;
 
@@ -56,18 +57,18 @@ namespace metro {
 
 		double const derivativeOneNorm = function.get_value_of_first_derivative().array().abs().maxCoeff() ;
 		Vector step = m_solver.solve( function.get_value_of_first_derivative() ) ;
-		Vector const sqrtStep = m_solver.halfSolve( function.get_value_of_first_derivative() ) ;
-//		double directional_derivative = function.get_value_of_first_derivative().transpose() * step ;
+		//Vector const sqrtStep = m_solver.halfSolve( function.get_value_of_first_derivative() ) ;
+		double directional_derivative = function.get_value_of_first_derivative().transpose() * step ;
 
 		bool converged = (
 			(derivativeOneNorm < m_tolerance)
 			&& ( ll >= ( m_target_ll - m_tolerance ) )
-			&& (sqrtStep.array().abs().maxCoeff() < m_tolerance )
-			//&& (directional_derivative < m_tolerance )
+			//&& (sqrtStep.array().abs().maxCoeff() < m_tolerance )
+			&& (directional_derivative < m_tolerance )
 		) ;
 
 		if( m_tracer ) {
-			m_tracer( m_iteration, ll, m_target_ll, point, function.get_value_of_first_derivative(), step, converged ) ;
+			m_tracer( m_iteration, ll, m_target_ll, function.parameters(), function.get_value_of_first_derivative(), step, converged ) ;
 		}
 
 		if(

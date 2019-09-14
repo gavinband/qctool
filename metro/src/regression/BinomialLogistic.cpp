@@ -17,11 +17,10 @@
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
 
-// #define DEBUG_LOGLIKELIHOOD 2
+// #define DEBUG_LOGLIKELIHOOD 1
 
 namespace metro {
 	namespace regression {
-		
 		namespace {
 			std::string standard_parameter_name( std::string const& predictor_name, std::string const& outcome_name ) {
 				return predictor_name + "/" + outcome_name ;
@@ -68,7 +67,24 @@ namespace metro {
 			m_design_owned( true ),
 			m_get_parameter_name( &standard_parameter_name ),
 			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
-			m_state( e_Uncomputed )
+			m_included_samples( 1, SampleRange( 0, m_design->matrix().rows() )),
+			m_numberOfDerivativesComputed( -1 ),
+			m_numberOfCDLDerivativesComputed( -1 )
+		{
+			check_design( *m_design ) ;
+		}
+
+		BinomialLogistic::BinomialLogistic(
+			regression::Design::UniquePtr design,
+			std::vector< metro::SampleRange > included_samples
+		):
+			m_design( design.release() ),
+			m_design_owned( true ),
+			m_get_parameter_name( &standard_parameter_name ),
+			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
+			m_included_samples( included_samples ),
+			m_numberOfDerivativesComputed( -1 ),
+			m_numberOfCDLDerivativesComputed( -1 )
 		{
 			check_design( *m_design ) ;
 		}
@@ -80,7 +96,25 @@ namespace metro {
 			m_design_owned( false ),
 			m_get_parameter_name( &standard_parameter_name ),
 			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
-			m_state( e_Uncomputed )
+			m_included_samples( 1, SampleRange( 0, m_design->matrix().rows() )),
+			m_numberOfDerivativesComputed( -1 ),
+			m_numberOfCDLDerivativesComputed( -1 )
+		{
+			assert( m_design != 0 ) ;
+			check_design( *m_design ) ;
+		}
+
+		BinomialLogistic::BinomialLogistic(
+			regression::Design& design,
+			std::vector< metro::SampleRange > included_samples
+		):
+			m_design( &design ),
+			m_design_owned( false ),
+			m_get_parameter_name( &standard_parameter_name ),
+			m_parameters( Vector::Zero( m_design->matrix().cols() ) ),
+			m_included_samples( included_samples ),
+			m_numberOfDerivativesComputed( -1 ),
+			m_numberOfCDLDerivativesComputed( -1 )
 		{
 			assert( m_design != 0 ) ;
 			check_design( *m_design ) ;
@@ -134,91 +168,136 @@ namespace metro {
 		}
 
 		void BinomialLogistic::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
-			evaluate_at_impl( parameters, m_design->nonmissing_samples(), numberOfDerivatives ) ;
+			evaluate_at_impl(
+				parameters,
+				metro::impl::intersect_ranges(
+					m_included_samples,
+					m_design->nonmissing_samples()
+				),
+				numberOfDerivatives
+			) ;
 		}
 
 		void BinomialLogistic::evaluate_at_impl(
 			Point const& parameters,
-			std::vector< metro::SampleRange > const& included_samples,
+			std::vector< metro::SampleRange > const& evaluation_samples,
 			int const numberOfDerivatives
 		) {
-//			m_state = eUncomputed ;
 			assert( parameters.size() == m_design->matrix().cols() ) ;
 			assert( numberOfDerivatives < 3 ) ;
 
-			m_state = e_Uncomputed ;
-			m_parameters = parameters ;
-
+			if( parameters != m_parameters || evaluation_samples != m_evaluated_samples ) {
+				m_numberOfDerivativesComputed = -1 ;
+				m_numberOfCDLDerivativesComputed = -1 ;
+				m_parameters = parameters ;
+				m_evaluated_samples = evaluation_samples ;
+			}
+			
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << std::fixed << std::setprecision(4) ;
 			int const N = m_design->outcome().rows() ;
 			std::cerr << "==== BinomialLogistic::evaluate_at() ====\n" ;
-			std::cerr << "  m_state: " << ( boost::format( "0x%x" ) % m_state ).str() << ", "
+			std::cerr << "  m_numberOfDerivativesComputed: " << m_numberOfDerivativesComputed << ", "
 				<< "Number of samples: " << N << ", "
 				<< "Included samples:" ;
-			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-				std::cerr << " " << included_samples[i].begin() << "-" << included_samples[i].end() ;
+			for( std::size_t i = 0; i < evaluation_samples.size(); ++i ) {
+				std::cerr << " " << evaluation_samples[i].begin() << "-" << evaluation_samples[i].end() ;
 			}
 			std::cerr << "\n" ;
-			std::cerr << "  Params: " << parameters.transpose() << ".\n" ;
-			std::cerr << "  Phenotypes: " << m_design->outcome().col(1).segment(0, std::min( N, 5 )).transpose() << "...\n";
-			std::cerr << "  Design:\n" << m_design->matrix().block( 0, 0, std::min( N, 5 ), m_design->matrix().cols() ) << "...\n";
+			std::cerr << "   Params: " << parameters.transpose() << ".\n" ;
+			std::cerr << "   Phenotypes: " << m_design->outcome().col(1).segment(0, std::min( N, 5 )).transpose() << "...\n";
+			std::cerr << "   Design:\n" << m_design->matrix().block( 0, 0, std::min( N, 5 ), m_design->matrix().cols() ) << "...\n";
+#endif
+			
+			evaluate( numberOfDerivatives ) ;
+		}
+		
+		void BinomialLogistic::evaluate( int const numberOfDerivatives ) {
+			bool computeBasics = ( m_numberOfDerivativesComputed == -1 ) ;
+			bool computeFunction = ( m_numberOfDerivativesComputed < 0 ) ;
+			bool compute1stDerivative = ( (numberOfDerivatives > 0) & (m_numberOfDerivativesComputed < 1) ) ;
+			bool compute2ndDerivative = ( (numberOfDerivatives > 1) & (m_numberOfDerivativesComputed < 2) ) ;
+
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "BinomialLogistic::evaluate(): numberOfDerivatives = " << numberOfDerivatives << ".\n" ;
+			std::cerr << "BinomialLogistic::evaluate(): m_numberOfDerivativesComputed = " << m_numberOfDerivativesComputed << ".\n" ;
+			std::cerr << "Computing: "
+				<< (computeFunction ? "function " : "" )
+				<< (compute1stDerivative ? "1st derivative " : "" )
+				<< (compute2ndDerivative ? "2nd derivative " : "" )
+				<< "\n" ;
 			//std::cerr << "  Predictor levels: " << m_design->get_predictor_levels().transpose() << ".\n" ;
 #endif
 
-			bool computeFunction = ( m_state == e_Uncomputed ) ;
-			bool compute1stDerivative = ( (numberOfDerivatives > 0) & !(m_state & e_Computed1stDerivative )) ;
-			bool compute2ndDerivative = ( (numberOfDerivatives > 1) & !(m_state & e_Computed2ndDerivative )) ;
+			if( numberOfDerivatives > m_numberOfCDLDerivativesComputed ) {
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "BinomialLogistic::evaluate(): computing CDL\n" ;
+#endif
+				// TODO: compute fx, dfx, ddfx here.
+				compute_complete_data_likelihood_and_derivatives(
+					m_parameters,
+					&m_hx,
+					&m_normalisedDhx,
+					&m_normalisedDdhx,
+					m_evaluated_samples,
+					2
+				) ;
+				// Convert from complete data likelihood into expected complete data likelihood
+				// and derivatives
+				m_hx.array() *= m_design->get_predictor_level_probabilities().array() ;
+				m_normalisedDhx.array() *= m_design->get_predictor_level_probabilities().array() ;
+				m_normalisedDdhx.array() *= m_design->get_predictor_level_probabilities().array() ;
+		
+				// normalise the derivatives by h, as required in deritative computations
+				typedef Eigen::DiagonalMatrix< double, Eigen::Dynamic > DiagonalMatrix ;
+				DiagonalMatrix one_over_h = (m_hx.rowwise().sum().asDiagonal().inverse()) ;
+				m_normalisedDhx = one_over_h * m_normalisedDhx ;
+				m_normalisedDdhx = one_over_h * m_normalisedDdhx ;
 
-			// TODO: compute fx, dfx, ddfx here.
-			compute_complete_data_likelihood_and_derivatives(
-				parameters,
-				&m_hx,
-				&m_normalisedDhx,
-				&m_normalisedDdhx,
-				included_samples,
-				numberOfDerivatives
-			) ;
+				m_numberOfCDLDerivativesComputed = 2 ;
+			}
+#if DEBUG_LOGLIKELIHOOD
+			else {
+				std::cerr << "BinomialLogistic::evaluate(): skipping CDL computation.\n" ;
+			}
+#endif
 			
-			// Convert from complete data likelihood into expected complete data likelihood
-			// and derivatives
-			m_hx.array() *= m_design->get_predictor_level_probabilities().array() ;
-			m_normalisedDhx.array() *= m_design->get_predictor_level_probabilities().array() ;
-			m_normalisedDdhx.array() *= m_design->get_predictor_level_probabilities().array() ;
-			
-			// normalise the derivatives by h, as required in deritative computations
-			typedef Eigen::DiagonalMatrix< double, Eigen::Dynamic > DiagonalMatrix ;
-			DiagonalMatrix one_over_h = (m_hx.rowwise().sum().asDiagonal().inverse()) ;
-			m_normalisedDhx = one_over_h * m_normalisedDhx ;
-			m_normalisedDdhx = one_over_h * m_normalisedDdhx ;
-
 			if( computeFunction ) {
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "BinomialLogistic::evaluate(): computing fx\n" ;
+#endif
 				compute_value_of_loglikelihood(
 					m_hx,
 					&m_value_of_function,
-					included_samples
+					m_evaluated_samples
 				) ;
-				m_state |= e_ComputedFunction ;
+				m_numberOfDerivativesComputed = 0 ;
 			}
 
 			if( compute1stDerivative ) {
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "BinomialLogistic::evaluate(): computing dfx\n" ;
+#endif
 				compute_value_of_first_derivative(
 					m_normalisedDhx,
 					&m_first_derivative_terms,
 					&m_value_of_first_derivative,
-					included_samples
+					m_evaluated_samples
 				) ;
-				m_state |= e_Computed1stDerivative ;
+				m_numberOfDerivativesComputed = 1 ;
 			}
 
 			if( compute2ndDerivative ) {
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "BinomialLogistic::evaluate(): computing ddfx\n" ;
+#endif
 				compute_value_of_second_derivative(
 					m_first_derivative_terms,
 					m_normalisedDdhx,
 					&m_value_of_second_derivative,
-					included_samples
+					m_evaluated_samples
 				) ;
-				m_state |= e_Computed2ndDerivative ;
+				m_numberOfDerivativesComputed = 2 ;
 			}
 
 #if DEBUG_LOGLIKELIHOOD
@@ -226,7 +305,7 @@ namespace metro {
 #endif
 
 #if DEBUG_LOGLIKELIHOOD
-			if( m_state & e_Computed1stDerivative ) {
+			if( m_numberOfDerivativesComputed > 0 ) {
 				std::cerr << "  " << ( compute1stDerivative ? "(computed) " : "(memoized) " ) << "derivative = " << m_value_of_first_derivative.transpose() << "\n" ;
 			} else {
 				std::cerr << "  (1st derivative not computed).\n" ;
@@ -234,7 +313,7 @@ namespace metro {
 #endif
 
 #if DEBUG_LOGLIKELIHOOD
-			if( m_state & e_Computed2ndDerivative ) {
+			if( m_numberOfDerivativesComputed > 1 ) {
 				std::cerr << "  " << ( compute2ndDerivative ? "(computed) " : "(memoized) " ) << "2nd derivative = \n"
 					<< m_value_of_second_derivative << ".\n" ;
 			} else {
@@ -256,7 +335,6 @@ namespace metro {
 			int const D = m_design->matrix().cols() ;
 			int const L = m_design->get_number_of_predictor_levels() ;
 			Matrix const& outcome = m_design->outcome() ;
-			int const N_predictor_levels = m_design->get_number_of_predictor_levels() ;
 
 			fx->resize( N, L ) ;
 			if( numberOfDerivatives > 0 ) {
@@ -274,8 +352,7 @@ namespace metro {
 			m_f1.resize( N ) ;
 			Vector linear_combination ;
 			auto one = Vector::Ones(N) ;
-			int const number_of_predictor_levels = m_design->get_number_of_predictor_levels() ;
-			for( int g = 0; g < number_of_predictor_levels; ++g ) {
+			for( int g = 0; g < L; ++g ) {
 				Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
 #if DEBUG_LOGLIKELIHOOD
 				std::cerr << "design(" << g << ") =\n"
@@ -347,6 +424,7 @@ namespace metro {
 				}
 			}
 		}
+
 		
 		void BinomialLogistic::compute_value_of_loglikelihood(
 			Matrix const& hx,
@@ -359,14 +437,16 @@ namespace metro {
 				int const end_row = included_samples[i].end() ;
 				// Compute the log-likelihood for this block of samples as:
 				// the sum over samples of...
-				(*result) += neumaier_sum(
+				//(*result) += neumaier_sum(
+				(*result) +=
 					// the likelihood terms for these samples...
 					hx.block( start_row, 0, end_row - start_row, hx.cols() )
 					 // ...summed over predictor levels...
 					.rowwise().sum()
 					// ...and logarithm-ed...
 					.array().log()
-				) ;
+					.sum()
+				;
 			}
 		}
 
