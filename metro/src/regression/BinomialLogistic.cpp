@@ -213,7 +213,6 @@ namespace metro {
 		}
 		
 		void BinomialLogistic::evaluate( int const numberOfDerivatives ) {
-			bool computeBasics = ( m_numberOfDerivativesComputed == -1 ) ;
 			bool computeFunction = ( m_numberOfDerivativesComputed < 0 ) ;
 			bool compute1stDerivative = ( (numberOfDerivatives > 0) & (m_numberOfDerivativesComputed < 1) ) ;
 			bool compute2ndDerivative = ( (numberOfDerivatives > 1) & (m_numberOfDerivativesComputed < 2) ) ;
@@ -437,16 +436,15 @@ namespace metro {
 				int const end_row = included_samples[i].end() ;
 				// Compute the log-likelihood for this block of samples as:
 				// the sum over samples of...
-				//(*result) += neumaier_sum(
-				(*result) +=
+				// (*result) += naive_sum(
+				(*result) += neumaier_sum(
 					// the likelihood terms for these samples...
 					hx.block( start_row, 0, end_row - start_row, hx.cols() )
 					 // ...summed over predictor levels...
 					.rowwise().sum()
 					// ...and logarithm-ed...
 					.array().log()
-					.sum()
-				;
+				) ;
 			}
 		}
 
@@ -524,43 +522,6 @@ namespace metro {
 
 			result->setZero(D,D) ;
 
-#if 0
-			// Compute second derivative one row at a time...
-			// We do this to avoid computing the tensor products x x^t (x a row of the design matrix).
-			for( int row_i = 0; row_i < D; ++row_i ) {
-				MatrixBlock resultRow = result->block(row_i, 0, 1, D ) ;
-				for( int g1 = 0; g1 < N_predictor_levels; ++g1 ) {
-					Matrix const& design_matrix = m_design->set_predictor_level( g1 ).matrix() ;
-					for( std::size_t sample_i = 0; sample_i < included_samples.size(); ++sample_i ) {
-						int const start_row = included_samples[sample_i].begin() ;
-						int const end_row = included_samples[sample_i].end() ;
-
-						MatrixBlock one_over_h_block = one_over_h.segment( start_row, end_row - start_row ) ;
-
-						ConstMatrixBlock design_matrix_block
-							= design_matrix.block( start_row, 0, end_row - start_row, design_matrix.cols() ) ;
-
-						ConstMatrixBlock ddhxBlock = ddhx.col(g1).segment( start_row, end_row - start_row ) ;
-
-						// We are implementing the formula: sum_i (sum_x DD^t h_i)/(sum_x h_i) × x^t ⊗ x
-						// where sums over possible design matrix rows for sample i (subscript i omitted here).
-						// Here we are adding the term for x = x(g1) given the predictor level g1.
-						// And we are computing only row row_i of the result.
-						// This is X^t \otimes (column row_i of X) but we must 
-						// 
-						// Implement the formula: sum_i (DD^t h_i(x) / h_i) × x^t ⊗ x
-						// 
-						(*result) += (
-							(ddhxBlock.array() * one_over_h_block.array() * design_matrix_block.col( row_i ).array())
-							.matrix()
-							.transpose()
-							* design_matrix_block
-						;
-					}
-				}
-				resultRow -= ( first_derivative_terms.col(row_i).asDiagonal() * first_derivative_terms ).colwise().sum() ;
-			}
-#else
 			for( int g1 = 0; g1 < N_predictor_levels; ++g1 ) {
 				Matrix const& design_matrix = m_design->set_predictor_level( g1 ).matrix() ;
 				for( std::size_t sample_i = 0; sample_i < included_samples.size(); ++sample_i ) {
@@ -590,7 +551,6 @@ namespace metro {
 			std::cerr << "D = " << D << "\n" ;
 			std::cerr << "first_derivative_terms: " << first_derivative_terms.rows() << "x" << first_derivative_terms.cols() << "\n" ;
 			std::cerr << "result: " << result->rows() << "x" << result->cols() << "\n" ;
-#endif
 #endif
 		}
 		
