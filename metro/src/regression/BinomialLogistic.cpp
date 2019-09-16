@@ -387,7 +387,7 @@ namespace metro {
 					metro::SampleRange const& storage_range = m_storage_samples[i] ; 
 					
 					// Setup relevant matrix nlocks
-					ConstMatrixBlock designMatrixBlock
+					ConstMatrixBlock design_matrix_block
 						= m_design->set_predictor_level( g, range ).matrix( range ) ;
 					
 					MatrixBlock f1 = m_f1.block( storage_range.begin(), 0, storage_range.size(), 1 ) ;
@@ -403,11 +403,11 @@ namespace metro {
 
 #if DEBUG_LOGLIKELIHOOD
 					std::cerr << "design(" << g << ") =\n"
-						<< designMatrixBlock.block( 0, 0, std::min( 10, int(designMatrixBlock.rows())), designMatrixBlock.cols() ) << ".\n" ;
+						<< design_matrix_block.block( 0, 0, std::min( 10, int(design_matrix_block.rows())), design_matrix_block.cols() ) << ".\n" ;
 					std::cerr << "outcome(" << g << ") =\n"
 						<< outcome.block( 0, 0, std::min( 10, int(outcome.rows())), outcome.cols() ) << ".\n" ;
 #endif
-					f1 = (designMatrixBlock * parameters).array().exp() ;
+					f1 = (design_matrix_block * parameters).array().exp() ;
 					f1 = f1.array() * ((one + f1).array().inverse()) ;
 				
 				// Likelihood is obtained by raising f1 and f0 to appropriate powers
@@ -501,8 +501,6 @@ namespace metro {
 			result_terms->setZero( N, D ) ;
 
 			for( int g = 0; g < N_predictor_levels; ++g ) {
-				Matrix const& design_matrix = m_design->set_predictor_level( g, m_evaluated_samples ).matrix() ;
-				
 				// At this point we have two sets of indexes - the originals, which index into the
 				// design matrix rows, and the normalisedDhx which only contains evaluated samples.
 				// Keep track of this with a counter.
@@ -510,11 +508,8 @@ namespace metro {
 					SampleRange const range = m_evaluated_samples[i] ;
 					SampleRange const stored_range = m_storage_samples[i] ;
 
-					// Eigen expressions for relevant blocks of matrices
-					ConstMatrixBlock design_matrix_block = design_matrix.block(
-						range.begin(), 0,
-						range.size(), design_matrix.cols()
-					) ;
+					ConstMatrixBlock design_matrix_block
+						= m_design->set_predictor_level( g, range ).matrix( range ) ;
 
 					MatrixBlock termsBlock = result_terms->block(
 						stored_range.begin(), 0,
@@ -560,16 +555,14 @@ namespace metro {
 			// used to generalise to this case?)
 			assert( D == m_parameters.size() ) ;
 
-			result->setZero(D,D) ;
+			result->setZero( D, D ) ;
 
 			for( int g1 = 0; g1 < N_predictor_levels; ++g1 ) {
-				Matrix const& design_matrix = m_design->set_predictor_level( g1, m_evaluated_samples ).matrix() ;
 				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
 					SampleRange const& range = m_evaluated_samples[i] ;
 					SampleRange const& stored_range = m_storage_samples[i] ;
 
-					ConstMatrixBlock design_matrix_block
-						= design_matrix.block( range.begin(), 0, range.size(), design_matrix.cols() ) ;
+					ConstMatrixBlock design_matrix_block = m_design->set_predictor_level( g1, range ).matrix( range ) ;
 
 					// We are implementing the formula: sum_i (sum_x DD^t h_i)/(sum_x h_i) × x ⊗ x^t
 					// Or, written in the way we compute it here, sum_g ( sum_i Z_i × x_i(g) ⊗ x_i(g)^t )
