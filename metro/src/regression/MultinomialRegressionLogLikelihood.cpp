@@ -108,7 +108,6 @@ namespace metro {
 				for( int sample = start_row; sample < end_row; ++sample ) {
 					// look for the 1 identifying the outcome for this sample
 					Matrix::Index outcome_i = 0 ;
-					double const maxCoeff = outcome.row(sample).array().maxCoeff(&outcome_i) ;
 					result->block( sample, outcome_i * number_of_predictor_levels, 1, number_of_predictor_levels ).setConstant( 1.0 ) ;
 				}
 			}
