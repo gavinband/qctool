@@ -68,6 +68,8 @@ namespace metro {
 			Point m_parameters ;
 			std::vector< metro::SampleRange > m_included_samples ;
 			std::vector< metro::SampleRange > m_evaluated_samples ;
+			std::vector< metro::SampleRange > m_storage_samples ;
+			int m_number_of_stored_samples ;
 			int m_numberOfDerivativesComputed ;
 			int m_numberOfCDLDerivativesComputed ;
 
@@ -82,7 +84,7 @@ namespace metro {
 			Matrix m_hx ; // coefficient for each level x in complete data likelihood for each sample.
 			Matrix m_normalisedDhx ; // coefficient of x in 1st derivative of mean function.
 			Matrix m_normalisedDdhx ; // coefficient of x^t ⊗ x in 2nd derivative of mean function.
-			Vector m_f1 ; // temp storage used in likelihood and derivative computations
+			Matrix m_f1 ; // temp storage used in likelihood and derivative computations
 
 			Matrix m_first_derivative_terms ;
 			double m_value_of_function ;
@@ -93,6 +95,8 @@ namespace metro {
 			// Evaluate
 			void evaluate_at_impl( Point const& parameters, std::vector< metro::SampleRange > const& included_samples, int const numberOfDerivatives ) ;
 
+			void setup_storage() ;
+
 			// Compute complete data likelihood, and its derivatives, for each predictor level
 			// and each sample
 			virtual void compute_complete_data_likelihood_and_derivatives(
@@ -100,7 +104,6 @@ namespace metro {
 				Matrix* fx,
 				Matrix* dfx,
 				Matrix* ddfx,
-				std::vector< metro::SampleRange > const& included_samples,
 				int const numberOfDerivatives
 			) ;
 
@@ -108,20 +111,17 @@ namespace metro {
 			void calculate_outcome_probabilities( Vector const& parameters, Matrix const& phenotypes, Matrix* result ) const ;
 			void compute_value_of_loglikelihood(
 				Matrix const& hx,
-				double* result,
-				std::vector< metro::SampleRange > const& included_samples
+				double* result
 			) ;
 			void compute_value_of_first_derivative(
 				Matrix const& normalisedDhx,
 				Matrix* result_terms,
-				Vector* result,
-				std::vector< metro::SampleRange > const& included_samples
+				Vector* result
 			) ;
 			void compute_value_of_second_derivative(
 				Matrix const& first_derivative_terms,
 				Matrix const& normalisedDdhx,
-				Matrix* result,
-				std::vector< metro::SampleRange > const& included_samples
+				Matrix* result
 			) ;
 		} ;
 	}

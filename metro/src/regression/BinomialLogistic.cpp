@@ -13,6 +13,7 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include "metro/regression/BinomialLogistic.hpp"
 #include "metro/intersect_ranges.hpp"
+#include "metro/count_range.hpp"
 #include "metro/summation.hpp"
 #include "genfile/string_utils.hpp"
 #include "genfile/Error.hpp"
@@ -186,11 +187,15 @@ namespace metro {
 			assert( parameters.size() == m_design->matrix().cols() ) ;
 			assert( numberOfDerivatives < 3 ) ;
 
-			if( parameters != m_parameters || evaluation_samples != m_evaluated_samples ) {
+			if( evaluation_samples != m_evaluated_samples ) {
+				m_evaluated_samples = evaluation_samples ;
+				setup_storage() ;
+			}
+
+			if( evaluation_samples != m_evaluated_samples || parameters != m_parameters ) {
 				m_numberOfDerivativesComputed = -1 ;
 				m_numberOfCDLDerivativesComputed = -1 ;
 				m_parameters = parameters ;
-				m_evaluated_samples = evaluation_samples ;
 			}
 			
 #if DEBUG_LOGLIKELIHOOD
@@ -210,6 +215,37 @@ namespace metro {
 #endif
 			
 			evaluate( numberOfDerivatives ) ;
+		}
+
+		void BinomialLogistic::setup_storage() {
+			int const R = metro::impl::count_range( m_evaluated_samples ) ;
+			int const L = m_design->get_number_of_predictor_levels() ;
+
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "metro::regression::BinomialLogistic::setup_storage(): Number of evaluated samples is " << R << "\n" ;
+#endif
+			if( R > m_hx.rows() || L != m_hx.cols() ) {
+				m_hx.resize( R, L ) ;
+				m_normalisedDhx.resize( R, L ) ;
+				m_normalisedDdhx.resize( R, L ) ;
+				
+				// For each range in the evaluated samples, map to a range
+				// in the stored samples:
+				m_storage_samples.resize( m_evaluated_samples.size() ) ;
+				int storage_row = 0 ;
+				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
+					int const size = m_evaluated_samples[i].size() ;
+					m_storage_samples[i] = metro::SampleRange( storage_row, storage_row + size ) ;
+					storage_row += size ;
+				}
+				
+#if DEBUG_LOGLIKELIHOOD
+				std::cerr << "allocated storage: " << m_hx.rows() << " x " << m_hx.cols() << ".\n" ;
+#endif
+			}
+			// Since the aAllocated matrices may be larger than the number of
+			// actual samples analysed, we keep track of this number as well.
+			m_number_of_stored_samples = R ;
 		}
 		
 		void BinomialLogistic::evaluate( int const numberOfDerivatives ) {
@@ -238,16 +274,26 @@ namespace metro {
 					&m_hx,
 					&m_normalisedDhx,
 					&m_normalisedDdhx,
-					m_evaluated_samples,
 					2
 				) ;
+
 				// Convert from complete data likelihood into expected complete data likelihood
 				// and derivatives
-				m_hx.array() *= m_design->get_predictor_level_probabilities().array() ;
-				m_normalisedDhx.array() *= m_design->get_predictor_level_probabilities().array() ;
-				m_normalisedDdhx.array() *= m_design->get_predictor_level_probabilities().array() ;
-		
-				// normalise the derivatives by h, as required in deritative computations
+				int const L = m_design->get_number_of_predictor_levels() ;
+				assert( m_hx.rows() == m_number_of_stored_samples && m_hx.cols() == L ) ;
+				assert( m_normalisedDhx.rows() == m_number_of_stored_samples && m_normalisedDhx.cols() == L ) ;
+				assert( m_normalisedDdhx.rows() == m_number_of_stored_samples && m_normalisedDdhx.cols() == L ) ;
+				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
+					SampleRange const& range = m_evaluated_samples[i] ;
+					SampleRange const& storage_range = m_storage_samples[i] ;
+					ConstMatrixBlock probabilityBlock = m_design->get_predictor_level_probabilities().block( range.begin(), 0, range.size(), L ) ;
+
+					m_hx.block( storage_range.begin(), 0, storage_range.size(), L ).array() *= probabilityBlock.array() ;
+					m_normalisedDhx.block( storage_range.begin(), 0, storage_range.size(), L ).array() *= probabilityBlock.array() ;
+					m_normalisedDdhx.block( storage_range.begin(), 0, storage_range.size(), L ).array() *= probabilityBlock.array() ;
+				}
+
+				// normalise the derivatives by h, as required in derivative computations
 				typedef Eigen::DiagonalMatrix< double, Eigen::Dynamic > DiagonalMatrix ;
 				DiagonalMatrix one_over_h = (m_hx.rowwise().sum().asDiagonal().inverse()) ;
 				m_normalisedDhx = one_over_h * m_normalisedDhx ;
@@ -267,8 +313,7 @@ namespace metro {
 #endif
 				compute_value_of_loglikelihood(
 					m_hx,
-					&m_value_of_function,
-					m_evaluated_samples
+					&m_value_of_function
 				) ;
 				m_numberOfDerivativesComputed = 0 ;
 			}
@@ -280,8 +325,7 @@ namespace metro {
 				compute_value_of_first_derivative(
 					m_normalisedDhx,
 					&m_first_derivative_terms,
-					&m_value_of_first_derivative,
-					m_evaluated_samples
+					&m_value_of_first_derivative
 				) ;
 				m_numberOfDerivativesComputed = 1 ;
 			}
@@ -293,8 +337,7 @@ namespace metro {
 				compute_value_of_second_derivative(
 					m_first_derivative_terms,
 					m_normalisedDdhx,
-					&m_value_of_second_derivative,
-					m_evaluated_samples
+					&m_value_of_second_derivative
 				) ;
 				m_numberOfDerivativesComputed = 2 ;
 			}
@@ -327,132 +370,123 @@ namespace metro {
 			Matrix* fx,
 			Matrix* dfx,
 			Matrix* ddfx,
-			std::vector< metro::SampleRange > const& included_samples,
 			int const numberOfDerivatives
 		) {
-			int const N = m_design->outcome().rows() ;
-			int const D = m_design->matrix().cols() ;
 			int const L = m_design->get_number_of_predictor_levels() ;
-			Matrix const& outcome = m_design->outcome() ;
-
-			fx->resize( N, L ) ;
-			if( numberOfDerivatives > 0 ) {
-				dfx->resize( N, L ) ;
-				if( numberOfDerivatives > 1 ) {
-					ddfx->resize( N, L ) ;
-				}
-			}
 
 			// Outcome data is two columns, conceptually row sum is n
 			// (the number of trials) and 2nd column is k (number of successes / non-baseline outcomes)
 			// The computation requires us to compute f0 and f1, the prob of a single
 			// baseline / non-baseline observation.
-			assert( outcome.cols() == 2 ) ;
-			m_f1.resize( N ) ;
+			m_f1.resize( fx->rows(), 1 ) ;
 			Vector linear_combination ;
-			auto one = Vector::Ones(N) ;
+			
 			for( int g = 0; g < L; ++g ) {
-				Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
+				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
+					metro::SampleRange const& range = m_evaluated_samples[i] ; 
+					metro::SampleRange const& storage_range = m_storage_samples[i] ; 
+					
+					// Setup relevant matrix nlocks
+					ConstMatrixBlock designMatrixBlock
+						= m_design->set_predictor_level( g, range ).matrix( range ) ;
+					
+					MatrixBlock f1 = m_f1.block( storage_range.begin(), 0, storage_range.size(), 1 ) ;
+					
+					ConstMatrixBlock outcome = m_design->outcome().block( range.begin(), 0, range.size(), m_design->outcome().cols() ) ;
+					assert( outcome.cols() == 2 ) ;
+
+					MatrixBlock fxBlock = fx->block( storage_range.begin(), 0, storage_range.size(), L ) ;
+					MatrixBlock dfxBlock = dfx->block( storage_range.begin(), 0, storage_range.size(), L ) ;
+					MatrixBlock ddfxBlock = ddfx->block( storage_range.begin(), 0, storage_range.size(), L ) ;
+
+					auto one = Vector::Ones( range.size() ) ;
+
 #if DEBUG_LOGLIKELIHOOD
-				std::cerr << "design(" << g << ") =\n"
-					<< design_matrix.block( 0, 0, std::min( 10, int(design_matrix.rows())), design_matrix.cols() ) << ".\n" ;
-				std::cerr << "outcome(" << g << ") =\n"
-					<< outcome.block( 0, 0, std::min( 10, int(outcome.rows())), outcome.cols() ) << ".\n" ;
+					std::cerr << "design(" << g << ") =\n"
+						<< designMatrixBlock.block( 0, 0, std::min( 10, int(designMatrixBlock.rows())), designMatrixBlock.cols() ) << ".\n" ;
+					std::cerr << "outcome(" << g << ") =\n"
+						<< outcome.block( 0, 0, std::min( 10, int(outcome.rows())), outcome.cols() ) << ".\n" ;
 #endif
-				m_f1 = (design_matrix * parameters).array().exp() ;
-				m_f1 = m_f1.array() * ((one + m_f1).array().inverse()) ;
+					f1 = (designMatrixBlock * parameters).array().exp() ;
+					f1 = f1.array() * ((one + f1).array().inverse()) ;
 				
 				// Likelihood is obtained by raising f1 and f0 to appropriate powers
 				
-				
 #if DEBUG_LOGLIKELIHOOD
-				std::cerr << "(*fx) = \n"
-					<< fx->block( 0, 0, std::min( 10, int(fx->rows())), fx->cols() ) << ".\n" ;
-				std::cerr << "f1 = \n"
-					<< m_f1.block( 0, 0, std::min( 10, int(m_f1.rows())), m_f1.cols() ) << ".\n" ;
+					std::cerr << "(*fx) = \n"
+						<< fx->block( 0, 0, std::min( 10, int(fx->rows())), fx->cols() ) << ".\n" ;
+					std::cerr << "f1 = \n"
+						<< f1.block( 0, 0, std::min( 10, int(f1.rows())), f1.cols() ) << ".\n" ;
 #endif
-				(*fx).col(g)
-					= m_f1.array().pow( outcome.col(1).array() )
-					* (one.array() - m_f1.array() ).pow( outcome.col(0).array() ) ;
-
-#if DEBUG_LOGLIKELIHOOD
-				std::cerr << "Computed f1 and fx, f1 = " << m_f1.segment( 0, std::min( 5, N )).transpose() << ", \n"
-					<< "fx(" << g << ") = " << fx->col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
-#endif
-
-				if( numberOfDerivatives > 0 ) {
-					// compute coefficient of x^t in 1st derivative
-					// To share computation with 2nd derivative,
-					// first compute the shared term, we multiple by fx below.
+					fxBlock.col(g)
+						= f1.array().pow( outcome.col(1).array() )
+						* (one.array() - f1.array() ).pow( outcome.col(0).array() ) ;
 
 #if DEBUG_LOGLIKELIHOOD
-					std::cerr << "    dfx: " << dfx->rows() << "x" << dfx->cols() << ".\n" ;
-					std::cerr << "outcome: " << outcome.rows() << "x" << outcome.cols() << ".\n" ;
+					std::cerr << "Computed f1 and fx, f1 = " << f1.segment( 0, std::min( 5, N )).transpose() << ", \n"
+						<< "fx(" << g << ") = " << fxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
 #endif
-					dfx->col(g)
-						= ( outcome.col(1).array() * ( one - m_f1 ).array() - outcome.col(0).array() * m_f1.array() )
-					;
+
+					if( numberOfDerivatives > 0 ) {
+						// compute coefficient of x^t in 1st derivative
+						// To share computation with 2nd derivative,
+						// first compute the shared term, we multiple by fx below.
 
 #if DEBUG_LOGLIKELIHOOD
-					std::cerr << "dfx(" << g << ") before fx term = "
-						<< dfx->col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+						std::cerr << "    dfx: " << dfx->rows() << "x" << dfx->cols() << ".\n" ;
+						std::cerr << "outcome: " << outcome.rows() << "x" << outcome.cols() << ".\n" ;
 #endif
-
-					if( numberOfDerivatives > 1 ) {
-						// compute coefficient of x ⊗ x^t in 2nd derivative
-						ddfx->col(g)
-							= dfx->col(g).array().square()
-							- (
-									(outcome.col(0) + outcome.col(1)).array()
-									* (m_f1.array() * ( one.array() - m_f1.array() ))
-							).array()
+						dfxBlock.col(g)
+							= ( outcome.col(1).array() * ( one - f1 ).array() - outcome.col(0).array() * f1.array() )
 						;
-						ddfx->col(g).array() *= fx->col(g).array() ;
 
 #if DEBUG_LOGLIKELIHOOD
-						std::cerr << "ddfx(" << g << ") = "
-							<< ddfx->col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+						std::cerr << "dfx(" << g << ") before fx term = "
+							<< dfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+#endif
+
+						if( numberOfDerivatives > 1 ) {
+							// compute coefficient of x ⊗ x^t in 2nd derivative
+							ddfxBlock.col(g)
+								= dfxBlock.col(g).array().square()
+								- (
+										(outcome.col(0) + outcome.col(1)).array()
+										* (f1.array() * ( one.array() - f1.array() ))
+								).array()
+							;
+							ddfxBlock.col(g).array() *= fxBlock.col(g).array() ;
+
+#if DEBUG_LOGLIKELIHOOD
+							std::cerr << "ddfx(" << g << ") = "
+								<< ddfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+#endif
+						}
+						dfxBlock.col(g).array() *= fxBlock.col(g).array() ;
+
+#if DEBUG_LOGLIKELIHOOD
+						std::cerr << "dfx(" << g << ") = "
+							<< dfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
 #endif
 					}
-					dfx->col(g).array() *= fx->col(g).array() ;
-
-#if DEBUG_LOGLIKELIHOOD
-				std::cerr << "dfx(" << g << ") = "
-					<< dfx->col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
-#endif
 				}
 			}
 		}
 
-		
 		void BinomialLogistic::compute_value_of_loglikelihood(
 			Matrix const& hx,
-			double* result,
-			std::vector< metro::SampleRange > const& included_samples
+			double* result
 		) {
-			(*result) = 0 ;
-			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-				int const start_row = included_samples[i].begin() ;
-				int const end_row = included_samples[i].end() ;
-				// Compute the log-likelihood for this block of samples as:
-				// the sum over samples of...
-				// (*result) += naive_sum(
-				(*result) += neumaier_sum(
-					// the likelihood terms for these samples...
-					hx.block( start_row, 0, end_row - start_row, hx.cols() )
-					 // ...summed over predictor levels...
-					.rowwise().sum()
-					// ...and logarithm-ed...
-					.array().log()
-				) ;
-			}
+			(*result) = neumaier_sum(
+				hx.block( 0, 0, m_number_of_stored_samples, hx.cols() )
+				.rowwise().sum()
+				.array().log()
+			) ;
 		}
 
 		void BinomialLogistic::compute_value_of_first_derivative(
 			Matrix const& normalisedDhx,
 			Matrix* result_terms,
-			Vector* result,
-			std::vector< metro::SampleRange > const& included_samples
+			Vector* result
 		) {
 			int const N = m_design->outcome().rows() ;
 			int const D = m_design->matrix().cols() ;
@@ -460,34 +494,36 @@ namespace metro {
 
 			// Currently we assume
 			// dimension of design matrix = dimension of parameters = dimension of derivative
-			// More generally we may have more parameters, e.g. multinomial logistic or normal linear model
-			// in which case something different must be done.  (Probably, identify_parameters can be
-			// used to generalise to this case?)
+			// TODO: More generally we may have more parameters, e.g. multinomial logistic or normal linear model in which case something different must be done.  (Probably, identify_parameters can be used to generalise to this case?)
 			assert( D == m_parameters.size() ) ;
 
 			result->setZero(D) ;
 			result_terms->setZero( N, D ) ;
 
 			for( int g = 0; g < N_predictor_levels; ++g ) {
-				Matrix const& design_matrix = m_design->set_predictor_level( g ).matrix() ;
-				for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-					int const start_row = included_samples[i].begin() ;
-					int const end_row = included_samples[i].end() ;
+				Matrix const& design_matrix = m_design->set_predictor_level( g, m_evaluated_samples ).matrix() ;
+				
+				// At this point we have two sets of indexes - the originals, which index into the
+				// design matrix rows, and the normalisedDhx which only contains evaluated samples.
+				// Keep track of this with a counter.
+				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
+					SampleRange const range = m_evaluated_samples[i] ;
+					SampleRange const stored_range = m_storage_samples[i] ;
 
 					// Eigen expressions for relevant blocks of matrices
+					ConstMatrixBlock design_matrix_block = design_matrix.block(
+						range.begin(), 0,
+						range.size(), design_matrix.cols()
+					) ;
+
 					MatrixBlock termsBlock = result_terms->block(
-						start_row, 0,
-						end_row - start_row, result_terms->cols()
+						stored_range.begin(), 0,
+						stored_range.size(), result_terms->cols()
 					) ;
 					
 					ConstMatrixBlock normalisedDhxBlock = normalisedDhx.block(
-						start_row, 0,
-						end_row - start_row, normalisedDhx.cols()
-					) ;
-
-					ConstMatrixBlock design_matrix_block = design_matrix.block(
-						start_row, 0,
-						end_row - start_row, design_matrix.cols()
+						stored_range.begin(), 0,
+						stored_range.size(), normalisedDhx.cols()
 					) ;
 
 					// Compute the contribution of these samples & this predictor level
@@ -499,17 +535,21 @@ namespace metro {
 					
 				}
 			}
+
+			MatrixBlock termsBlock = result_terms->block(
+				0, 0,
+				m_number_of_stored_samples, result_terms->cols()
+			) ;
+
 			// Now the rows of terms are the contribution of each sample to the derivative
-			(*result) = result_terms->colwise().sum() ;
+			(*result) = termsBlock.colwise().sum() ;
 		}
 		
 		void BinomialLogistic::compute_value_of_second_derivative(
-			Matrix const& first_derivative_terms,
+			Matrix const& firstDerivativeTerms,
 			Matrix const& normalisedDdhx,
-			Matrix* result,
-			std::vector< metro::SampleRange > const& included_samples
+			Matrix* result
 		) {
-			int const N = m_design->outcome().rows() ;
 			int const D = m_design->matrix().cols() ;
 			int const N_predictor_levels = m_design->get_number_of_predictor_levels() ;
 
@@ -523,13 +563,13 @@ namespace metro {
 			result->setZero(D,D) ;
 
 			for( int g1 = 0; g1 < N_predictor_levels; ++g1 ) {
-				Matrix const& design_matrix = m_design->set_predictor_level( g1 ).matrix() ;
-				for( std::size_t sample_i = 0; sample_i < included_samples.size(); ++sample_i ) {
-					int const start_row = included_samples[sample_i].begin() ;
-					int const end_row = included_samples[sample_i].end() ;
+				Matrix const& design_matrix = m_design->set_predictor_level( g1, m_evaluated_samples ).matrix() ;
+				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
+					SampleRange const& range = m_evaluated_samples[i] ;
+					SampleRange const& stored_range = m_storage_samples[i] ;
 
 					ConstMatrixBlock design_matrix_block
-						= design_matrix.block( start_row, 0, end_row - start_row, design_matrix.cols() ) ;
+						= design_matrix.block( range.begin(), 0, range.size(), design_matrix.cols() ) ;
 
 					// We are implementing the formula: sum_i (sum_x DD^t h_i)/(sum_x h_i) × x ⊗ x^t
 					// Or, written in the way we compute it here, sum_g ( sum_i Z_i × x_i(g) ⊗ x_i(g)^t )
@@ -537,7 +577,7 @@ namespace metro {
 					// We let matrix multiplication do the sum over i for us, and compute this as
 					// diag(Z) × X(g)^t ⊗ X(g)
 					(*result) += (
-							normalisedDdhx.col(g1).segment( start_row, end_row - start_row ).asDiagonal()
+							normalisedDdhx.col(g1).segment( stored_range.begin(), stored_range.size() ).asDiagonal()
 							* design_matrix_block
 						)
 						.transpose()
@@ -545,11 +585,17 @@ namespace metro {
 					;
 				}
 			}
-			(*result) -= ( first_derivative_terms.transpose() * first_derivative_terms ) ;
+
+			ConstMatrixBlock firstDerivativeTermsBlock = firstDerivativeTerms.block(
+				0, 0,
+				m_number_of_stored_samples, firstDerivativeTerms.cols()
+			) ;
+
+			(*result) -= ( firstDerivativeTermsBlock.transpose() * firstDerivativeTermsBlock ) ;
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "D = " << D << "\n" ;
-			std::cerr << "first_derivative_terms: " << first_derivative_terms.rows() << "x" << first_derivative_terms.cols() << "\n" ;
+			std::cerr << "first_derivative_terms: " << firstDerivativeTermsBlock.rows() << "x" << firstDerivativeTermsBlock.cols() << "\n" ;
 			std::cerr << "result: " << result->rows() << "x" << result->cols() << "\n" ;
 #endif
 		}
