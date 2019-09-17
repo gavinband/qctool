@@ -529,14 +529,30 @@ namespace metro {
 
 		Design& Design::set_predictor_level( int level ) {
 			if( m_predictor_levels.cols() > 0 ) {
+				set_predictor_level( level, metro::SampleRange( 0, m_design_matrix.rows() )) ;
+			}
+			return *this ;
+		}
+
+		Design& Design::set_predictor_level( int level, metro::SampleRange const& range ) {
+			if( m_predictor_levels.cols() > 0 ) {
 				int const number_of_predictors_and_interactions = ( 1 + m_design_matrix_interaction_columns.size() ) * number_of_predictors() ;
 				m_design_matrix.block(
-					0, 1,
-					m_design_matrix.rows(), number_of_predictors_and_interactions
+					range.begin(), 1,
+					range.size(), number_of_predictors_and_interactions
 				) = m_predictor_levels.block(
-					0, level * number_of_predictors_and_interactions,
-					m_design_matrix.rows(), number_of_predictors_and_interactions
+					range.begin(), level * number_of_predictors_and_interactions,
+					range.size(), number_of_predictors_and_interactions
 				) ;
+			}
+			return *this ;
+		}
+
+		Design& Design::set_predictor_level( int level, std::vector< metro::SampleRange > const& ranges ) {
+			if( m_predictor_levels.cols() > 0 ) {
+				for( std::size_t i = 0; i < ranges.size(); ++i ) {
+					set_predictor_level( level, ranges[i] ) ;
+				}
 			}
 			return *this ;
 		}

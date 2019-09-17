@@ -9,6 +9,11 @@
 
 namespace metro {
 	template< typename Vector >
+	double naive_sum( Vector const& data ) {
+		return data.sum() ;
+	}
+
+	template< typename Vector >
 	double neumaier_sum( Vector const& data ) {
 		double sum = 0.0 ;
 		double c = 0.0 ;

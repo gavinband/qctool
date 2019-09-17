@@ -108,7 +108,7 @@ namespace metro {
 			Design& set_predictors(
 				Matrix const& levels,
 				Matrix const& probabilities,
-				SampleRanges const& included_samples
+				SampleRanges const& nonmissingness
 			) ;
 
 			// Set predictors without uncertainty
@@ -120,7 +120,15 @@ namespace metro {
 			) ;
 
 			Matrix const& matrix() const { return m_design_matrix ; }
+			ConstMatrixBlock matrix( metro::SampleRange const& range ) const {
+				return m_design_matrix.block(
+					range.begin(), 0,
+					range.size(), m_design_matrix.cols()
+				) ;
+			}
 			Design& set_predictor_level( int level ) ;
+			Design& set_predictor_level( int level, metro::SampleRange const& ) ;
+			Design& set_predictor_level( int level, std::vector< metro::SampleRange > const& ) ;
 		
 			Matrix const& get_predictor_level_probabilities() const { return m_predictor_level_probabilities ; }
 			int const get_number_of_predictor_levels() const { return m_predictor_level_probabilities.cols() ; }

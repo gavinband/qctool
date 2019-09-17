@@ -43,6 +43,10 @@ namespace metro {
 				assert( parameters.size() == m_counts.size() ) ;
 				m_parameters = parameters ;
 			}
+
+			void evaluate( int numberOfDerivatives ) {
+				// nothing to do
+			}
 			
 			double get_value_of_function() const {
 				double result = 0.0 ;

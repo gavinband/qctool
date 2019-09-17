@@ -49,6 +49,7 @@ namespace metro {
 			IntegerMatrix identify_parameters() const ;
 			
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
 
 			Point const& parameters() const {
 				return m_ll->parameters() ;
@@ -88,6 +89,10 @@ namespace metro {
 			double m_value_of_function ;
 			Vector m_value_of_first_derivative ;
 			Matrix m_value_of_second_derivative ;
+
+		private:
+			void evaluate_impl( int const numberOfDerivatives = 2 ) ;
+			
 		} ;
 	}
 }

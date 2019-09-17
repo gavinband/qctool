@@ -55,6 +55,8 @@ namespace metro {
 			IntegerMatrix identify_parameters() const ;
 			
 			void evaluate_at( Vector const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
+
 			Vector const& parameters() const ;
 			double get_value_of_function() const ;
 			Vector get_value_of_first_derivative() const ;
@@ -103,10 +105,7 @@ namespace metro {
 			void compute_rearranger( int const number_of_predictor_levels, PermutationMatrix* result ) const ;
 			IntegerMatrix compute_parameter_identity() const ;
 
-			void evaluate_at_impl(
-				Vector const& parameters,
-				int const numberOfDerivatives
-			) ;
+			void evaluate_impl( int const numberOfDerivatives ) ;
 			void compute_F( Matrix const& parameters, Matrix* result ) const ;
 			void rearrange_F( Matrix* result ) const ;
 			void compute_A_and_function_value(

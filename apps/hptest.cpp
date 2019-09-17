@@ -47,13 +47,15 @@
 #include "metro/SampleRange.hpp"
 #include "metro/intersect_ranges.hpp"
 #include "metro/regression/BinomialLogistic.hpp"
+#include "metro/regression/ThreadedLogLikelihood.hpp"
 #include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
 #include "metro/regression/IndependentLogFWeightedLogLikelihood.hpp"
 #include "metro/regression/LogPosteriorDensity.hpp"
 #include "metro/ValueStabilisesStoppingCondition.hpp"
 #include "metro/Snptest25StoppingCondition.hpp"
 #include "metro/maximisation.hpp"
-#include "metro/regression/fit_model.hpp"
+#include "metro/fit_model.hpp"
+#include "metro/CholeskyStepper.hpp"
 
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -308,6 +310,11 @@ public:
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-debug" ]
 			.set_description( "Output debugging information." ) ;
+		options[ "-threads" ]
+			.set_description( "Number of additional threads to use in likelihood computations."
+				" The value 0 indicates that all work will take place in the main thread." )
+			.set_takes_single_value()
+			.set_default_value(0) ;
 	}
 } ;
 
@@ -582,7 +589,10 @@ public:
 	}
 	
 private:
-	
+
+	metro::concurrency::threadpool::UniquePtr m_pool ;
+		
+private:
 	void process() {
 		try {
 			unsafe_process() ;
@@ -1223,12 +1233,36 @@ private:
 		}
 	}
 
-	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) const {
-		metro::regression::LogLikelihood::UniquePtr ll( metro::regression::BinomialLogistic::create( design ).release() ) ;
+	
+
+	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) {
+		uint32_t const threads = options().get< uint32_t >( "-threads" ) ;
+		metro::regression::LogLikelihood::UniquePtr ll ;
+		if( threads > 0 ) {
+			if( !m_pool.get() ) {
+				m_pool = metro::concurrency::threadpool::create( threads ) ;
+			}
+			ll.reset(
+				metro::regression::ThreadedLogLikelihood::create(
+					design,
+					[]( metro::regression::Design& design, std::vector< metro::SampleRange > range ) {
+						metro::regression::LogLikelihood::UniquePtr ll(
+							metro::regression::BinomialLogistic::create( design, range ).release()
+						) ;
+						return ll ;
+					},
+					*m_pool
+				).release()
+			) ;
+		} else {
+			ll.reset(
+				metro::regression::BinomialLogistic::create( design ).release()
+			) ;
+		}
 		if( !options().check_if_option_has_value( "-no-prior" )) {
 			ll = apply_priors( ll, options().get_values< std::string>( "-prior" )) ;
 		}
-		return metro::regression::LogLikelihood::UniquePtr( ll.release() ) ;
+		return ll ;
 	}
 
 
@@ -1425,15 +1459,15 @@ private:
 			LogLikelihood& ll = lls[model] ;
 			std::string const& model_name = model_names[model] ;
 
-			CholeskyStepper::Tracer tracer ;
+			metro::CholeskyStepper::Tracer tracer ;
 			if( options().check( "-debug" )) {
 				tracer = [this] ( 
 					int iteration,
 					double ll,
 					double target_ll,
-					CholeskyStepper::Vector const& point,
-					CholeskyStepper::Vector const& first_derivative,
-					CholeskyStepper::Vector const& step,
+					metro::CholeskyStepper::Vector const& point,
+					metro::CholeskyStepper::Vector const& first_derivative,
+					metro::CholeskyStepper::Vector const& step,
 					bool converged
 				) {
 					this->get_ui_context().logger()
@@ -1447,20 +1481,22 @@ private:
 				} ;
 			}
 
-			CholeskyStepper stopping_condition(
+			metro::CholeskyStepper stopping_condition(
 					options().get_value< double >( "-tolerance" ),
 					options().get_value< double >( "-max-iterations" ),
 					tracer
 				) ;
 
-			std::pair< bool, int > result = metro::regression::fit_model(
+			std::pair< bool, int > result = metro::fit_model(
 				ll,
 				model_name,
 				Eigen::VectorXd::Zero( ll.parameters().size() ),
 				stopping_condition,
 				&comments
 			) ;
+
 #if DEBUG
+			std::cerr << "hptest::test(): fit model in " << result.second << " iterations with " << ( result.first ? "convergence" : "no convergence" ) << ".\n" ;
 			for( std::size_t i = 0; i < ll.identify_parameters().rows(); ++i ) {
 				std::cerr << "model " << "NAME OF PARAMETER " << i << ": \"" << ll.get_parameter_name(i) << "\".\n" ;
 			}
@@ -1468,7 +1504,7 @@ private:
 		
 			output.store_data_for_key( variants, model_name + ":converged", result.first ? "1" : "0" ) ;
 			output.store_data_for_key( variants, model_name + ":iterations", result.second ) ;
-			output.store_data_for_key( variants, model_name + ":fit_time", boost::timer::format( timer.elapsed(), 3, "%t" ) ) ;
+			output.store_data_for_key( variants, model_name + ":fit_time", boost::timer::format( timer.elapsed(), 4, "%t" ) ) ;
 			output.store_data_for_key( variants, model_name + ":ll", ll.get_value_of_function() ) ;
 			output.store_data_for_key(
 				variants,
@@ -1674,10 +1710,11 @@ private:
 			Matrix const approxSamplingCovariance = posterior_covariance * ll_information * posterior_covariance ;
 			Eigen::ColPivHouseholderQR< Matrix > solver( approxSamplingCovariance ) ;
 			Vector const z = solver.solve( alternative_parameters ) ;
+#if 0
 			std::cerr << "      Posterior covariance:\n" << posterior_covariance << ",\n" ;
 			std::cerr << "Approx sampling covariance:\n" << approxSamplingCovariance << ".\n" ;
 			std::cerr << "                  Approx Z:\n" << z << ".\n" ;
-			
+#endif		
 			using genfile::string_utils::to_string ;
 			for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
 				int const i = parametersToOutput[parameter_i] ;

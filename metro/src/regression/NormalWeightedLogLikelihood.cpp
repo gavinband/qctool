@@ -66,12 +66,23 @@ namespace metro {
 		
 		void NormalWeightedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			m_ll->evaluate_at( parameters, numberOfDerivatives ) ;
+			evaluate_impl( numberOfDerivatives ) ;
+		}
+
+		void NormalWeightedLogLikelihood::evaluate( int const numberOfDerivatives ) {
+			m_ll->evaluate( numberOfDerivatives ) ;
+			evaluate_impl( numberOfDerivatives ) ;
+		}
+
+		void NormalWeightedLogLikelihood::evaluate_impl( int const numberOfDerivatives ) {
+			Vector const& parameters = m_ll->parameters() ;
 			Vector solved = m_solver.solve( parameters - m_mean ) ;
 			m_log_density = -0.5 * ((parameters - m_mean).transpose() * solved)(0) ;
 			m_value_of_first_derivative = -solved ;
 			m_value_of_second_derivative = -m_inverse_covariance ;
 
 #if DEBUG_NORMALWEIGHTEDLOGLIKELIHOOD
+			std::cerr << "NormalWeightedLogLikelihood::evaluate_impl()\:\n" ;
 			std::cerr << "parameters = " << parameters.transpose() << ".\n" ;
 			std::cerr << "constant = " << m_constant << ".\n" ;
 			std::cerr << "solved = \n" << solved << ".\n" ;
