@@ -71,6 +71,13 @@ namespace metro {
 		
 		void IndependentNormalWeightedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			m_ll->evaluate_at( parameters, numberOfDerivatives ) ;
+			evaluate( numberOfDerivatives ) ;
+		}
+		
+		void IndependentNormalWeightedLogLikelihood::evaluate( int const numberOfDerivatives ) {
+			m_ll->evaluate( numberOfDerivatives ) ;
+			Vector const& parameters = m_ll->parameters() ;
+
 			m_value_of_function = 0.0 ;
 			m_value_of_first_derivative.setZero( parameters.size() ) ;
 			m_value_of_second_derivative.setZero( parameters.size(), parameters.size() ) ;

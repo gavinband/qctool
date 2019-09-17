@@ -161,6 +161,7 @@ namespace metro {
 
 			m_state = e_Uncomputed ;
 			m_parameters = parameters ;
+			m_included_samples = included_samples ;
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << std::fixed << std::setprecision(4) ;
@@ -177,16 +178,19 @@ namespace metro {
 			std::cerr << "  Phenotypes: " << m_design->outcome().col(1).head( std::min( N, 5 ) ).transpose() << "...\n";
 			//std::cerr << "  Predictor levels: " << m_design->get_predictor_levels().transpose() << ".\n" ;
 #endif
-
+			evaluate( numberOfDerivatives ) ;
+		}
+		
+		void Logistic::evaluate( int const numberOfDerivatives ) {
 			bool computeFunction = ( m_state == e_Uncomputed ) ;
 			bool compute1stDerivative = ( (numberOfDerivatives > 0) & !(m_state & e_Computed1stDerivative )) ;
 			bool compute2ndDerivative = ( (numberOfDerivatives > 1) & !(m_state & e_Computed2ndDerivative )) ;
 
 			// Calculate log-likelihood if needed.
 			if( computeFunction ) {
-	 			calculate_outcome_probabilities( parameters, m_design->outcome(), &m_outcome_probabilities ) ;
+	 			calculate_outcome_probabilities( m_parameters, m_design->outcome(), &m_outcome_probabilities ) ;
 				m_A = m_design->get_predictor_level_probabilities().array() * m_outcome_probabilities.array() ;
-				compute_value_of_function( m_A, included_samples ) ;
+				compute_value_of_function( m_A, m_included_samples ) ;
 				m_state |= e_ComputedFunction ;
 				// (m_state | e_ComputedFunction) = 1 implies m_A and m_outcome_probabilities, as well as function value, are computed
 			}
@@ -196,7 +200,7 @@ namespace metro {
 #endif
 
 			if( compute1stDerivative ) {
-				compute_value_of_first_derivative( m_A, included_samples, &m_B ) ;
+				compute_value_of_first_derivative( m_A, m_included_samples, &m_B ) ;
 				m_state |= e_Computed1stDerivative ;
 				// m_state | e_Computed1stDerivative implies m_B, as well as 1st derivative, are computed
 			}
@@ -209,7 +213,7 @@ namespace metro {
 #endif
 
 			if( compute2ndDerivative ) {
-				compute_value_of_second_derivative( m_B, included_samples ) ;
+				compute_value_of_second_derivative( m_B, m_included_samples ) ;
 				m_state |= e_Computed2ndDerivative ;
 			}
 #if DEBUG_LOGLIKELIHOOD

@@ -31,10 +31,13 @@ namespace metro {
 
 		void set_prior( std::string const& name, UnivariateLogDensity::UniquePtr pdf ) ;
 		int number_of_parameters() const ;
+		Vector const& parameters() const { return m_parameters ; }
+
 		void evaluate_at(
 			Point const& parameters,
 			int const numberOfDerivatives = 2
 		) ;
+		void evaluate( int const numberOfDerivatives = 2 ) ;
 		double get_value_of_function() const ;
 		Vector get_value_of_first_derivative() const ;
 		Matrix get_value_of_second_derivative() const ;

@@ -75,29 +75,35 @@ namespace metro {
 			// ...
 			// Parameters for last component.  No weight is included for last component as weights sum to one.
 			void evaluate_at( Vector const& parameters, DataSubset const& data_subset, int numberOfDerivatives = 2 ) {
+				m_parameters = parameters ;
+				m_data_subset = data_subset ;
+				evaluate( numberOfDerivatives ) ;
+			}
+			
+			void evaluate( int numberOfDerivatives = 2 ) {
 				{
 					int param_i = 0 ;
 					double total_weight = 0 ;
 					for( std::size_t i = 0; i < m_components.size(); ++i ) {
 						int const componentParameterSize = m_components[i].parameters().size() ;
 						m_components[i].evaluate_at(
-							parameters.segment(
+							m_parameters.segment(
 								param_i,
 								componentParameterSize
 							),
-							data_subset
+							m_data_subset
 						) ;
 						if( i == ( m_components.size() - 1 ) ) {
 							m_weights[i] = 1 - total_weight ;
 							m_total_weight = 1 ;
 						} else {
-							m_weights[i] = parameters( param_i + componentParameterSize ) ;
+							m_weights[i] = m_parameters( param_i + componentParameterSize ) ;
 							total_weight += m_weights[i] ;
 						}
 						param_i += m_components[i].parameters().size() + 1 ;
 					}
 					// sanity check
-					assert((m_components.size() == 0) || (param_i == parameters.size() + 1)) ;
+					assert((m_components.size() == 0) || (param_i == m_parameters.size() + 1)) ;
 				}
 
 				m_component_terms.resize( m_data->rows(), m_components.size() ) ;
@@ -156,6 +162,8 @@ namespace metro {
 
 		private:
 			Matrix const* m_data ;
+			Vector m_parameters ;
+			DataSubset m_data_subset ;
 			boost::ptr_vector< Component > m_components ;
 			std::vector< std::string > m_component_names ;
 			std::vector< Scalar > m_weights ;

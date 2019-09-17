@@ -13,8 +13,6 @@
 typedef Eigen::MatrixXd Matrix ;
 typedef Eigen::VectorXd Vector ;
 
-double const infinity = std::numeric_limits< double >::infinity() ;
-
 // #define DEBUG_MULTIVARIATE_T 1
 
 BOOST_AUTO_TEST_SUITE( test_mixture )
@@ -39,6 +37,11 @@ namespace {
 		void evaluate_at( Vector const& parameters, metro::DataSubset const& subset, int numberOfDerivatives = 2 ) {
 			assert( parameters.size() == 1 ) ;
 			m_parameters = parameters ;
+			evaluate( numberOfDerivatives ) ;
+		}
+
+		void evaluate( int numberOfDerivatives = 2 ) {
+			// nothing to do
 		}
 		
 		double get_value_of_function() const {

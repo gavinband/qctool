@@ -30,13 +30,9 @@
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-#include "appcontext/CmdLineOptionProcessor.hpp"
-#include "appcontext/OptionProcessor.hpp"
-#include "appcontext/get_current_time_as_string.hpp"
-//#include "FileUtil.hpp"
+#include "appcontext/appcontext.hpp"
 
 #include "genfile/db/Error.hpp"
-
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/SNPDataSourceChain.hpp"
 #include "genfile/SNPDataSourceRack.hpp"
@@ -83,8 +79,6 @@
 
 #include "qcdb/FlatFileOutputter.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
-
-#include "appcontext/appcontext.hpp"
 
 #include "worker/QueuedMultiThreadedWorker.hpp"
 #include "worker/SynchronousWorker.hpp"
@@ -586,8 +580,8 @@ public:
 
 		options.option_excludes_option( "-write-snp-excl-list", "-og" ) ;
 
-		options.option_implies_option( "-excl-samples", "-s" ) ;
-		options.option_implies_option( "-incl-samples", "-s" ) ;
+		options.option_implies_option( "-excl-samples-where", "-s" ) ;
+		options.option_implies_option( "-incl-samples-where", "-s" ) ;
 	}
 } ;
 
@@ -2449,9 +2443,9 @@ private:
 				m_errors.push_back( "The GEN and SAMPLE output filenames must differ." ) ;
 			}
 		}
-		if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_clauses() != 0 ) {
-			m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
-		}
+		//if( m_mangled_options.input_sample_filenames().size() == 0 && m_sample_filter->number_of_clauses() != 0 ) {
+		//	m_errors.push_back( "To filter on samples, please supply input sample files." ) ;
+		//}
 	}
 	
 	void check_for_warnings() {

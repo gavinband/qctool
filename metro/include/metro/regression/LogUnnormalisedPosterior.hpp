@@ -34,6 +34,7 @@ namespace metro {
 			int number_of_parameters() const { return m_ll.number_of_parameters() ; }
 			
 			void evaluate_at( Vector const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
 
 			Scalar get_value_of_function() const {
 				return m_ll.get_value_of_function() + m_prior.get_value_of_function() ;
@@ -47,7 +48,7 @@ namespace metro {
 				return m_ll.get_value_of_second_derivative() + m_prior.get_value_of_second_derivative() ;
 			}
 		
-			Vector parameters() const {
+			Vector const& parameters() const {
 				return m_parameters ;
 			}
 

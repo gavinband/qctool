@@ -38,8 +38,14 @@ namespace metro {
 			int const numberOfDerivatives
 		) {
 			m_parameters = parameters ;
-			m_ll.evaluate_at( parameters, numberOfDerivatives ) ;
-			m_prior.evaluate_at( parameters, numberOfDerivatives ) ;
+			evaluate( numberOfDerivatives ) ;
+		}
+
+		void LogUnnormalisedPosterior::evaluate(
+			int const numberOfDerivatives
+		) {
+			m_ll.evaluate_at( m_parameters, numberOfDerivatives ) ;
+			m_prior.evaluate_at( m_parameters, numberOfDerivatives ) ;
 		}
 	}
 }

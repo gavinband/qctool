@@ -28,7 +28,8 @@
 #include "metro/distributions/Flat.hpp"
 #include "metro/regression/LogUnnormalisedPosterior.hpp"
 #include "metro/intersect_ranges.hpp"
-#include "metro/regression/fit_model.hpp"
+#include "metro/fit_model.hpp"
+#include "metro/CholeskyStepper.hpp"
 #include "metro/SampleRange.hpp"
 #include "metro/log_sum_exp.hpp"
 
@@ -798,15 +799,15 @@ private:
 		}
 
 		// Set up a trace for model fitting iterations.
-		CholeskyStepper::Tracer tracer ;
+		metro::CholeskyStepper::Tracer tracer ;
 		if( debug ) {
 			tracer = [this] ( 
 				int iteration,
 				double ll,
 				double target_ll,
-				CholeskyStepper::Vector const& point,
-				CholeskyStepper::Vector const& first_derivative,
-				CholeskyStepper::Vector const& step,
+				metro::CholeskyStepper::Vector const& point,
+				metro::CholeskyStepper::Vector const& first_derivative,
+				metro::CholeskyStepper::Vector const& step,
 				bool converged
 			) {
 				this->ui().logger()
@@ -836,8 +837,8 @@ private:
 				}
 				ll.design().set_predictors( Eigen::MatrixXd::Zero( store.number_of_samples(), 10 ), nonmissing_samples ) ;
 				LogUnnormalisedPosterior posterior( ll, null_prior ) ;
-				metro::regression::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
-				std::pair< bool, int > fit = metro::regression::fit_model(
+				metro::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
+				std::pair< bool, int > fit = metro::fit_model(
 					posterior,
 					"null",
 					Eigen::VectorXd::Zero( ll.identify_parameters().rows() ),
@@ -873,8 +874,8 @@ private:
 			if( debug ) {
 				this->ui().logger() << "---> fitting full...\n" ;
 			}
-			metro::regression::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
-			std::pair< bool, int > fit = metro::regression::fit_model(
+			metro::CholeskyStepper stopping_condition( 0.01, 100, tracer ) ;
+			std::pair< bool, int > fit = metro::fit_model(
 				posterior,
 				"full",
 				null_parameters,

@@ -49,6 +49,7 @@ namespace metro {
 			IntegerMatrix identify_parameters() const ;
 
 			void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) ;
+			void evaluate( int const numberOfDerivatives = 2 ) ;
 
 			Point const& parameters() const ;
 			double get_value_of_function() const ;
@@ -62,6 +63,7 @@ namespace metro {
 			bool m_design_owned ;
 			GetParameterName m_get_parameter_name ;
 			Point m_parameters ;
+			std::vector< metro::SampleRange > m_included_samples ;
 			enum State {
 				e_Uncomputed = 0,
 				e_ComputedFunction = 1,

@@ -108,7 +108,6 @@ namespace metro {
 				for( int sample = start_row; sample < end_row; ++sample ) {
 					// look for the 1 identifying the outcome for this sample
 					Matrix::Index outcome_i = 0 ;
-					double const maxCoeff = outcome.row(sample).array().maxCoeff(&outcome_i) ;
 					result->block( sample, outcome_i * number_of_predictor_levels, 1, number_of_predictor_levels ).setConstant( 1.0 ) ;
 				}
 			}
@@ -148,9 +147,23 @@ namespace metro {
 #endif
 			int const number_of_outcomes = m_design->outcome().cols() ;
 			assert( parameters.size() == m_design->matrix().cols() * ( number_of_outcomes - 1 ) ) ;
-			evaluate_at_impl( parameters, numberOfDerivatives ) ;
+			
+			m_parameter_vector = parameters ;
+			m_numberOfDerivativesComputed = 0 ;
+			m_parameter_matrix.resize( m_design->matrix().cols(), number_of_outcomes - 1 ) ; 
+			for( int i = 0; i < m_parameter_vector.size(); ++i ) {
+				m_parameter_matrix( m_parameter_identity( i, 1 ), m_parameter_identity( i, 0 ) - 1 ) = m_parameter_vector(i) ;
+			}
+			
+			evaluate( numberOfDerivatives ) ;
 		}
 
+		void MultinomialRegressionLogLikelihood::evaluate( int const numberOfDerivatives ) {
+			if( m_numberOfDerivativesComputed <= numberOfDerivatives ) {
+				evaluate_impl( numberOfDerivatives ) ;
+			}
+		}
+		
 		void MultinomialRegressionLogLikelihood::set_parameter_naming_scheme( MultinomialRegressionLogLikelihood::GetParameterName get_parameter_name ) {
 			assert( get_parameter_name ) ;
 			m_get_parameter_name = get_parameter_name ;
@@ -187,23 +200,12 @@ namespace metro {
 			return result ;
 		}
 
-		void MultinomialRegressionLogLikelihood::evaluate_at_impl(
-			Vector const& parameters,
+		void MultinomialRegressionLogLikelihood::evaluate_impl(
 			int const numberOfDerivatives
 		) {
 			std::vector< metro::SampleRange > const& included_samples = m_design->nonmissing_samples() ;
-			if( m_parameter_vector == parameters && m_numberOfDerivativesComputed > numberOfDerivatives ) {
-				return ;
-			}
-			m_parameter_vector = parameters ;
-			m_numberOfDerivativesComputed = 0 ;
 			int const number_of_outcomes = m_design->outcome().cols() ;
-			assert( m_parameter_vector.size() == m_parameter_identity.rows() ) ;
 			assert( numberOfDerivatives < 3 ) ;
-			m_parameter_matrix.resize( m_design->matrix().cols(), number_of_outcomes - 1 ) ; 
-			for( int i = 0; i < m_parameter_vector.size(); ++i ) {
-				m_parameter_matrix( m_parameter_identity( i, 1 ), m_parameter_identity( i, 0 ) - 1 ) = m_parameter_vector(i) ;
-			}
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "parameters = " << m_parameter_vector.transpose() << ".\n" ;

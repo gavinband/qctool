@@ -11,5 +11,6 @@
 #include "appcontext/ApplicationContext.hpp"
 #include "appcontext/UIContext.hpp"
 #include "appcontext/ProgramFlow.hpp"
+#include "appcontext/get_current_time_as_string.hpp"
 
 #endif

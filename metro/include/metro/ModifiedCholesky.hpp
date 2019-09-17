@@ -136,6 +136,28 @@ namespace metro {
 			return result ;
 		}
 		
+		// "Half" solve the rhs
+		// solve the rhs, i.e compute
+		// S^-1 (rhs)
+		// Where S is the 'square root' of the matrix, given by
+		// S = P^-1 L sqrt(D)
+		// such that
+		// S S^t = P^-1 
+		Matrix halfSolve( Matrix const& rhs ) const
+		{
+			Matrix result = rhs ;
+			assert( result.rows() == m_matrix.rows() ) ;
+			// result = P rhs
+			result = m_transpositions * result ;
+			// result = L^-1 P rhs
+			matrixL().solveInPlace( result );
+			// result = sqrt(D^-1) L^-1 P rhs
+			for( Index i = 0; i < m_matrix.rows(); ++i ) {
+				result.row(i) /= std::sqrt( m_matrix(i,i) ) ;
+			}
+			return result ;
+		}
+
 	private:
 		Matrix m_matrix ;
 		Transpositions m_transpositions;

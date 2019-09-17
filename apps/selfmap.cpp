@@ -15,7 +15,6 @@
 #include "genfile/MissingValue.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "components/SNPSummaryComponent/GenomeSequence.hpp"
-#include "components/SNPSummaryComponent/DBOutputter.hpp"
 #include "qcdb/Storage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
 #include "qcdb/FlatFileOutputter.hpp"
@@ -58,7 +57,7 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-sequence" ]
 				.set_description( "Specify the path of a file containing sequence to load." )
 				.set_is_required()
-				.set_takes_single_value() ;
+				.set_takes_values_until_next_option() ;
 			;
 		}
 		{
@@ -69,7 +68,7 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 					"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 					"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 				.set_takes_values_until_next_option()
-				.set_is_required() ;
+			;
 			options[ "-kmer-size" ]
 				.set_is_required()
 				.set_takes_single_value()
@@ -91,8 +90,8 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 			options.declare_group( "Options affecting output" ) ;
 			options[ "-o" ]
 				.set_description( "Specify the path to the output file." )
-				.set_is_required()
-				.set_takes_single_value() ;
+				.set_takes_single_value()
+				.set_is_required() ;
 			options[ "-include-diagonal" ]
 				.set_description( "Specify whether selfmap should include uniquely-mapping kmers in the output. "
 					"To reduce the size of the output, these are not output by default." )
@@ -123,32 +122,36 @@ public:
 			argv,
 			"-log"
 		),
-		m_sequence( GenomeSequence::create( options().get< std::string >( "-sequence" ), get_ui_context().get_progress_context( "Reading sequence" ) ) ),
-		m_kmer_size( options().get< std::size_t >( "-kmer-size" ) ),
-		m_ranges( parse_ranges( options().get_values< std::string >( "-range" ) ) )
+		m_sequences(
+			GenomeSequence::create(
+				options().get_values< std::string >( "-sequence" ),
+				get_ui_context().get_progress_context( "Reading sequence" )
+			)
+		),
+		m_kmer_size( options().get< std::size_t >( "-kmer-size" ) )
 	{
 	}
 	
-    std::vector< genfile::GenomePositionRange > parse_ranges( std::vector< std::string > const& spec ) {
-        std::vector< genfile::GenomePositionRange > result ;
-        result.reserve( spec.size() ) ;
-        for( std::size_t i = 0; i < spec.size(); ++i ) {
-            result.push_back( genfile::GenomePositionRange::parse( spec[i] ) ) ;
-        }
-        return result ;
-    }
+	std::vector< genfile::GenomePositionRange > parse_ranges( std::vector< std::string > const& spec ) {
+		std::vector< genfile::GenomePositionRange > result ;
+		result.reserve( spec.size() ) ;
+		for( std::size_t i = 0; i < spec.size(); ++i ) {
+			result.push_back( genfile::GenomePositionRange::parse( spec[i] ) ) ;
+		}
+		return result ;
+	}
     
 public:
 	void pre_summarise() {
 		get_ui_context().logger() << "SelfMapApplication: running with the following parameters:\n"
-			<< "Sequence: " << m_sequence->get_summary( "  " ) << "\n"
+			<< "Sequence: " << m_sequences->get_summary( "  " ) << "\n"
 			<< "Ranges: " ;
-            for( std::size_t i = 0; i < m_ranges.size(); ++i ) {
-                get_ui_context().logger() << ( i > 0 ? " " : "" ) << m_ranges[i] ;
-            }
-            
-			get_ui_context().logger() << "\n" << "kmer size: " << m_kmer_size << "bp.\n" ;
+		for( std::size_t i = 0; i < m_ranges.size(); ++i ) {
+			get_ui_context().logger() << ( i > 0 ? " " : "" ) << m_ranges[i] ;
+		}
+		get_ui_context().logger() << "\n" << "kmer size: " << m_kmer_size << "bp.\n" ;
 	}
+
 	void run() {
 		try {
 			unsafe_run() ;
@@ -162,10 +165,12 @@ public:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 	}
+
 	void post_summarise() {
 	}
+
 private:
-	GenomeSequence::UniquePtr m_sequence ;
+	GenomeSequence::UniquePtr m_sequences ;
 	std::size_t m_kmer_size ;
 	std::vector< genfile::GenomePositionRange > m_ranges ;
 
@@ -176,6 +181,12 @@ private:
 private:
 
 	void unsafe_run() {
+		if( options().check( "-range" )) {
+			m_ranges = parse_ranges( options().get_values< std::string >( "-range" ) ) ;
+		} else {
+			m_ranges = m_sequences->get_ranges() ;
+		}
+
 		KmerMap kmerMap ;
         for( std::size_t i = 0; i < m_ranges.size(); ++i ) {
             process_range( m_ranges[i], &kmerMap ) ;
@@ -197,7 +208,7 @@ private:
 		}
 		std::string kmer ;
 
-		GenomeSequence::PhysicalSequenceRange range = m_sequence->get_sequence( start.chromosome(), start.position(), end.position() ) ;
+		GenomeSequence::PhysicalSequenceRange range = m_sequences->get_sequence( start.chromosome(), start.position(), end.position() ) ;
 		genfile::Position rangePosition = range.first.start().position() ;
 		GenomeSequence::ConstSequenceIterator kmer_start = range.second.first ;
 		GenomeSequence::ConstSequenceIterator kmer_end = kmer_start + m_kmer_size ;
@@ -241,7 +252,7 @@ private:
 		std::string const& filename = options().get< std::string >( "-o" ) ;
 
 		if( filename.size() > 7 && filename.substr( filename.size() - 7, 7 ) == ".sqlite" ) {
-			snp_summary_component::DBOutputter::SharedPtr outputter = snp_summary_component::DBOutputter::create_shared(
+			qcdb::FlatTableDBOutputter::SharedPtr outputter = qcdb::FlatTableDBOutputter::create_shared(
 				options().get< std::string >( "-o" ),
 				options().get< std::string >( "-analysis-name" ),
 				options().get< std::string >( "-analysis-chunk" ),

@@ -19,6 +19,7 @@ namespace metro {
 		virtual ~LogLikelihood() {}
 
 		virtual void evaluate_at( Vector const& parameters, DataSubset const& subset, int numberOfDerivatives = 2 ) = 0 ;
+		virtual void evaluate( int numberOfDerivatives = 2 ) = 0 ;
 		
 		virtual Scalar get_value_of_function() const = 0 ;
 		virtual Vector get_value_of_first_derivative() const = 0 ;

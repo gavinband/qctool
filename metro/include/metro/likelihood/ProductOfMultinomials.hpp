@@ -49,6 +49,12 @@ namespace metro {
 				}
 			}
 
+			void evaluate( int numberOfDerivatives = 2 ) {
+				for( std::size_t i = 0; i < m_multinomials.size(); ++i ) {
+					m_multinomials[i].evaluate( numberOfDerivatives ) ;
+				}
+			}
+
 			double get_value_of_function() const {
 				double result = 0 ;
 				for( std::size_t i = 0; i < m_multinomials.size(); ++i ) {
