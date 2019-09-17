@@ -44,6 +44,24 @@ namespace metro {
 			) ;
 		}
 
+		BinomialLogistic::UniquePtr BinomialLogistic::create(
+			regression::Design& design,
+			std::vector< metro::SampleRange > included_samples
+		) {
+			return BinomialLogistic::UniquePtr(
+				new BinomialLogistic( design, included_samples )
+			) ;
+		}
+
+		BinomialLogistic::UniquePtr BinomialLogistic::create(
+			regression::Design::UniquePtr design,
+			std::vector< metro::SampleRange > included_samples
+		) {
+			return BinomialLogistic::UniquePtr(
+				new BinomialLogistic( design, included_samples )
+			) ;
+		}
+
 		namespace {
 			void check_design( regression::Design const& design ) {
 				// Verify design looks sane.
@@ -73,6 +91,9 @@ namespace metro {
 			m_numberOfCDLDerivativesComputed( -1 )
 		{
 			check_design( *m_design ) ;
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
+#endif
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -88,6 +109,9 @@ namespace metro {
 			m_numberOfCDLDerivativesComputed( -1 )
 		{
 			check_design( *m_design ) ;
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
+#endif
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -103,6 +127,9 @@ namespace metro {
 		{
 			assert( m_design != 0 ) ;
 			check_design( *m_design ) ;
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
+#endif
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -119,6 +146,9 @@ namespace metro {
 		{
 			assert( m_design != 0 ) ;
 			check_design( *m_design ) ;
+#if DEBUG_LOGLIKELIHOOD
+			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
+#endif
 		}
 		
 		BinomialLogistic::~BinomialLogistic() {
@@ -130,6 +160,8 @@ namespace metro {
 		std::string BinomialLogistic::get_summary() const {
 			using genfile::string_utils::to_string ;
 			std::string result = "BinomialLogistic( "
+				+ to_string( impl::count_range( m_included_samples ))
+				+ " of "
 				+ to_string( m_design->outcome().rows() )
 				+ " samples ): " ;
 			result += "(" + m_design->get_outcome_name(1) + ") ~ " ;
@@ -423,8 +455,8 @@ namespace metro {
 						* (one.array() - f1.array() ).pow( outcome.col(0).array() ) ;
 
 #if DEBUG_LOGLIKELIHOOD
-					std::cerr << "Computed f1 and fx, f1 = " << f1.segment( 0, std::min( 5, N )).transpose() << ", \n"
-						<< "fx(" << g << ") = " << fxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+					std::cerr << "Computed f1 and fx, f1 = " << f1.block( 0, 0, std::min( 5, int(f1.rows())), 1 ).transpose() << ", \n"
+						<< "fx(" << g << ") = " << fxBlock.col(g).block(0, 0, std::min( 5, int(f1.rows())), 1 ).transpose() << ".\n" ;
 #endif
 
 					if( numberOfDerivatives > 0 ) {
@@ -442,7 +474,7 @@ namespace metro {
 
 #if DEBUG_LOGLIKELIHOOD
 						std::cerr << "dfx(" << g << ") before fx term = "
-							<< dfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+							<< dfxBlock.col(g).segment(0, std::min( 5, int(dfxBlock.rows()) )).transpose() << ".\n" ;
 #endif
 
 						if( numberOfDerivatives > 1 ) {
@@ -458,14 +490,14 @@ namespace metro {
 
 #if DEBUG_LOGLIKELIHOOD
 							std::cerr << "ddfx(" << g << ") = "
-								<< ddfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+								<< ddfxBlock.col(g).segment(0, std::min( 5, int(ddfxBlock.rows()) )).transpose() << ".\n" ;
 #endif
 						}
 						dfxBlock.col(g).array() *= fxBlock.col(g).array() ;
 
 #if DEBUG_LOGLIKELIHOOD
 						std::cerr << "dfx(" << g << ") = "
-							<< dfxBlock.col(g).segment(0, std::min( 5, N )).transpose() << ".\n" ;
+							<< dfxBlock.col(g).segment(0, std::min( 5, int(dfxBlock.rows()) )).transpose() << ".\n" ;
 #endif
 					}
 				}

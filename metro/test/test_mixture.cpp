@@ -13,8 +13,6 @@
 typedef Eigen::MatrixXd Matrix ;
 typedef Eigen::VectorXd Vector ;
 
-double const infinity = std::numeric_limits< double >::infinity() ;
-
 // #define DEBUG_MULTIVARIATE_T 1
 
 BOOST_AUTO_TEST_SUITE( test_mixture )

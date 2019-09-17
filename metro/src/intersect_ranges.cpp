@@ -31,5 +31,25 @@ namespace metro {
 			}
 			return result ;
 		}
+		
+		std::vector< metro::SampleRange > intersect_ranges(
+			metro::SampleRange const& left,
+			std::vector< metro::SampleRange > const& right
+		) {
+			return intersect_ranges(
+				std::vector< metro::SampleRange >( 1, left ),
+				right
+			) ;
+		}
+
+		std::vector< metro::SampleRange > intersect_ranges(
+			std::vector< metro::SampleRange > const& left,
+			metro::SampleRange const& right
+		) {
+			return intersect_ranges(
+				left,
+				std::vector< metro::SampleRange >( 1, right )
+			) ;
+		}
 	}
 }

@@ -19,6 +19,22 @@ namespace metro {
 			std::vector< metro::SampleRange > const& left,
 			std::vector< metro::SampleRange > const& right
 		) ;
+
+		// intersect two lists of ranges.
+		// each range is assumed to be a sorted list of non-intersecting ranges of integers.
+		// The result is also a sorted list of non-intersecting ranges.
+		std::vector< metro::SampleRange > intersect_ranges(
+			metro::SampleRange const& left,
+			std::vector< metro::SampleRange > const& right
+		) ;
+
+		// intersect two lists of ranges.
+		// each range is assumed to be a sorted list of non-intersecting ranges of integers.
+		// The result is also a sorted list of non-intersecting ranges.
+		std::vector< metro::SampleRange > intersect_ranges(
+			std::vector< metro::SampleRange > const& left,
+			metro::SampleRange const& right
+		) ;
 	}
 }
 

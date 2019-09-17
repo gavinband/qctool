@@ -37,6 +37,8 @@ namespace metro {
 			typedef std::auto_ptr< BinomialLogistic > UniquePtr ;
 			static UniquePtr create( Design& ) ;
 			static UniquePtr create( Design::UniquePtr ) ;
+			static UniquePtr create( Design&, std::vector< metro::SampleRange > ) ;
+			static UniquePtr create( Design::UniquePtr, std::vector< metro::SampleRange > ) ;
 			BinomialLogistic( Design& ) ;
 			BinomialLogistic( Design&, std::vector< metro::SampleRange > included_samples ) ;
 			BinomialLogistic( Design::UniquePtr ) ;

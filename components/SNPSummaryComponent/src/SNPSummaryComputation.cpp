@@ -158,7 +158,6 @@ namespace snp_summary_component {
 			genfile::VariantDataReader&,
 			ResultCallback callback
 		) {
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			if( snp.number_of_alleles() == 2 ) {
 				bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
 				if( allDiploid ) {
@@ -270,7 +269,6 @@ namespace snp_summary_component {
 		{}
 
 		void operator()( VariantIdentifyingData const& snp, Genotypes const& genotypes, Ploidy const& ploidy, genfile::VariantDataReader&, ResultCallback callback ) {
-			genfile::Chromosome const& chromosome = snp.get_position().chromosome() ;
 			bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
 			if( allDiploid ) {
 				compute_autosomal_call_mass( snp, genotypes, callback ) ;
@@ -342,7 +340,6 @@ namespace snp_summary_component {
 			counts[ 0 ] = Eigen::VectorXd::Zero( 3 ) ;
 			counts[ 1 ] = Eigen::VectorXd::Zero( 3 ) ;
 			counts[ 2 ] = Eigen::VectorXd::Zero( 3 ) ;
-			char countKey[5] = { '.', '.', 'm', 'f', '.' } ;
 			std::map< int, std::size_t > sample_counts ;
 
 			for( std::size_t i = 0; i < ploidy.size(); ++i ) {
@@ -496,11 +493,6 @@ namespace snp_summary_component {
 					info -= compute_sum_of_variances( levels, genotypes, diploid_fallback_distribution, diploids )
 						/ ( 2.0 * theta_est * ( 1 - theta_est ) ) ;
 				}
-
-				double const totalProb = (
-					( genotypes.block( 0, 0, genotypes.rows(), 2 ).rowwise().sum().array() * haploids.array() ).sum()
-					+ ( genotypes.rowwise().sum().array() * diploids.array() ).sum() 
-				) ;
 
 				info = 1.0 + (info / (haploids.sum() + diploids.sum() )) ;
 			}

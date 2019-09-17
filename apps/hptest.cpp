@@ -47,6 +47,7 @@
 #include "metro/SampleRange.hpp"
 #include "metro/intersect_ranges.hpp"
 #include "metro/regression/BinomialLogistic.hpp"
+#include "metro/regression/ThreadedLogLikelihood.hpp"
 #include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
 #include "metro/regression/IndependentLogFWeightedLogLikelihood.hpp"
 #include "metro/regression/LogPosteriorDensity.hpp"
@@ -309,6 +310,11 @@ public:
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-debug" ]
 			.set_description( "Output debugging information." ) ;
+		options[ "-threads" ]
+			.set_description( "Number of additional threads to use in likelihood computations."
+				" The value 0 indicates that all work will take place in the main thread." )
+			.set_takes_single_value()
+			.set_default_value(0) ;
 	}
 } ;
 
@@ -583,7 +589,10 @@ public:
 	}
 	
 private:
-	
+
+	metro::concurrency::threadpool::UniquePtr m_pool ;
+		
+private:
 	void process() {
 		try {
 			unsafe_process() ;
@@ -1224,12 +1233,36 @@ private:
 		}
 	}
 
-	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) const {
-		metro::regression::LogLikelihood::UniquePtr ll( metro::regression::BinomialLogistic::create( design ).release() ) ;
+	
+
+	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) {
+		uint32_t const threads = options().get< uint32_t >( "-threads" ) ;
+		metro::regression::LogLikelihood::UniquePtr ll ;
+		if( threads > 0 ) {
+			if( !m_pool.get() ) {
+				m_pool = metro::concurrency::threadpool::create( threads ) ;
+			}
+			ll.reset(
+				metro::regression::ThreadedLogLikelihood::create(
+					design,
+					[]( metro::regression::Design& design, std::vector< metro::SampleRange > range ) {
+						metro::regression::LogLikelihood::UniquePtr ll(
+							metro::regression::BinomialLogistic::create( design, range ).release()
+						) ;
+						return ll ;
+					},
+					*m_pool
+				).release()
+			) ;
+		} else {
+			ll.reset(
+				metro::regression::BinomialLogistic::create( design ).release()
+			) ;
+		}
 		if( !options().check_if_option_has_value( "-no-prior" )) {
 			ll = apply_priors( ll, options().get_values< std::string>( "-prior" )) ;
 		}
-		return metro::regression::LogLikelihood::UniquePtr( ll.release() ) ;
+		return ll ;
 	}
 
 
