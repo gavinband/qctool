@@ -34,6 +34,8 @@ namespace metro {
 		
 			void wait() ;
 
+			std::size_t number_of_threads() const { return m_threads.size() ; }
+
 		private:
 			std::vector< std::thread > m_threads ;
 			std::deque< std::function<void()> > m_tasks ;
