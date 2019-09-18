@@ -226,7 +226,9 @@ public:
 			.set_takes_single_value()
 			.set_default_value( "genetic" )
 			.set_check( boost::bind( &in_set, _1, _2, std::set< std::string >({"all", "genetic"}) ) ) ;
-		options[ "-detailed" ]
+		options[ "-output-counts" ]
+			.set_description( "Specify that hptest should output predictor and outcome genotype counts" ) ;
+		options[ "-details" ]
 			.set_description( "Specify that hptest should produce detailed output for each test." ) ;
 		options[ "-output-all-variants" ]
 			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
@@ -840,8 +842,8 @@ private:
 	}
 
 	void test(
-		genfile::SNPDataSource& host,
-		genfile::SNPDataSource& para,
+		genfile::SNPDataSource& predictor_source,
+		genfile::SNPDataSource& outcome_source,
 		genfile::CohortIndividualSource const& samples,
 		qcdb::MultiVariantStorage& output
 	) {
@@ -849,19 +851,12 @@ private:
 		using namespace metro ;
 		typedef std::vector< SampleRange > SampleRanges ;
 
-
-		// list of models
-		// designs[0] is baseline model
-		// designs[1 onwards] are alternative models
 		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
 
 		std::vector< std::string > model_names ;
 		boost::ptr_vector< regression::Design > designs ;
 		std::vector< Eigen::MatrixXd > predictorCodings ;
 		build_models( samples, &model_names, &designs, &predictorCodings ) ;
-
-		genfile::SNPDataSource* const predictor_source = &host ;
-		genfile::SNPDataSource* const outcome_source = &para ;
 
 		// Reserve some space for our variants
 		std::vector< genfile::VariantIdentifyingData > variants( 2 ) ;
@@ -881,17 +876,20 @@ private:
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
 			std::size_t count = 0 ;
 			boost::optional< std::size_t > const total_count = 
-				( predictor_source->total_number_of_snps() && outcome_source->total_number_of_snps() )
-				? (*predictor_source->total_number_of_snps() * *outcome_source->total_number_of_snps())
+				( predictor_source.total_number_of_snps() && outcome_source.total_number_of_snps() )
+				? (*predictor_source.total_number_of_snps() * *outcome_source.total_number_of_snps())
 				: boost::optional< std::size_t >() ;
 			bool have_summarised_models = false ;
 			bool outputAllVariants = options().check( "-output-all-variants" ) ;
 			bool const debug = options().check( "-debug" ) ;
 
-			while( predictor_source->get_snp_identifying_data( &pv )) {
-				ProbSetter hostSetter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
-				predictor_source->read_variant_data()->get( ":genotypes:", genfile::to_GP_unphased( hostSetter )) ;
+			while( predictor_source.get_snp_identifying_data( &pv )) {
+				ProbSetter predictor_setter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
+				predictor_source.read_variant_data()->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
+
+				// designs[0] is null model, specify a 0-column matrix.
 				designs[0].set_predictors( Eigen::MatrixXd::Zero( 1, 0 ), predictor_probabilities.rowwise().sum(), nonmissing_predictor ) ;
+				// designs[1..] are alternative models
 				for( std::size_t i = 1; i < designs.size(); ++i ) {
 					designs[i].set_predictors( predictorCodings[i], predictor_probabilities, nonmissing_predictor ) ;
 				}
@@ -914,8 +912,8 @@ private:
 						std::cerr << predictorCodings[i] << ".\n" ;
 					}
 				}
-				outcome_source->reset_to_start() ;
-				while( outcome_source->get_snp_identifying_data( &ov )) {
+				outcome_source.reset_to_start() ;
+				while( outcome_source.get_snp_identifying_data( &ov )) {
 					if( debug ) {
 						std::cerr << "++ Testing:\n"
 								  << "++ PREDICTOR variant: " << pv << "\n"
@@ -923,7 +921,7 @@ private:
 					}
 
 					{
-						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source->read_variant_data() ;
+						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source.read_variant_data() ;
 						CallSetter callSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ;
 						if( options().check( "-treat-outcome-as-haploid" )) {
 							callSetter.set_haploidify() ;
@@ -972,6 +970,44 @@ private:
 
 						output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
 						output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
+						
+						Matrix const& cross_counts = cross_tabulate(
+							predictor_probabilities,
+							outcome,
+							outcome_ploidy,
+							metro::impl::intersect_ranges(
+								nonmissing_predictor,
+								nonmissing_outcome
+							)
+						) ;
+
+						{
+							Matrix conversion( 3, 2 ) ;
+							conversion << 	2, 0,
+											1, 1,
+											0, 2 ;
+							Matrix predictorCount = cross_counts * conversion ;
+							Matrix::Index row, col ;
+							double const minimum_expected_predictor_count = predictorCount.minCoeff( &row, &col ) ;
+							output.store_data_for_key( variants, "minimum_expected_predictor_allele_count", minimum_expected_predictor_count ) ;
+							output.store_data_for_key(
+								variants,
+								"minimum_expected_predictor_allele_count_genotype",
+								( boost::format( "outcome=%d/predictor=%d" ) % row % col ).str()
+							) ;
+						}
+						
+						if( options().check( "-output-counts" )) {
+							for( int outcome_i = 0; outcome_i < cross_counts.rows(); ++outcome_i ) {
+								for( int predictor_i = 0; predictor_i < cross_counts.cols(); ++predictor_i ) {
+									output.store_data_for_key(
+										variants,
+										( boost::format( "outcome=%d/predictor=%d" ) % outcome_i % predictor_i ).str(),
+										cross_counts( outcome_i, predictor_i )
+									) ;
+								}
+							}
+						}
 					}
 					// Set up ll
 					if( predictorIncluded && outcomeIncluded ) {
@@ -983,6 +1019,30 @@ private:
 		}
 	}
 	
+
+	Matrix cross_tabulate(
+		Matrix const& predictor,
+		Matrix const& outcome,
+		Vector const& outcome_ploidy,
+		std::vector< metro::SampleRange > const& ranges
+	) {
+		typedef Eigen::Block< Matrix > MatrixBlock ;
+		typedef Eigen::Block< Matrix const > ConstMatrixBlock ;
+
+		Matrix result = Matrix::Zero( outcome.cols(), predictor.cols() ) ;
+		for( std::size_t i = 0; i < ranges.size(); ++i ) {
+			metro::SampleRange const& range = ranges[i] ;
+			ConstMatrixBlock outcome_block = outcome.block( range.begin(), 0, range.size(), outcome.cols() ) ;
+			ConstMatrixBlock predictor_block = predictor.block( range.begin(), 0, range.size(), predictor.cols() ) ;
+			for( int j = 0; j < outcome.cols(); ++j ) {
+				for( int k = 0; k < predictor.cols(); ++k ) {
+					result(j, k) += ( outcome_block.col( j ).transpose() * predictor_block.col(k) ) ;
+				}
+			}
+		}
+		return result ;
+	}
+
 	void build_models(
 		genfile::CohortIndividualSource const& samples,
 		std::vector< std::string >* names,
@@ -1233,8 +1293,6 @@ private:
 		}
 	}
 
-	
-
 	metro::regression::LogLikelihood::UniquePtr create_loglikelihood( metro::regression::Design& design ) {
 		uint32_t const threads = options().get< uint32_t >( "-threads" ) ;
 		metro::regression::LogLikelihood::UniquePtr ll ;
@@ -1287,7 +1345,6 @@ private:
 			metro::regression::LogLikelihood::IntegerMatrix const identity = ll->identify_parameters() ;
 			for( int i = 0; i < identity.rows(); ++i ) {
 				parameter_index_by_name[ ll->get_parameter_name(i) ] = i ;
-//				std::cerr << "parameter \"" << ll->get_parameter_name(i) << "\" has index " << i << ".\n" ;
 			}
 		}
 		
@@ -1709,44 +1766,45 @@ private:
 			Matrix const ll_information = -posterior->get_loglikelihood_second_derivative() ;
 			Matrix const approxSamplingCovariance = posterior_covariance * ll_information * posterior_covariance ;
 			Eigen::ColPivHouseholderQR< Matrix > solver( approxSamplingCovariance ) ;
-			Vector const z = solver.solve( alternative_parameters ) ;
-#if 0
-			std::cerr << "      Posterior covariance:\n" << posterior_covariance << ",\n" ;
-			std::cerr << "Approx sampling covariance:\n" << approxSamplingCovariance << ".\n" ;
-			std::cerr << "                  Approx Z:\n" << z << ".\n" ;
-#endif		
-			using genfile::string_utils::to_string ;
-			for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
-				int const i = parametersToOutput[parameter_i] ;
-				output.store_data_for_key(
-					variants,
-					model_name + ":prior_mode_" + to_string(i),
-					prior_mode(i)
-				) ;
-				double const sampling_se = std::sqrt( approxSamplingCovariance(i,i)) ;
-				double const posterior_sd = std::sqrt( posterior_covariance(i,i)) ;
-				output.store_data_for_key(
-					variants,
-					model_name + ":se_" + to_string(i),
-					sampling_se
-				) ;
+			if( solver.info() == Eigen::Success ) {
+	#if 0
+				std::cerr << "      Posterior covariance:\n" << posterior_covariance << ",\n" ;
+				std::cerr << "Approx sampling covariance:\n" << approxSamplingCovariance << ".\n" ;
+				std::cerr << "                  Approx Z:\n" << z << ".\n" ;
+	#endif		
+				using genfile::string_utils::to_string ;
+				for( std::size_t parameter_i = 0; parameter_i < parametersToOutput.size(); ++parameter_i ) {
+					int const i = parametersToOutput[parameter_i] ;
+					output.store_data_for_key(
+						variants,
+						model_name + ":prior_mode_" + to_string(i),
+						prior_mode(i)
+					) ;
+					double const sampling_se = std::sqrt( approxSamplingCovariance(i,i)) ;
+					double const posterior_sd = std::sqrt( posterior_covariance(i,i)) ;
+					output.store_data_for_key(
+						variants,
+						model_name + ":se_" + to_string(i),
+						sampling_se
+					) ;
 			
-				std::string const parameter_name = ll.get_parameter_name(i) ;
-				if( sampling_se < posterior_sd / 10 ) {
-					output.store_data_for_key(
-						variants,
-						model_name + ":pvalue_" + to_string( i ),
-						metro::NA
-					) ;
-					comments->push_back(
-						parameter_name + ":sampling_se_<<_posterior_sd:_p-value_may_be_unreliable"
-					) ;
-				} else {
-					output.store_data_for_key(
-						variants,
-						model_name + ":pvalue_" + to_string( i ),
-						compute_twosided_wald_pvalue( alternative_parameters(i), std::sqrt( approxSamplingCovariance(i,i) ) )
-					) ;
+					std::string const parameter_name = ll.get_parameter_name(i) ;
+					if( sampling_se < posterior_sd / 10 ) {
+						output.store_data_for_key(
+							variants,
+							model_name + ":pvalue_" + to_string( i ),
+							metro::NA
+						) ;
+						comments->push_back(
+							parameter_name + ":sampling_se_<<_posterior_sd:_p-value_may_be_unreliable"
+						) ;
+					} else {
+						output.store_data_for_key(
+							variants,
+							model_name + ":pvalue_" + to_string( i ),
+							compute_twosided_wald_pvalue( alternative_parameters(i), std::sqrt( approxSamplingCovariance(i,i) ) )
+						) ;
+					}
 				}
 			}
 		}
