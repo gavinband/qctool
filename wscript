@@ -38,6 +38,7 @@ def configure( conf ):
 	else:
 		cxxflags.append( '-std=c++98' )
 
+	cxxflags.extend( [ "-mavx", "-mssse3", "-msse2", "-msse4.1", "-msse4.2" ] )
 	# Disabling vectorisation checks as not always safe.
 	# Use CXXFLAGS environment variable to turn these on
 	# for flag in [ '-msse2', '-mavx', '-mssse3']:
