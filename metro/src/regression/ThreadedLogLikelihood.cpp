@@ -107,7 +107,8 @@ namespace metro {
 		
 		void ThreadedLogLikelihood::create_lls( CreateLL create_ll ) {
 			int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
-			int const size = 2500 ;
+			std::size_t const threads = m_pool->number_of_threads() ;
+			int const size = int(std::max( 1000ul, (N+threads-1) / threads)) ;
 			for( int i = 0; i < N; i += size ) {
 				m_lls.push_back(
 					create_ll( *m_design, metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )))
@@ -124,7 +125,7 @@ namespace metro {
 
 		std::string ThreadedLogLikelihood::get_parameter_name( std::size_t i ) const {
 			return m_lls[0].get_parameter_name( i ) ;
-		};
+		}
 
 		std::vector< std::string > ThreadedLogLikelihood::get_parameter_names() const {
 			return m_lls[0].get_parameter_names() ;
@@ -182,7 +183,7 @@ namespace metro {
 				result += m_lls[i].get_value_of_function() ;
 			}
 			return result ;
-		} ;
+		}
 
 		ThreadedLogLikelihood::Vector ThreadedLogLikelihood::get_value_of_first_derivative() const {
 			Vector result = m_lls[0].get_value_of_first_derivative() ;
