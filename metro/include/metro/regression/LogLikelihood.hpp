@@ -34,12 +34,12 @@ namespace metro {
 			virtual std::string get_parameter_name( std::size_t i ) const = 0 ;
 			std::vector< std::string > get_parameter_names() const ;
 
+			virtual int number_of_parameters() const = 0 ;
+			virtual int number_of_outcomes() const = 0 ;
 			// Return a lx2 matrix identifying the l parameters.
 			// For each parameter the row contains:
 			// column 0: the index of the outcome column.
 			// column 1: the index of the design matrix column.
-			virtual int number_of_parameters() const = 0 ;
-			virtual int number_of_outcomes() const = 0 ;
 			virtual IntegerMatrix identify_parameters() const = 0 ;
 
 			virtual void evaluate_at( Point const& parameters, int const numberOfDerivatives = 2 ) = 0 ;
