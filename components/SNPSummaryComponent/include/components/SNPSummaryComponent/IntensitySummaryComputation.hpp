@@ -19,7 +19,7 @@
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-namespace snp_summary_component {
+namespace stats {
 	struct IntensitySummaryComputation: public SNPSummaryComputation {
 		IntensitySummaryComputation( double call_threshhold = 0.9 ) ;
 		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;

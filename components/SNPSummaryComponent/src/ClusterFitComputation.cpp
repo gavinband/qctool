@@ -22,7 +22,7 @@
 
 // #define DEBUG_CLUSTERFITCOMPUTATION 1
 
-namespace snp_summary_component {
+namespace stats {
 	ClusterFitComputation::ClusterFitComputation(
 		double nu,
 		double regularisationVariance,

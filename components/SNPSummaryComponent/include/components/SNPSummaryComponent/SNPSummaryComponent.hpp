@@ -49,9 +49,9 @@ public:
 	qcdb::Storage::SharedPtr get_storage() const ;
 
 private:
-	SNPSummaryComputationManager::UniquePtr create_manager( qcdb::Storage::SharedPtr ) ;
-	void add_computations( SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr ) const ;
-	SNPSummaryComputation::UniquePtr create_computation( std::string const& name ) const ;
+	stats::SNPSummaryComputationManager::UniquePtr create_manager( qcdb::Storage::SharedPtr ) ;
+	void add_computations( stats::SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr ) const ;
+	stats::SNPSummaryComputation::UniquePtr create_computation( std::string const& name ) const ;
 
 private:
 	genfile::CohortIndividualSource const& m_samples ;

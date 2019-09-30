@@ -15,15 +15,17 @@
 #include "genfile/VariantEntry.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-struct StratifyingSNPSummaryComputation: public SNPSummaryComputation {
-	typedef std::map< genfile::VariantEntry, std::vector< int > > StrataMembers ;
-	StratifyingSNPSummaryComputation( SNPSummaryComputation::UniquePtr computation, std::string const& stratification_name, StrataMembers const& strata_members ) ;
-	void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
-	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-private:
-	SNPSummaryComputation::UniquePtr m_computation ;
-	std::string const m_stratification_name ;
-	StrataMembers m_strata_members ;
-} ;
+namespace stats {
+	struct StratifyingSNPSummaryComputation: public SNPSummaryComputation {
+		typedef std::map< genfile::VariantEntry, std::vector< int > > StrataMembers ;
+		StratifyingSNPSummaryComputation( SNPSummaryComputation::UniquePtr computation, std::string const& stratification_name, StrataMembers const& strata_members ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+	private:
+		SNPSummaryComputation::UniquePtr m_computation ;
+		std::string const m_stratification_name ;
+		StrataMembers m_strata_members ;
+	} ;
+}
 
 #endif

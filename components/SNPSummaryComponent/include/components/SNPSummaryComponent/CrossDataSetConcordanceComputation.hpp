@@ -14,7 +14,7 @@
 #include "genfile/SNPDataSource.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-namespace snp_stats {
+namespace stats {
 	struct CrossDataSetSampleMapper
 	{
 	public:

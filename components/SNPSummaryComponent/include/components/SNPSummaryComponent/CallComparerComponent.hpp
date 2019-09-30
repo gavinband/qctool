@@ -16,58 +16,59 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputationManager.hpp"
 #include "qcdb/Storage.hpp"
 
-struct CallComparerProcessor: public SNPSummaryComputation
-{
-public:
-	typedef std::auto_ptr< CallComparerProcessor > UniquePtr ;
-	static UniquePtr create(
-		PairwiseCallComparerManager::UniquePtr call_comparer,
-		std::vector< std::string > const& call_fields
-	) ;
-
-public:
-	CallComparerProcessor(
-		PairwiseCallComparerManager::UniquePtr call_comparer,
-		std::vector< std::string > const& call_fields
-	) ;
+namespace stats {
+	struct CallComparerProcessor: public SNPSummaryComputation
+	{
+	public:
+		typedef std::auto_ptr< CallComparerProcessor > UniquePtr ;
+		static UniquePtr create(
+			PairwiseCallComparerManager::UniquePtr call_comparer,
+			std::vector< std::string > const& call_fields
+		) ;
 
 	public:
+		CallComparerProcessor(
+			PairwiseCallComparerManager::UniquePtr call_comparer,
+			std::vector< std::string > const& call_fields
+		) ;
 
-		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+		public:
+
+			void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
+			std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+
+		private:
+			PairwiseCallComparerManager::UniquePtr m_call_comparer ;
+			std::vector< std::string > m_call_fields ;
+			bool m_begun ;
+			PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
+			Eigen::MatrixXd m_calls ;
+	} ;
+
+	struct CallComparerComponent: public boost::noncopyable
+	{
+		static void declare_options( appcontext::OptionProcessor& options ) ;
+
+		typedef std::auto_ptr< CallComparerComponent > UniquePtr ;
+		static UniquePtr create(
+			genfile::CohortIndividualSource const& samples,
+			appcontext::OptionProcessor const& options,
+			appcontext::UIContext& ui_context
+		) ;
+
+	public:
+		CallComparerComponent(
+			genfile::CohortIndividualSource const& m_samples,
+			appcontext::OptionProcessor const& options,
+			appcontext::UIContext& ui_context
+		) ;
+	
+		void setup( SNPSummaryComputationManager&, qcdb::Storage::SharedPtr ) const ;
 
 	private:
-		PairwiseCallComparerManager::UniquePtr m_call_comparer ;
-		std::vector< std::string > m_call_fields ;
-		bool m_begun ;
-		PairwiseCallComparerManager::MergeClient::UniquePtr m_consensus_caller ;
-		Eigen::MatrixXd m_calls ;
-} ;
-
-struct CallComparerComponent: public boost::noncopyable
-{
-	static void declare_options( appcontext::OptionProcessor& options ) ;
-
-	typedef std::auto_ptr< CallComparerComponent > UniquePtr ;
-	static UniquePtr create(
-		genfile::CohortIndividualSource const& samples,
-		appcontext::OptionProcessor const& options,
-		appcontext::UIContext& ui_context
-	) ;
-
-public:
-	CallComparerComponent(
-		genfile::CohortIndividualSource const& m_samples,
-		appcontext::OptionProcessor const& options,
-		appcontext::UIContext& ui_context
-	) ;
-	
-	void setup( SNPSummaryComputationManager&, qcdb::Storage::SharedPtr ) const ;
-
-private:
-	genfile::CohortIndividualSource const& m_samples ;
-	appcontext::OptionProcessor const& m_options ;
-} ;
-
+		genfile::CohortIndividualSource const& m_samples ;
+		appcontext::OptionProcessor const& m_options ;
+	} ;
+}
 
 #endif

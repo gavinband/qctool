@@ -15,7 +15,7 @@
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 #include "metro/correlation.hpp"
 
-namespace snp_stats {
+namespace stats {
 	namespace impl {
 		CrossDataSetSampleMapper::SampleMapping create_sample_mapping(
 			CrossDataSetSampleMapper::SampleIdList const& set1,

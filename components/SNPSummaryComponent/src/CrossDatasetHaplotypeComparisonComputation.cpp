@@ -14,7 +14,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetHaplotypeComparisonComputation.hpp"
 
-namespace snp_stats {
+namespace stats {
 	CrossDataSetHaplotypeComparisonComputation::CrossDataSetHaplotypeComparisonComputation(
 		genfile::CohortIndividualSource const& samples,
 		std::string const& main_dataset_sample_id_column

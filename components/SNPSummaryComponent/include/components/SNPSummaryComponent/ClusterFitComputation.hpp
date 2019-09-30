@@ -19,7 +19,7 @@
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-namespace snp_summary_component {
+namespace stats {
 	struct ClusterFitComputation: public SNPSummaryComputation {
 		typedef std::auto_ptr< ClusterFitComputation > UniquePtr ;
 		ClusterFitComputation(

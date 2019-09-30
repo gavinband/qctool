@@ -14,7 +14,7 @@
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "components/SNPSummaryComponent/Storage.hpp"
 
-namespace snp_summary_component {
+namespace stats {
 	struct FileOutputter: public Storage {
 		static UniquePtr create( std::string const& filename ) { return UniquePtr( new FileOutputter( filename ) ) ; }
 		static SharedPtr create_shared( std::string const& filename ) { return SharedPtr( new FileOutputter( filename ) ) ; }

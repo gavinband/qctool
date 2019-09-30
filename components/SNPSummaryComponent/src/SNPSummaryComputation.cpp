@@ -18,11 +18,11 @@
 #include "components/SNPSummaryComponent/HWEComputation.hpp"
 #include "components/SNPSummaryComponent/IntensitySummaryComputation.hpp"
 #include "components/SNPSummaryComponent/ClusterFitComputation.hpp"
+#include "components/SNPSummaryComponent/InfoComputation.hpp"
 
 // #define DEBUG_SNP_SUMMARY_COMPUTATION 1
 
-namespace snp_summary_component {
-	
+namespace stats {	
 	namespace {
 		struct AlleleCountClient: public genfile::VariantDataReader::PerSampleSetter {
 			AlleleCountClient( std::vector< double >* counts ):
@@ -368,212 +368,21 @@ namespace snp_summary_component {
 		double const m_call_threshhold ;
 	} ;
 
-	struct InfoComputation: public SNPSummaryComputation {
-		void operator()(
-			VariantIdentifyingData const& snp,
-			Genotypes const& genotypes,
-			Ploidy const& ploidy,
-			genfile::VariantDataReader&,
-			ResultCallback callback
-		) {
-			if( snp.number_of_alleles() == 2 ) {
-				bool const allDiploid = ( ploidy.array() == 2 ).cast< int >().sum() == ploidy.size() ;
-				if( allDiploid ) {
-					compute_autosomal_info( snp, genotypes, callback ) ;
-				} else {
-					compute_sex_chromosome_info( snp, genotypes, ploidy, callback ) ;
-				}
-			} else {
-				// we don't compute for multiallelics currently
-			}
+	SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
+		std::string const& name
+	) {
+		UniquePtr result ;
+		if( name == "allele-frequencies" ) { result.reset( new stats::AlleleFrequencyComputation( "everything" )) ; }
+		else if( name == "allele-counts" ) { result.reset( new stats::AlleleFrequencyComputation( "counts" )) ; }
+		else if( name == "HWE" ) { result.reset( new stats::HWEComputation()) ; }
+		else if( name == "missingness" ) { result.reset( new stats::MissingnessComputation()) ; }
+		else if( name == "info" ) { result.reset( new stats::InfoComputation()) ; }
+		else if( name == "call-mass-proportion" ) { result.reset( new stats::CallMassComputation()) ; }
+		else if( name == "intensity-stats" ) { result.reset( new stats::IntensitySummaryComputation() ) ; }
+		else if( name == "multi-allele-counts" ) { result.reset( new stats::AlleleCountComputation() ) ; }
+		else {
+			throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
 		}
-		
-		void compute_autosomal_info( VariantIdentifyingData const& snp, Genotypes const& genotypes, ResultCallback callback ) {
-			double const theta_mle = ( genotypes.col( 1 ).sum() + 2.0 * genotypes.col( 2 ).sum() ) / ( 2.0 * genotypes.sum() ) ;
-			double const theta_est = theta_mle ;
-			
-			Eigen::VectorXd const impute_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			Eigen::VectorXd fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			fallback_distribution( 0 ) = ( 1 - theta_est ) * ( 1 - theta_est ) ;
-			fallback_distribution( 1 ) = 2.0 * theta_est * ( 1 - theta_est ) ;
-			fallback_distribution( 2 ) = theta_est * theta_est ;
-			
-			//std::cerr << "theta = " << theta_est << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
-			
-			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
-
-			double const info = 1.0 - (
-				compute_sum_of_variances( levels, genotypes, fallback_distribution )
-				/ ( genotypes.rows() * 2.0 * theta_est * ( 1 - theta_est ) )
-			) ;
-
-			double const impute_info = 1.0 - (
-				compute_sum_of_variances( levels, genotypes, impute_fallback_distribution )
-				/ ( genotypes.sum() * 2.0 * theta_mle * ( 1 - theta_mle ) )
-			) ;
-		
-			callback( "info", info ) ;
-			callback( "impute_info", impute_info ) ;
-		}
-
-		void compute_sex_chromosome_info(
-			VariantIdentifyingData const& snp,
-			Genotypes const& genotypes,
-			Ploidy const& ploidy,
-			ResultCallback callback
-		) {
-			Eigen::MatrixXd hap_or_diploid( genotypes.rows(), 2 ) ;
-			for( std::size_t i = 0; i < ploidy.size(); ++i ) {
-				if( ploidy(i) == 1 ) {
-					hap_or_diploid(i,0) = 1 ;
-					hap_or_diploid(i,1) = 0 ;
-				}
-				else if( ploidy[ i ] == 2 ) {
-					hap_or_diploid(i,0) = 0 ;
-					hap_or_diploid(i,1) = 1 ;
-				}
-				else {
-					// Don't understand, so treat ploidy as missing.
-					// individuals with missing sex do not contribute to the computation.
-					// I think this is the least surprising thing to do.
-					hap_or_diploid(i,0) = 0 ;
-					hap_or_diploid(i,1) = 0 ;
-				}
-			}
-
-			double const a_allele_count_diploid = (
-					( genotypes.col( 1 ) + 2.0 * genotypes.col( 0 ) ).array() * ( hap_or_diploid.col(1).array() )
-				).sum() ;
-			double const b_allele_count_diploid = (
-					( genotypes.col( 1 ) + 2.0 * genotypes.col( 2 ) ).array() * ( hap_or_diploid.col(1).array() )
-				).sum() ;
-			double const a_allele_count_haploid = 	(
-					genotypes.col( 0 ).array() * hap_or_diploid.col(0).array() 
-				).sum() ;
-			double const b_allele_count_haploid = 	(
-					genotypes.col( 1 ).array() * hap_or_diploid.col(0).array() 
-				).sum() ;
-			
-			// MLE estimate of allele frequency
-			double const theta_mle = ( b_allele_count_diploid + b_allele_count_haploid )
-				/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid ) ;
-
-			// For the new info measure, could regularise by data augmentation, adding one allele of each type.
-			// This makes info better behaved at low frequencies.
-			// Note adding one of each allele constitutes minimal prior information that the variant is polymorphic.
-			// double const theta_est = ( b_allele_count_diploid + b_allele_count_haploid + 1 )
-			//	/ ( a_allele_count_diploid + b_allele_count_diploid + a_allele_count_haploid + b_allele_count_haploid + 2 ) ;
-			
-			// ...but don't actually do that; it is less conservative at rare SNPs.
-			double const theta_est = theta_mle ;
-
-			Eigen::VectorXd diploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			diploid_fallback_distribution( 0 ) = ( 1 - theta_est ) * ( 1 - theta_est ) ;
-			diploid_fallback_distribution( 1 ) = 2.0 * theta_est * ( 1 - theta_est ) ;
-			diploid_fallback_distribution( 2 ) = theta_est * theta_est ;
-			
-			Eigen::VectorXd haploid_fallback_distribution = Eigen::VectorXd::Zero( 3 ) ;
-			haploid_fallback_distribution( 0 ) = 1 - theta_est ;
-			haploid_fallback_distribution( 1 ) = theta_est ;
-			
-			//std::cerr << "theta = " << theta_mle << ", fallback_distribution = " << fallback_distribution.transpose() << ".\n" ;
-			
-			Eigen::VectorXd const levels = Eigen::VectorXd::LinSpaced( 3, 0, 2 ) ;
-			
-			double info = 0.0 ;
-			Eigen::VectorXd const haploids = ( hap_or_diploid.col( 0 ).array() == 1 ).cast< double >() ;
-			Eigen::VectorXd const diploids = ( hap_or_diploid.col( 1 ).array() == 1 ).cast< double >() ;
-			{
-				if( haploids.sum() > 0 ) {
-					info -= compute_sum_of_variances( levels, genotypes, haploid_fallback_distribution, haploids )
-						/ ( theta_est * ( 1 - theta_est ) ) ;
-				}
-
-				if( diploids.sum() > 0 ) {
-					info -= compute_sum_of_variances( levels, genotypes, diploid_fallback_distribution, diploids )
-						/ ( 2.0 * theta_est * ( 1 - theta_est ) ) ;
-				}
-
-				info = 1.0 + (info / (haploids.sum() + diploids.sum() )) ;
-			}
-			
-			{
-				// IMPUTE-style MLE, treat all samples as diploid ignoring gender.
-				// Haploids are encoded in the 0/1 columns here so we have to reverse-engineer the
-				// original info computation to allow for this.
-				double const autosomal_theta_mle = (
-					( 2.0 * genotypes.col( 1 ).array() * haploids.array() )
-					+ (( genotypes.col( 1 ) + 2.0 * genotypes.col( 2 ) ).array() * ( 1.0 - haploids.array() ))
-				).sum() / ( 2.0 * genotypes.sum() ) ;
-
-#if DEBUG
-				std::cerr << "autosomal_theta_mle  = " << std::setprecision(10) << autosomal_theta_mle << ".\n" ;
-				std::cerr << genotypes << ".\n" ;
-#endif
-				Eigen::VectorXd haploidLevels = Eigen::VectorXd::Zero(3) ;
-				haploidLevels(1) = 2 ;
-				double const impute_info = 1.0 - (
-					(
-						compute_sum_of_variances( haploidLevels, genotypes, Eigen::VectorXd::Zero( 3 ), haploids )
-						+ compute_sum_of_variances( levels, genotypes, Eigen::VectorXd::Zero( 3 ), 1.0 - haploids.array() )
-					) / ( genotypes.sum() * 2.0 * autosomal_theta_mle * ( 1 - autosomal_theta_mle ) )
-				) ;
-			
-				callback( "info", info ) ;
-				callback( "impute_info", impute_info ) ;
-			}
-		}
-
-		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const { return prefix + "InfoComputation" ; }
-		
-	private:
-		double compute_sum_of_variances( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback ) const {
-			return compute_sum_of_variances( levels, probabilities, fallback, Eigen::VectorXd::Constant( probabilities.rows(), 1 ) ) ;
-		}
-		
-		// treat the rows of the probabilities matrix as probabilities.
-		// distribution for individual i is taken as a mixture of the distribution given by row i of probabilities,
-		// and the fallback distribution if the sum of row i < 1, appropriately weighted.
-		// Only individuals with inclusion = 1 are used.
-		double compute_sum_of_variances( Eigen::VectorXd const& levels, Eigen::MatrixXd const& probabilities, Eigen::VectorXd const& fallback, Eigen::VectorXd const& inclusion ) const {
-			assert( levels.size() == fallback.size() ) ;
-			assert( levels.size() == probabilities.cols() ) ;
-			assert( inclusion.size() == probabilities.rows() ) ;
-			Eigen::VectorXd levels_squared = ( levels.array() * levels.array() ) ;
-
-			double result = 0.0 ;
-			for( int i = 0; i < probabilities.rows(); ++i ) {
-				if( inclusion( i ) == 1 ) {
-					double const c = probabilities.row( i ).sum() ;
-					result += compute_variance( levels, levels_squared, probabilities.row( i ).transpose() + ( 1 - c ) * fallback ) ;
-				}
-			}
-			return result ;
-		}
-		
-		double compute_variance( Eigen::VectorXd const& levels, Eigen::VectorXd const& levels_squared, Eigen::VectorXd const& probs ) const {
-			double const mean = ( probs.transpose() * levels )(0) ;
-			double const variance = ( probs.transpose() * levels_squared )(0) - ( mean * mean ) ;
-			// std::cerr << "compute_variance: levels = " << levels.transpose() << ", levels_squared = " << levels_squared.transpose() << ", probs = " << probs.transpose() << ", variance = " << variance << ".\n" ;
-			return variance ;
-		}
-	} ;
-}
-
-SNPSummaryComputation::UniquePtr SNPSummaryComputation::create(
-	std::string const& name
-) {
-	UniquePtr result ;
-	if( name == "allele-frequencies" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation( "everything" )) ; }
-	else if( name == "allele-counts" ) { result.reset( new snp_summary_component::AlleleFrequencyComputation( "counts" )) ; }
-	else if( name == "HWE" ) { result.reset( new snp_summary_component::HWEComputation()) ; }
-	else if( name == "missingness" ) { result.reset( new snp_summary_component::MissingnessComputation()) ; }
-	else if( name == "info" ) { result.reset( new snp_summary_component::InfoComputation()) ; }
-	else if( name == "call-mass-proportion" ) { result.reset( new snp_summary_component::CallMassComputation()) ; }
-	else if( name == "intensity-stats" ) { result.reset( new snp_summary_component::IntensitySummaryComputation() ) ; }
-	else if( name == "multi-allele-counts" ) { result.reset( new snp_summary_component::AlleleCountComputation() ) ; }
-	else {
-		throw genfile::BadArgumentError( "SNPSummaryComputation::create()", "name=\"" + name + "\"" ) ;
+		return result ;
 	}
-	return result ;
 }

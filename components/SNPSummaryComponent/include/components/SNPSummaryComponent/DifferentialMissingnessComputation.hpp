@@ -19,19 +19,20 @@
 #include "genfile/VariantDataReader.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-struct DifferentialMissingnessComputation: public SNPSummaryComputation {
-	typedef std::map< genfile::VariantEntry, std::vector< int > > StrataMembers ;
-	static UniquePtr create( std::string const& stratification_name, StrataMembers const& strata_members ) ;
-	DifferentialMissingnessComputation( std::string const& stratification_name, StrataMembers const& strata_members, double threshhold = 0.9 ) ;
-	void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
-	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-private:
-	std::string const m_stratification_name ;
-	StrataMembers const m_strata_members ;
-	std::vector< int > const m_strata_levels ;
-	double const m_threshhold ;
-private:
-	std::vector< int > compute_strata_levels( StrataMembers const& strata_members ) const ;
-} ;
-
+namespace stats {
+	struct DifferentialMissingnessComputation: public SNPSummaryComputation {
+		typedef std::map< genfile::VariantEntry, std::vector< int > > StrataMembers ;
+		static UniquePtr create( std::string const& stratification_name, StrataMembers const& strata_members ) ;
+		DifferentialMissingnessComputation( std::string const& stratification_name, StrataMembers const& strata_members, double threshhold = 0.9 ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+	private:
+		std::string const m_stratification_name ;
+		StrataMembers const m_strata_members ;
+		std::vector< int > const m_strata_levels ;
+		double const m_threshhold ;
+	private:
+		std::vector< int > compute_strata_levels( StrataMembers const& strata_members ) const ;
+	} ;
+}
 #endif

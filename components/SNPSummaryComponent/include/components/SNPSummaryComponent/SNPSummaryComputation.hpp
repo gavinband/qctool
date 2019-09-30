@@ -17,30 +17,32 @@
 #include "genfile/VariantDataReader.hpp"
 #include "appcontext/OptionProcessor.hpp"
 
-struct SNPSummaryComputation: public boost::noncopyable {
-	typedef std::auto_ptr< SNPSummaryComputation > UniquePtr ;
-	virtual ~SNPSummaryComputation() {}
-	static UniquePtr create( std::string const& name ) ;
+namespace stats {
+	struct SNPSummaryComputation: public boost::noncopyable {
+		typedef std::auto_ptr< SNPSummaryComputation > UniquePtr ;
+		virtual ~SNPSummaryComputation() {}
+		static UniquePtr create( std::string const& name ) ;
 
-	typedef genfile::VariantIdentifyingData VariantIdentifyingData ;
-	typedef Eigen::MatrixXd Genotypes ;
-	typedef boost::function< void ( std::string const& value_name ) > NameCallback ;
-	typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
-	typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > PerSampleResultCallback ;
-	typedef Eigen::VectorXi Ploidy ;
+		typedef genfile::VariantIdentifyingData VariantIdentifyingData ;
+		typedef Eigen::MatrixXd Genotypes ;
+		typedef boost::function< void ( std::string const& value_name ) > NameCallback ;
+		typedef boost::function< void ( std::string const& value_name, genfile::VariantEntry const& value ) > ResultCallback ;
+		typedef boost::function< void ( std::size_t sample_i, std::string const& value_name, genfile::VariantEntry const& value ) > PerSampleResultCallback ;
+		typedef Eigen::VectorXi Ploidy ;
 	
-	virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
+		virtual std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const = 0 ;
 
-	virtual void list_variables( NameCallback ) const {}
-	virtual void begin_processing_snps( std::size_t ) {}
-	virtual void operator()(
-		VariantIdentifyingData const&,
-		Genotypes const&,
-		Ploidy const&,
-		genfile::VariantDataReader&,
-		ResultCallback
-	) = 0 ;
-	virtual void end_processing_snps( PerSampleResultCallback ) {}
-} ;
+		virtual void list_variables( NameCallback ) const {}
+		virtual void begin_processing_snps( std::size_t ) {}
+		virtual void operator()(
+			VariantIdentifyingData const&,
+			Genotypes const&,
+			Ploidy const&,
+			genfile::VariantDataReader&,
+			ResultCallback
+		) = 0 ;
+		virtual void end_processing_snps( PerSampleResultCallback ) {}
+	} ;
+}
 
 #endif

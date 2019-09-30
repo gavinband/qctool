@@ -17,29 +17,31 @@
 #include "genfile/VariantEntry.hpp"
 #include "genfile/wildcard.hpp"
 
-// Annotate each variant with a set of 1's or 0's according to whether
-// it lies in ranges in one or more BED files (plus or minus a margin).
-// This just uses the first three columns (chrom, start, end) of the BED file.
-// Filenames of BED files are passed in using the add_annotation() function.
-// This class translates between BED style 0-based, half-open coordinates
-// and the 1-based coordinates used in qctool implicitly.
-struct Bed3Annotation: public SNPSummaryComputation
-{
-public:
-	typedef std::auto_ptr< Bed3Annotation > UniquePtr ;
-	static UniquePtr create() ;
+namespace stats {
+	// Annotate each variant with a set of 1's or 0's according to whether
+	// it lies in ranges in one or more BED files (plus or minus a margin).
+	// This just uses the first three columns (chrom, start, end) of the BED file.
+	// Filenames of BED files are passed in using the add_annotation() function.
+	// This class translates between BED style 0-based, half-open coordinates
+	// and the 1-based coordinates used in qctool implicitly.
+	struct Bed3Annotation: public SNPSummaryComputation
+	{
+	public:
+		typedef std::auto_ptr< Bed3Annotation > UniquePtr ;
+		static UniquePtr create() ;
 
-public:
-	Bed3Annotation() ;
-	void add_annotation( std::string const& name, std::string const& filename, int left_margin_bp = 0, int right_margin_bp = 0 ) ;
-	void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
+	public:
+		Bed3Annotation() ;
+		void add_annotation( std::string const& name, std::string const& filename, int left_margin_bp = 0, int right_margin_bp = 0 ) ;
+		void operator()( VariantIdentifyingData const&, Genotypes const&, Ploidy const&, genfile::VariantDataReader&, ResultCallback ) ;
 
-	std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
-private:
-	typedef boost::icl::interval_set< genfile::GenomePosition > Annotation ;
-	typedef std::map< std::string, Annotation > AnnotationMap ;
-	AnnotationMap m_annotations ;
-	std::vector< std::string > m_annotation_names ;
-} ;
+		std::string get_summary( std::string const& prefix = "", std::size_t column_width = 20 ) const ;
+	private:
+		typedef boost::icl::interval_set< genfile::GenomePosition > Annotation ;
+		typedef std::map< std::string, Annotation > AnnotationMap ;
+		AnnotationMap m_annotations ;
+		std::vector< std::string > m_annotation_names ;
+	} ;
+}
 
 #endif

@@ -19,7 +19,7 @@
 
 // #define DEBUG_HWE_COMPUTATION 1
 
-namespace snp_summary_component {
+namespace stats {
 	HWEComputation::HWEComputation():
 		m_threshhold( 0.9 ),
 		m_chi_squared_1df( 1.0 ),

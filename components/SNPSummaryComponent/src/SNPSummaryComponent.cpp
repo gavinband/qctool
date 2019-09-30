@@ -163,10 +163,10 @@ void SNPSummaryComponent::setup(
 	) ;
 }
 
-SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager(
+stats::SNPSummaryComputationManager::UniquePtr SNPSummaryComponent::create_manager(
 	qcdb::Storage::SharedPtr storage
 ) {
-	SNPSummaryComputationManager::UniquePtr manager( new SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
+	stats::SNPSummaryComputationManager::UniquePtr manager( new stats::SNPSummaryComputationManager( m_samples, m_options.get_value< std::string >( "-sex-column" ) ) ) ;
 	{
 		std::string const coding_string = m_options.get< std::string >( "-haploid-genotype-coding" ) ;
 		if( coding_string == "hom" ) {
@@ -229,7 +229,7 @@ namespace {
 	void parse_bed_annotation_spec( std::string const& spec, std::vector< genfile::string_utils::slice >* filenames, unsigned int* margin ) ;
 }
 	
-void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr storage ) const {
+void SNPSummaryComponent::add_computations( stats::SNPSummaryComputationManager& manager, qcdb::Storage::SharedPtr storage ) const {
 	using genfile::string_utils::split_and_strip_discarding_empty_entries ;
 	using boost::regex_replace ;
 	using boost::regex ;
@@ -240,19 +240,19 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 	if( m_options.check( "-snp-stats" )) {
 		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
 		BOOST_FOREACH( std::string const& elt, elts ) {
-			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
+			manager.add_computation( elt, stats::SNPSummaryComputation::create( elt )) ;
 		}
 	}
 	
 	if( m_options.check( "-snp-stats" )) {
 		std::vector< std::string > elts = split_and_strip_discarding_empty_entries( m_options.get_value< std::string >( "-snp-stats-columns" ), ",", " \t" ) ;
 		BOOST_FOREACH( std::string const& elt, elts ) {
-			manager.add_computation( elt, SNPSummaryComputation::create( elt )) ;
+			manager.add_computation( elt, stats::SNPSummaryComputation::create( elt )) ;
 		}
 	}
 
 	if( m_options.check( "-intensity-stats" )) {
-		manager.add_computation( "intensity-stats", SNPSummaryComputation::create( "intensity-stats" )) ;
+		manager.add_computation( "intensity-stats", stats::SNPSummaryComputation::create( "intensity-stats" )) ;
 	}
 
 	if( m_options.check( "-fit-clusters" )) {
@@ -265,15 +265,15 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		}
 		double regularisationVariance = genfile::string_utils::to_repr< double >( params[1] ) ;
 		double regularisationCount = genfile::string_utils::to_repr< double >( params[2] ) ;
-		snp_summary_component::ClusterFitComputation::UniquePtr computation(
-			new snp_summary_component::ClusterFitComputation(
+		stats::ClusterFitComputation::UniquePtr computation(
+			new stats::ClusterFitComputation(
 				nu, regularisationVariance, regularisationCount
 			)
 		) ;
 		computation->set_scale( m_options.get< std::string >( "-fit-cluster-scale" )) ;
 		manager.add_computation(
 			"fit-clusters",
-			SNPSummaryComputation::UniquePtr( computation.release() )
+			stats::SNPSummaryComputation::UniquePtr( computation.release() )
 		) ;
 	}
 
@@ -292,17 +292,17 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 				"Value should be of the form <id in main dataset>~<id in compared-to dataset>"
 			) ;
 		}
-		snp_stats::CrossDataSetComparison::UniquePtr computation ;
+		stats::CrossDataSetComparison::UniquePtr computation ;
 		if( m_options.check( "-haplotypic" ) ) {
 			computation.reset(
-				new snp_stats::CrossDataSetHaplotypeComparisonComputation(
+				new stats::CrossDataSetHaplotypeComparisonComputation(
 					m_samples,
 					sample_id_columns[0]
 				)
 			) ;
 		} else {
 			computation.reset(
-				new snp_stats::CrossDataSetConcordanceComputation(
+				new stats::CrossDataSetConcordanceComputation(
 					m_samples,
 					sample_id_columns[0]
 				)
@@ -338,7 +338,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 
 		manager.add_computation(
 			"dataset_comparison",
-			SNPSummaryComputation::UniquePtr(
+			stats::SNPSummaryComputation::UniquePtr(
 				computation.release()
 			)
 		) ;
@@ -349,7 +349,7 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		impl::StrataMembers strata = impl::compute_strata( m_samples, variable ) ;
 		manager.add_computation(
 			"differential_missingness",
-			DifferentialMissingnessComputation::create( variable, strata )
+			stats::DifferentialMissingnessComputation::create( variable, strata )
 		) ;
 	}
 
@@ -370,8 +370,8 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 			) ;
 		}
 		for( std::size_t i = 0; i < elts.size(); i += 2 ) {
-			SequenceAnnotation::UniquePtr computation(
-				new SequenceAnnotation( elts[i+1], elts[i], progress )
+			stats::SequenceAnnotation::UniquePtr computation(
+				new stats::SequenceAnnotation( elts[i+1], elts[i], progress )
 			) ;
 		
 			if( m_options.check( "-flanking" )) {
@@ -382,36 +382,16 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		
 			manager.add_computation(
 				elts[1] + "_sequence",
-				SNPSummaryComputation::UniquePtr(
+				stats::SNPSummaryComputation::UniquePtr(
 					computation.release()
 				)
 			) ;
 		}
 	}
 
-	if( m_options.check( "-annotate-ancestral" )) {
-		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading ancestral sequence" ) ;
-		SequenceAnnotation::UniquePtr computation(
-			new SequenceAnnotation( "ancestral", m_options.get< std::string >( "-annotate-ancestral" ), progress )
-		) ;
-		
-		if( m_options.check( "-flanking" )) {
-			std::vector< std::size_t > data = m_options.get_values< std::size_t >( "-flanking" ) ;
-			assert( data.size() == 2 ) ;
-			computation->set_flanking( data[0], data[1] ) ;
-		}
-
-		manager.add_computation(
-			"ancestral_sequence",
-			SNPSummaryComputation::UniquePtr(
-				computation.release()
-			)
-		) ;
-	}
-
 	if( m_options.check( "-annotate-genetic-map" )) {
 		appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading genetic map" ) ;
-		GeneticMapAnnotation::UniquePtr computation = GeneticMapAnnotation::create(
+		stats::GeneticMapAnnotation::UniquePtr computation = stats::GeneticMapAnnotation::create(
 			genfile::wildcard::find_files_by_chromosome(
 				m_options.get< std::string >( "-annotate-genetic-map" )
 			),
@@ -420,14 +400,14 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		
 		manager.add_computation(
 			"genetic_map",
-			SNPSummaryComputation::UniquePtr(
+			stats::SNPSummaryComputation::UniquePtr(
 				computation.release()
 			)
 		) ;
 	}
 
 	if( m_options.check( "-annotate-bed3" )) {
-		Bed3Annotation::UniquePtr annotation = Bed3Annotation::create() ;
+		stats::Bed3Annotation::UniquePtr annotation = stats::Bed3Annotation::create() ;
 
 		{
 			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed intervals" ) ;
@@ -452,14 +432,14 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		
 		manager.add_computation(
 			"bed3_annotation",
-			SNPSummaryComputation::UniquePtr(
+			stats::SNPSummaryComputation::UniquePtr(
 				annotation.release()
 			)
 		) ;
 	}
 
 	if( m_options.check( "-annotate-bed4" )) {
-		Bed4Annotation::UniquePtr annotation = Bed4Annotation::create() ;
+		stats::Bed4Annotation::UniquePtr annotation = stats::Bed4Annotation::create() ;
 
 		{
 			appcontext::UIContext::ProgressContext progress = m_ui_context.get_progress_context( "Loading bed values" ) ;
@@ -484,23 +464,11 @@ void SNPSummaryComponent::add_computations( SNPSummaryComputationManager& manage
 		
 		manager.add_computation(
 			"bed4_annotation",
-			SNPSummaryComputation::UniquePtr(
+			stats::SNPSummaryComputation::UniquePtr(
 				annotation.release()
 			)
 		) ;
 	}
-
-#if 0
-	if( m_options.check_if_option_was_supplied_in_group( "Call comparison options" ) ) {
-		CallComparerComponent::UniquePtr cc = CallComparerComponent::create(
-			m_samples,
-			m_options,
-			m_ui_context
-		) ;
-
-		cc->setup( manager, storage ) ;
-	}
-#endif
 }
 
 namespace {
@@ -534,13 +502,5 @@ namespace {
 			*margin = to_repr< unsigned int >( elts[1].substr( 0, elts[1].size() - 2 )) ; 
 		}
 		*filenames = elts[0].split( "," ) ;
-	}
-}
-
-SNPSummaryComputation::UniquePtr SNPSummaryComponent::create_computation( std::string const& name ) const {
-	if( name != "association_test" ) {
-		return SNPSummaryComputation::UniquePtr( SNPSummaryComputation::create( name )) ;
-	} else {
-		assert(0) ;
 	}
 }

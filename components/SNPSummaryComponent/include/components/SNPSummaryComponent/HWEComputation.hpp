@@ -17,8 +17,8 @@
 #include "components/SNPSummaryComponent/SNPHWE.hpp"
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 
-namespace snp_summary_component {
-	struct HWEComputation: public SNPSummaryComputation
+namespace stats {
+	struct HWEComputation: public stats::SNPSummaryComputation
 	{
 		HWEComputation() ;
 	

@@ -15,7 +15,7 @@
 #include "components/SNPSummaryComponent/SNPSummaryComputation.hpp"
 #include "components/SNPSummaryComponent/CrossDataSetConcordanceComputation.hpp"
 
-namespace snp_stats {
+namespace stats {
 	struct CrossDataSetHaplotypeComparisonComputation: public CrossDataSetComparison
 	{
 	public:

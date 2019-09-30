@@ -14,7 +14,7 @@
 #include "components/SNPSummaryComponent/IntensitySummaryComputation.hpp"
 #include "metro/mean_and_covariance.hpp"
 
-namespace snp_summary_component {
+namespace stats {
 	IntensitySummaryComputation::IntensitySummaryComputation( double call_threshhold ):
 		m_call_threshhold( call_threshhold )
 	{}
