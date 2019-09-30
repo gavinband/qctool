@@ -40,7 +40,7 @@ namespace metro {
 			constant + l^alpha * ( 1-l)^ beta
 		}
 		dlogf.v2 <- function( x, nu1 = 1, nu2 = 1 ) {
-			dbeta( logistic(x), shape1 = 1+nu1/2, shape2 = 1 + nu2/2 )
+			dbeta( logistic(x), shape1 = nu1/2, shape2 = nu2/2 )
 		}
 		*/
 		IndependentLogFWeightedLogLikelihood::UniquePtr IndependentLogFWeightedLogLikelihood::create(

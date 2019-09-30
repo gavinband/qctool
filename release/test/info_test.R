@@ -142,8 +142,8 @@ for( i in 1:nrow( data$variants )) {
 cat( "Comparing frequency...\n" )
 stopifnot( length( which( abs( stats$frequency - qctool.stats$alleleB_frequency ) > 1E-5 )) == 0 )
 cat( "Comparing IMPUTE info...\n" )
-stopifnot( length( which( abs( stats$impute_info - qctool.stats$impute_info ) > 1E-5 )) == 0 )
+stopifnot( length( which( abs( (stats$impute_info / qctool.stats$impute_info) - 1 ) > 1E-5 )) == 0 )
 cat( "Comparing QCTOOL info...\n" )
-stopifnot( length( which( abs( stats$info - qctool.stats$info ) > 1E-5 )) == 0 )
+stopifnot( length( which( abs( (stats$info / qctool.stats$info)  - 1 ) > 1E-5 )) == 0 )
 
 cat( "Success.\n" )

@@ -39,8 +39,9 @@
 #include "genfile/SampleFilterNegation.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/GPThresholdingGTSetter.hpp"
-
 #include "genfile/db/Error.hpp"
+
+#include "components/SNPSummaryComponent/InfoComputation.hpp"
 
 #include "metro/constants.hpp"
 #include "metro/regression/Design.hpp"
@@ -281,6 +282,9 @@ public:
 		;
 		options[ "-no-prior" ]
 			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." ) ;
+		options[ "-no-covariate-priors" ]
+			.set_description( "Specify that no default prior should be placed on covariates. "
+				"(By default a N(0,1000) prior is used)." ) ;
 		options[ "-covariates" ]
 			.set_description( "Specify the name of one or more covariates to include in the model."
 				" These must be columns named in the sample file." )
@@ -446,7 +450,7 @@ namespace {
 
 		ProbSetter(
 			Eigen::MatrixXd* genotypes,
-			Eigen::VectorXd* ploidy,
+			Eigen::VectorXi* ploidy,
 			SampleRanges* nonmissing_samples
 		):
 			m_genotypes( genotypes ),
@@ -561,7 +565,7 @@ namespace {
 		
 	private:
 		Eigen::MatrixXd* m_genotypes ;
-		Eigen::VectorXd* m_ploidy ;
+		Eigen::VectorXi* m_ploidy ;
 		SampleRanges* m_nonmissing_samples ;
 		std::size_t m_last_nonmissing_sample_i ;
 		std::size_t m_sample_i ;
@@ -574,6 +578,7 @@ public:
 	
 	typedef Eigen::MatrixXd Matrix ;
 	typedef Eigen::VectorXd Vector ;
+	typedef Eigen::VectorXi IntegerVector ;
 	typedef Eigen::RowVectorXd RowVector ;
 	
 public:
@@ -847,7 +852,6 @@ private:
 		genfile::CohortIndividualSource const& samples,
 		qcdb::MultiVariantStorage& output
 	) {
-		typedef metro::regression::Design::Matrix Matrix ;
 		using namespace metro ;
 		typedef std::vector< SampleRange > SampleRanges ;
 
@@ -869,8 +873,10 @@ private:
 		SampleRanges nonmissing_outcome ;
 
 		Matrix predictor_probabilities = Matrix::Zero( samples.size(), 3 ) ;
-		Vector predictor_ploidy = Vector::Zero( samples.size() ) ;
+		IntegerVector predictor_ploidy = IntegerVector::Zero( samples.size() ) ;
 		SampleRanges nonmissing_predictor ;
+
+		stats::impl::InfoComputation info_computation;
 
 		{
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
@@ -971,43 +977,29 @@ private:
 						output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
 						output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
 						
-						Matrix const& cross_counts = cross_tabulate(
-							predictor_probabilities,
-							outcome,
-							outcome_ploidy,
-							metro::impl::intersect_ranges(
-								nonmissing_predictor,
-								nonmissing_outcome
+						std::vector< metro::SampleRange > const included_samples = metro::impl::intersect_ranges(
+							nonmissing_predictor,
+							nonmissing_outcome
+						) ;
+						
+						output_cross_counts(
+							variants,
+							output,
+							cross_tabulate(
+								predictor_probabilities,
+								outcome,
+								outcome_ploidy,
+								included_samples
 							)
 						) ;
-
-						{
-							Matrix conversion( 3, 2 ) ;
-							conversion << 	2, 0,
-											1, 1,
-											0, 2 ;
-							Matrix predictorCount = cross_counts * conversion ;
-							Matrix::Index row, col ;
-							double const minimum_expected_predictor_count = predictorCount.minCoeff( &row, &col ) ;
-							output.store_data_for_key( variants, "minimum_expected_predictor_allele_count", minimum_expected_predictor_count ) ;
-							output.store_data_for_key(
-								variants,
-								"minimum_expected_predictor_allele_count_genotype",
-								( boost::format( "outcome=%d/predictor=%d" ) % row % col ).str()
-							) ;
-						}
-						
-						if( options().check( "-output-counts" )) {
-							for( int outcome_i = 0; outcome_i < cross_counts.rows(); ++outcome_i ) {
-								for( int predictor_i = 0; predictor_i < cross_counts.cols(); ++predictor_i ) {
-									output.store_data_for_key(
-										variants,
-										( boost::format( "outcome=%d/predictor=%d" ) % outcome_i % predictor_i ).str(),
-										cross_counts( outcome_i, predictor_i )
-									) ;
-								}
-							}
-						}
+								
+						info_computation.compute(
+							variants[0],
+							predictor_probabilities,
+							predictor_ploidy,
+							included_samples
+						) ;
+						output.store_data_for_key( variants, "predictor_info", info_computation.info() ) ;
 					}
 					// Set up ll
 					if( predictorIncluded && outcomeIncluded ) {
@@ -1018,7 +1010,6 @@ private:
 			}
 		}
 	}
-	
 
 	Matrix cross_tabulate(
 		Matrix const& predictor,
@@ -1041,6 +1032,41 @@ private:
 			}
 		}
 		return result ;
+	}
+
+	void output_cross_counts(
+		std::vector< genfile::VariantIdentifyingData > const& variants,
+		qcdb::MultiVariantStorage& output,
+		Matrix const& cross_counts
+	) {
+
+		{
+			Matrix conversion( 3, 2 ) ;
+			conversion << 	2, 0,
+							1, 1,
+							0, 2 ;
+			Matrix predictorCount = cross_counts * conversion ;
+			Matrix::Index row, col ;
+			double const minimum_expected_predictor_count = predictorCount.minCoeff( &row, &col ) ;
+			output.store_data_for_key( variants, "minimum_expected_predictor_allele_count", minimum_expected_predictor_count ) ;
+			output.store_data_for_key(
+				variants,
+				"minimum_expected_predictor_allele_count_genotype",
+				( boost::format( "outcome=%d/predictor=%d" ) % row % col ).str()
+			) ;
+		}
+		
+		if( options().check( "-output-counts" )) {
+			for( int outcome_i = 0; outcome_i < cross_counts.rows(); ++outcome_i ) {
+				for( int predictor_i = 0; predictor_i < cross_counts.cols(); ++predictor_i ) {
+					output.store_data_for_key(
+						variants,
+						( boost::format( "outcome=%d/predictor=%d" ) % outcome_i % predictor_i ).str(),
+						cross_counts( outcome_i, predictor_i )
+					) ;
+				}
+			}
+		}
 	}
 
 	void build_models(
@@ -1409,6 +1435,21 @@ private:
 				}
 			}
 		}
+		
+		if( !options().check( "-no-covariate-priors" )) {
+			metro::regression::LogLikelihood::IntegerMatrix const identity = ll->identify_parameters() ;
+			for( int i = 0; i < identity.rows(); ++i ) {
+				std::string const& parameter_name = ll->get_parameter_name(i) ;
+				if( identity(i,1) > ll->design().number_of_predictors() && used_parameters[parameter_name] == 0 ) {
+					logF_parameter_indices.push_back(i) ;
+					// Choose a logF distribution with 95% coverage interval
+					// equivalent to a gaussian(0,25^2) distribution.
+					logF_nu1.push_back( 0.07704070 ) ;
+					logF_nu2.push_back( 0.07704070 ) ;
+				}
+			}
+		}
+		
 		
 		// Now apply the priors:
 		metro::regression::LogLikelihood::UniquePtr result( ll.release() ) ;
