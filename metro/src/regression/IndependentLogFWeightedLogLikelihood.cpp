@@ -25,11 +25,19 @@ namespace metro {
 		this can be done in R as follows:
 		
 		logistic <- function(x) { exp(x) / (1 + exp(x) )}
-		dlogf <- function( x, nu1 = 1, nu2 = 1 ) {
+		dlogf <- function( x, nu1 = 1, nu2 = 1, normalisation = "ZeroAtMean" ) {
 			alpha = nu1/2
 			beta = nu2/2
 			l = logistic((x))
-			l^alpha * ( 1-l)^ beta
+			constant = 0
+			if( normalisation == "zeroatmean" ) {
+				constant = -(alpha+beta) * log(0.5)
+			} else if( normalisation == "density" ) {
+				constant = -lbeta( alpha, beta )
+			} else {
+				constant = 0
+			}
+			constant + l^alpha * ( 1-l)^ beta
 		}
 		dlogf.v2 <- function( x, nu1 = 1, nu2 = 1 ) {
 			dbeta( logistic(x), shape1 = 1+nu1/2, shape2 = 1 + nu2/2 )
@@ -64,8 +72,8 @@ namespace metro {
 			}
 			m_constant = 0.0 ;
 			if( m_normalisation == eZeroAtMean ) {
-				// At the mean (which is zero), we will compute unnormalised contribution of
-				// log(0.5)*(alpha+beta) for each parameter.
+				// Normalise so the log-likelihood value at zero is zero.
+				// ll computes as log(0.5)*(alpha+beta) for each parameter.
 				m_constant = 0.0  ;
 				for( std::size_t i = 0; i < m_alpha.size(); ++i ) {
 					m_constant -= (m_alpha[i] + m_beta[i]) * std::log(0.5) ;
