@@ -22,10 +22,10 @@ namespace metro {
 	namespace regression {
 		/*
 		logF density
-		this can be done in R as follows:
+		this can be computed in R as follows:
 		
 		logistic <- function(x) { exp(x) / (1 + exp(x) )}
-		dlogf <- function( x, nu1 = 1, nu2 = 1, normalisation = "ZeroAtMean" ) {
+		dlogf <- function( x, nu1 = 1, nu2 = 1, normalisation = "zeroatmean" ) {
 			alpha = nu1/2
 			beta = nu2/2
 			l = logistic((x))
