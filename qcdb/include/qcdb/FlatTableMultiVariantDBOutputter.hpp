@@ -34,7 +34,8 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_description,
 			Metadata const& metadata,
-			std::string const& snp_match_fields = "position,alleles"
+			std::string const& snp_match_fields = "position,alleles",
+			boost::optional< genfile::db::Connection::RowId > analysis_id = boost::optional< genfile::db::Connection::RowId >()
 		) ;
 
 		FlatTableMultiVariantDBOutputter(
@@ -43,7 +44,8 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_description,
 			Metadata const& metadata,
-			std::string const& snp_match_fields = "position,alleles"
+			std::string const& snp_match_fields = "position,alleles",
+			boost::optional< genfile::db::Connection::RowId > analysis_id = boost::optional< genfile::db::Connection::RowId >()
 		) ;
 
 		~FlatTableMultiVariantDBOutputter() ;

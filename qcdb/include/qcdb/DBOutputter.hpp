@@ -115,14 +115,17 @@ namespace qcdb {
 		void construct_statements() ;
 		void store_metadata() ;
 
-#if 0
-		void load_entities() ;
-		void create_entity_relationship( genfile::db::Connection::RowId entity1_id, genfile::db::Connection::RowId relationship_id, genfile::db::Connection::RowId entity2_id ) const ;
-#endif
+		void create_analysis(
+			genfile::db::Connection::RowId id, 
+			std::string const& name,
+			std::string const& description
+		) const ;
+
 		genfile::db::Connection::RowId create_analysis(
 			std::string const& name,
 			std::string const& description
 		) const ;
+
 		genfile::db::Connection::RowId set_analysis_property(
 			genfile::db::Connection::RowId const analysis_id,
 			std::string const& property,
@@ -130,18 +133,6 @@ namespace qcdb {
 			std::string const& aux
 		) const ;
 
-#if 0
-		genfile::db::Connection::RowId get_or_create_entity_internal(
-			std::string const& name,
-			std::string const& description,
-			boost::optional< genfile::db::Connection::RowId > class_id = boost::optional< genfile::db::Connection::RowId >()
-		) const ;
-		genfile::db::Connection::RowId create_entity_internal(
-			std::string const& name,
-			std::string const& description,
-			boost::optional< genfile::db::Connection::RowId > class_id = boost::optional< genfile::db::Connection::RowId >()
-		) const ;
-#endif
 		void start_analysis( genfile::db::Connection::RowId const ) const ;
 		void end_analysis( genfile::db::Connection::RowId const ) const ;
 		void add_alternative_variant_identifier( genfile::db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const ;

@@ -37,10 +37,11 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		std::string const& snp_match_fields
+		std::string const& snp_match_fields,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		return UniquePtr(
-			new FlatTableMultiVariantDBOutputter( filename, number_of_key_fields, analysis_name, analysis_description, metadata, snp_match_fields )
+			new FlatTableMultiVariantDBOutputter( filename, number_of_key_fields, analysis_name, analysis_description, metadata, snp_match_fields, analysis_id )
 		) ;
 	}
 
@@ -50,9 +51,10 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		std::string const& snp_match_fields
+		std::string const& snp_match_fields,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	):
-		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< genfile::db::Connection::RowId >(), snp_match_fields ),
+		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ),
 		m_key_entry_names( generate_key_entry_names( number_of_key_fields )),
 		m_table_name( "analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_variants_per_block( 1000 )
@@ -81,8 +83,9 @@ namespace qcdb {
 			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			std::string sql = "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON `" + m_table_name + "` (";
 			for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
-				sql += (i>0 ? ", " : " " ) + (boost::format( "variant%d_id" ) % (i+1)).str() ;
+				sql += (i>0 ? ", `" : " `" ) + (m_key_entry_names[i] + "_id`" ) ;
 			}
+			sql += ")" ;
 			m_outputter.connection().run_statement( sql ) ;
 		}
 

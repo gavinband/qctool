@@ -36,7 +36,19 @@ namespace qcdb {
 				) ;
 			}
 		
-			bool match_rsid = (std::find( fields.begin(), fields.end(), CompareFields::eRSID ) != fields.end()) || (std::find( fields.begin(), fields.end(), CompareFields::eIDs ) != fields.end() ) ;
+			bool match_rsid = (
+				std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::eRSID)
+				) != fields.end()
+			) || (
+				std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::eIDs)
+				) != fields.end()
+			) ;
 			return match_rsid ;
 		}
 	}
@@ -201,26 +213,45 @@ namespace qcdb {
 	void DBOutputter::store_metadata() {
 		try {
 			if( m_analysis_id ) {
-				m_find_analysis_statement
-					->bind( 1, m_analysis_name )
-					.bind( 2, m_analysis_chunk )
+				genfile::db::Connection::StatementPtr find_analysis_stmt = m_connection->get_statement(
+					"SELECT name, chunk FROM Analysis WHERE id == ?1"
+				) ;
+				find_analysis_stmt
+					->bind( 1, m_analysis_id.get() )
 					.step() ;
-				if( m_find_analysis_statement->empty() ) {
-					throw genfile::BadArgumentError(
-						"qcdb::DBOutputter::store_metadata()",
-						"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
-						"Could not find an analysis with the given name and chunk."
+
+				if( find_analysis_stmt->empty() ) {
+					create_analysis(
+						m_analysis_id.get(),
+						m_analysis_name,
+						m_analysis_chunk
 					) ;
+				} else {
+					std::string const existing_analysis_name = find_analysis_stmt->get_column< std::string >(0) ;
+					std::string const existing_analysis_chunk = find_analysis_stmt->get_column< std::string >(1) ;
+					if( existing_analysis_name != m_analysis_name ) {
+						throw genfile::BadArgumentError(
+							"qcdb::DBOutputter::store_metadata()",
+							"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
+							"Existing analysis has mismatching name (\""
+							+ existing_analysis_name
+							+ "\", exopected \""
+							+ m_analysis_name
+							+ "\")"
+						) ;
+					}
+					if( existing_analysis_chunk != m_analysis_chunk) {
+						throw genfile::BadArgumentError(
+							"qcdb::DBOutputter::store_metadata()",
+							"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
+							"Existing analysis has mismatching chunk (\""
+							+ existing_analysis_chunk
+							+ "\", exopected \""
+							+ m_analysis_chunk
+							+ "\")"
+						) ;
+					}
 				}
-				genfile::db::Connection::RowId const id = m_find_analysis_statement->get< genfile::db::Connection::RowId >( 0 ) ;
-				if( id != m_analysis_id.get() ) {
-					throw genfile::BadArgumentError(
-						"qcdb::DBOutputter::store_metadata()",
-						"m_analysis_id=" + genfile::string_utils::to_string( m_analysis_id.get() ),
-						"id does not match the analysis with with the given name and chunk."
-					) ;
-				}
-				m_find_analysis_statement->reset() ;
 			} else {
 				m_analysis_id = create_analysis(
 					m_analysis_name,
@@ -268,48 +299,17 @@ namespace qcdb {
 		stmnt->step() ;
 	}
 
-#if 0	
-	genfile::db::Connection::RowId DBOutputter::get_or_create_entity_internal( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
-		genfile::db::Connection::RowId result ;
-		// Look in our variable cache first
-		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
-		if( where != m_entity_map.end() ) {
-			result = where->second ;
-		}
-		else {
-			// try the db nex
-			m_find_entity_statement
-				->bind( 1, name )
-				.bind( 2, description )
-				.step() ;
-			if( m_find_entity_statement->empty() ) {
-				result = create_entity_internal( name, description, class_id ) ;
-			} else {
-				result = m_find_entity_statement->get< genfile::db::Connection::RowId >( 0 ) ;
-			}
-			m_find_entity_statement->reset() ;
-		}
-		return result ;
-	}
-	
-	genfile::db::Connection::RowId DBOutputter::create_entity_internal( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
-		genfile::db::Connection::RowId result ;
-		m_insert_entity_statement
-			->bind( 1, name )
-			.bind( 2, description )
+	void DBOutputter::create_analysis( genfile::db::Connection::RowId id, std::string const& name, std::string const& chunk ) const {
+		genfile::db::Connection::StatementPtr insert_analysis_stmt = m_connection->get_statement(
+			"INSERT INTO Analysis( id, name, chunk ) VALUES ( ?, ?, ? )"
+		) ;
+		insert_analysis_stmt
+			->bind( 1, id )
+			.bind( 2, name )
+			.bind( 3, chunk )
 			.step() ;
-			
-		result = m_connection->get_last_insert_row_id() ;
-		m_entity_map.insert( std::make_pair( std::make_pair( name, description ), result ) ) ;
-		m_insert_entity_statement->reset() ;
-
-		if( class_id ) {
-			create_entity_relationship( result, m_is_a, *class_id ) ;
-		}
-		return result ;
 	}
 
-#endif
 	genfile::db::Connection::RowId DBOutputter::create_analysis( std::string const& name, std::string const& description ) const {
 		genfile::db::Connection::RowId result ;
 		m_insert_analysis_statement
@@ -322,62 +322,6 @@ namespace qcdb {
 
 		return result ;
 	}
-
-#if 0
-	genfile::db::Connection::RowId DBOutputter::get_or_create_entity( std::string const& name, std::string const& description, boost::optional< genfile::db::Connection::RowId > class_id ) const {
-		genfile::db::Connection::RowId result ;
-		EntityMap::const_iterator where = m_entity_map.find( std::make_pair( name, description )) ;
-		if( where != m_entity_map.end() ) {
-			result = where->second ;
-		}
-		else {
-			m_find_entity_statement
-				->bind( 1, name )
-				.bind( 2, description )
-				.step() ;
-			if( m_find_entity_statement->empty() ) {
-				result = create_entity_internal( name, description, class_id ) ;
-				create_entity_relationship( result, m_used_by, m_analysis_id.get() ) ;
-			} else {
-				result = m_find_entity_statement->get< genfile::db::Connection::RowId >( 0 ) ;
-			}
-			m_find_entity_statement->reset() ;
-		}
-		return result ;
-	}
-
-	void DBOutputter::create_entity_relationship( genfile::db::Connection::RowId entity1_id, genfile::db::Connection::RowId relationship_id, genfile::db::Connection::RowId entity2_id ) const {
-		m_insert_entity_relationship_statement
-			->bind( 1, entity1_id )
-			.bind( 2, relationship_id )
-			.bind( 3, entity2_id )
-			.step() ;
-			
-		m_insert_entity_relationship_statement->reset() ;
-	}
-
-	genfile::db::Connection::RowId DBOutputter::get_or_create_entity_data( genfile::db::Connection::RowId const entity_id, genfile::db::Connection::RowId const variable_id, genfile::VariantEntry const& value ) const {
-		genfile::db::Connection::RowId result ;
-
-		m_find_entity_data_statement
-			->bind( 1, entity_id )
-			.bind( 2, variable_id ).step() ;
-
-		if( m_find_entity_data_statement->empty() ) {
-			m_insert_entity_data_statement
-				->bind( 1, entity_id )
-				.bind( 2, variable_id )
-				.bind( 3, value )
-				.step() ;
-			result = m_connection->get_last_insert_row_id() ;
-			m_insert_entity_data_statement->reset() ;
-		} else {
-			result = m_find_entity_data_statement->get< genfile::db::Connection::RowId >( 0 ) ;
-		}
-		m_find_entity_data_statement->reset() ;
-		return result ;
-	}
-#endif
 
 	genfile::db::Connection::RowId DBOutputter::set_analysis_property(
 		genfile::db::Connection::RowId const analysis_id,
@@ -398,7 +342,11 @@ namespace qcdb {
 		return result ;
 	}
 
-	void DBOutputter::add_alternative_variant_identifier( genfile::db::Connection::RowId const variant_id, std::string const& identifier, std::string const& rsid ) const {
+	void DBOutputter::add_alternative_variant_identifier(
+		genfile::db::Connection::RowId const variant_id,
+		std::string const& identifier,
+		std::string const& rsid
+	) const {
 		if( identifier != rsid  && identifier != "---" && identifier != "." ) {
 			add_variant_identifier( variant_id, identifier ) ;
 		}

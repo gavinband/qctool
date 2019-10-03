@@ -21,15 +21,23 @@
 
 namespace qcdb {
 	FlatTableDBOutputter::UniquePtr FlatTableDBOutputter::create(
-		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
-		std::string const& snp_match_fields
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		Metadata const& metadata,
+		std::string const& snp_match_fields,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
 
 	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared(
-		std::string const& filename, std::string const& analysis_name, std::string const& analysis_description, Metadata const& metadata,
-		std::string const& snp_match_fields
+		std::string const& filename,
+		std::string const& analysis_name,
+		std::string const& analysis_description,
+		Metadata const& metadata,
+		std::string const& snp_match_fields,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
 	}
@@ -39,10 +47,10 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_description,
 		Metadata const& metadata,
-		std::string const& snp_match_fields
-		
+		std::string const& snp_match_fields,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	):
-		m_outputter( filename, analysis_name, analysis_description, metadata, boost::optional< genfile::db::Connection::RowId >(), snp_match_fields ),
+		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ),
 		m_table_name( "Analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
 		m_max_snps_per_block( 1000 )
 	{}

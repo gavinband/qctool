@@ -304,11 +304,14 @@ public:
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
-			.set_default_value( "qctool analysis" ) ;
+			.set_default_value( "hptest analysis" ) ;
 		options[ "-analysis-chunk" ]
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
+		options[ "-analysis-id" ]
+			.set_description( "Specify an integer ID for the current analysis." )
+			.set_takes_single_value() ;
 		options[ "-outcome-genotype-call-threshold" ]
 			.set_description( "The threshold to apply to outcome genotype probabilities, if necessary, to make calls." )
 			.set_takes_single_value()
@@ -672,12 +675,18 @@ private:
 		write_preamble( *host, *para, *samples ) ;
 		
 		{
+			boost::optional< genfile::db::Connection::RowId > analysis_id ;
+			if( options().check( "-analysis-id" ) ) {
+				analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
+			}
 			qcdb::MultiVariantStorage::UniquePtr storage = qcdb::MultiVariantStorage::create(
 				options().get< std::string > ( "-o" ),
 				2,
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
-				get_application_metadata()
+				get_application_metadata(),
+				"position,alleles",
+				analysis_id
 			) ;
 			storage->set_variant_names( std::vector< std::string >({ "predictor", "outcome" })) ;
 			test( *host, *para, *samples, *storage ) ;
