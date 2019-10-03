@@ -36,7 +36,19 @@ namespace qcdb {
 				) ;
 			}
 		
-			bool match_rsid = (std::find( fields.begin(), fields.end(), CompareFields::eRSID ) != fields.end()) || (std::find( fields.begin(), fields.end(), CompareFields::eIDs ) != fields.end() ) ;
+			bool match_rsid = (
+				std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::eRSID)
+				) != fields.end()
+			) || (
+				std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::eIDs)
+				) != fields.end()
+			) ;
 			return match_rsid ;
 		}
 	}
