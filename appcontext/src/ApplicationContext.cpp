@@ -141,7 +141,7 @@ namespace appcontext {
 	void ApplicationContext::write_start_banner() {
 		m_ui_context->logger() << "\nWelcome to " << m_application_name << "\n" ;
 		if( m_application_version != "" ) {
-			m_ui_context->logger() << "(version: " << m_application_version << ")\n" ;
+			m_ui_context->logger() << "(" << m_application_version << ")\n" ;
 		}
 		m_ui_context->logger() << "\n(C) 2009-2017 University of Oxford\n\n";
 	}
@@ -155,4 +155,19 @@ namespace appcontext {
 		return m_application_name ;
 	}
 	
+	OptionProcessor::OptionValueMap ApplicationContext::get_application_metadata() const {
+		// typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > OptionValueMap ;
+		
+		OptionProcessor::OptionValueMap result = options().get_values_as_map() ;
+		result.insert(
+			std::make_pair(
+				"$",
+				std::make_pair(
+					std::vector< std::string >( 1, m_application_name ),
+					m_application_version
+				)
+			)
+		) ;
+		return result ;
+	}
 }

@@ -46,7 +46,7 @@ namespace appcontext {
 		OptionProcessor& options() const ;
 		virtual UIContext& get_ui_context() const ;
 		UIContext& ui() const { return get_ui_context() ; }
-
+		OptionProcessor::OptionValueMap get_application_metadata() const ;
 		std::string const& application_name() const ;
 
 	private:

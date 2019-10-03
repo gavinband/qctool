@@ -585,7 +585,7 @@ public:
 	HPTestApplication( int argc, char** argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
-			globals::program_version + ", revision " + globals::program_revision,
+			"version: " + globals::program_version + ", revision: " + globals::program_revision,
 			std::auto_ptr< appcontext::OptionProcessor >( new HPTestOptions ),
 			argc,
 			argv,
@@ -677,7 +677,7 @@ private:
 				2,
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
-				options().get_values_as_map()
+				get_application_metadata()
 			) ;
 			storage->set_variant_names( std::vector< std::string >({ "predictor", "outcome" })) ;
 			test( *host, *para, *samples, *storage ) ;

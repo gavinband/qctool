@@ -2497,7 +2497,7 @@ public:
 	QCToolApplication( int argc, char** argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
-			globals::program_version + ", revision " + globals::program_revision,
+			"version: " + globals::program_version + ", revision: " + globals::program_revision,
 			std::auto_ptr< appcontext::OptionProcessor >( new QCToolOptionProcessor ),
 			argc,
 			argv,
@@ -2677,7 +2677,7 @@ private:
 					file_spec[1],
 					options().get< std::string >( "-analysis-name" ),
 					options().get< std::string >( "-analysis-chunk" ),
-					options().get_values_as_map(),
+					get_application_metadata(),
 					options().get< std::string >( "-compare-variants-by" )
 				) ;
 				if( file_spec.size() == 3 ) {

@@ -426,7 +426,7 @@ struct MFMApplication: public appcontext::ApplicationContext {
 	MFMApplication( int argc, char** argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
-			globals::program_version + ", revision " + globals::program_revision,
+			"version: " + globals::program_version + ", revision: " + globals::program_revision,
 			std::auto_ptr< appcontext::OptionProcessor >( new MFMOptions ),
 			argc,
 			argv,
@@ -958,7 +958,7 @@ private:
 				5,
 				options().get< std::string >( "-analysis-name" ),
 				options().get< std::string >( "-analysis-chunk" ),
-				options().get_values_as_map()
+				get_application_metadata()
 		) ;
 		outputter->add_variable( "loglikelihood" ) ;
 		outputter->add_variable( "logposterior" ) ;
