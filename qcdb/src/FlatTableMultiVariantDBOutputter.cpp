@@ -266,7 +266,7 @@ namespace qcdb {
 		view_sql  << "T.* FROM `"
 			<< table_name << "` T " ;
 		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
-			view_sql << (boost::format( "INNER JOIN Variant V%d ON V%d.id = T.variant%d_id " )
+			view_sql << (boost::format( "INNER JOIN Variant V%d ON V%d.id = " + m_key_entry_names[i] + "_id " )
 				% (i+1) % (i+1) % (i+1)) ;
 		}
 		view_sql << "INNER JOIN Analysis A ON A.id = T.analysis_id" ;
