@@ -108,7 +108,7 @@ namespace metro {
 		void ThreadedLogLikelihood::create_lls( CreateLL create_ll ) {
 			int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
 			std::size_t const threads = m_pool->number_of_threads() ;
-			int const size = int(std::max( 1000ul, (N+threads-1) / threads)) ;
+			int const size = int(std::max( 512ul, (N+threads-1) / threads)) ;
 			for( int i = 0; i < N; i += size ) {
 				m_lls.push_back(
 					create_ll( *m_design, metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )))
