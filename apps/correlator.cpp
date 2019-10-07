@@ -143,6 +143,7 @@ public:
 public:
 	~Visitor() {} ;
 	virtual bool step( Callback callback ) = 0 ;
+	virtual boost::optional< std::size_t > count() const = 0 ;
 } ;
 
 struct CartesianProduct: public Visitor {
@@ -206,6 +207,19 @@ public:
 			m_readers
 		) ;
 		return true ;
+	}
+	
+	boost::optional< std::size_t > count() const {
+		std::size_t result = 1 ;
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			boost::optional< std::size_t > source_size = m_sources[i]->total_number_of_snps() ;
+			if( !source_size ) {
+				return boost::optional< std::size_t >() ;
+			} else {
+				result *= *source_size ;
+			}
+		}
+		return result ;
 	}
 	
 private:
@@ -748,6 +762,7 @@ private:
 		qcdb::Storage& frequencyOutput,
 		qcdb::MultiVariantStorage& correlationOutput
 	) {
+		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
 		for(
 			std::size_t count = 0;
 			visitor.step(
@@ -761,7 +776,7 @@ private:
 			) ;
 			++count
 		) {
-			// nothing to do.
+			progress_context( count, visitor.count() ) ;
 		} ;
 	}
 	
