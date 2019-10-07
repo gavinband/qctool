@@ -38,8 +38,12 @@ namespace qcdb {
 				analysis_id
 			) ;
 			// Set table name, if specified
-			if( file_spec.size() == 3 ) {
+			if( file_spec.size() > 2 ) {
 				table_storage->set_table_name( file_spec[2] ) ;
+			}
+			if( file_spec.size() > 3 ) {
+				assert( file_spec[3] == "without rowid" ) ;
+				table_storage->set_without_rowid() ;
 			}
 			result.reset( table_storage.release() ) ;
 		} else if( file_spec[0] == "flat" ){

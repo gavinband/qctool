@@ -233,7 +233,8 @@ namespace genfile {
 #endif
 				
 				for( std::size_t i = 0 ; i < count; ++i ) {
-					m_setter->set_value( i, 0.0 ) ;
+					//m_setter->set_value( i, 0.0 ) ;
+					m_setter->set_value( i, genfile::MissingValue() ) ;
 				}
 			} else {
 				std::size_t index_of_nonzero_probability = m_tables[ m_ploidy ].second[ m_encoded_call ] ;

@@ -1,0 +1,20 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=GT,Type=String,Number=1,Description="Threshholded genotype call">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample_1	sample_2	sample_3	sample_4
+1	1	RS1	A	G	.	.	.	GT	0	0	0	0
+1	2	RS2	A	G	.	.	.	GT	0	0	0	1
+1	3	RS3	A	G	.	.	.	GT	0	0	1	0
+1	4	RS4	A	G	.	.	.	GT	0	0	1	1
+1	5	RS5	A	G	.	.	.	GT	0	1	0	0
+1	6	RS6	A	G	.	.	.	GT	0	1	0	1
+1	7	RS7	A	G	.	.	.	GT	0	1	1	0
+1	8	RS8	A	G	.	.	.	GT	0	1	1	1
+1	9	RS9	A	G	.	.	.	GT	1	0	0	0
+1	10	RS10	A	G	.	.	.	GT	1	0	0	1
+1	11	RS11	A	G	.	.	.	GT	1	0	1	0
+1	12	RS12	A	G	.	.	.	GT	1	0	1	1
+1	13	RS13	A	G	.	.	.	GT	1	1	0	0
+1	14	RS14	A	G	.	.	.	GT	1	1	0	1
+1	15	RS15	A	G	.	.	.	GT	1	1	1	0
+1	16	RS16	A	G	.	.	.	GT	1	1	1	1
+1	17	RS17	A	G	.	.	.	GT	1/1	1/1	1/1	1/1

@@ -49,7 +49,13 @@ namespace qcdb {
 					"Table spec is not expected unless a sqlite file is specified (i.e. sqlite://<filename>:<tablename>)"
 				) ;
 			}
-			result.push_back( elts[1] ) ;
+			std::vector< std::string > table_elts = genfile::string_utils::split( elts[1], "+" ) ;
+			if( table_elts.size() == 2 ) {
+				result.push_back( table_elts[0] ) ;
+				result.push_back( table_elts[1] ) ;
+			} else {
+				result.push_back( elts[1] ) ;
+			}
 		}
 	
 		return( result ) ;

@@ -51,7 +51,8 @@ namespace qcdb {
 		~FlatTableMultiVariantDBOutputter() ;
 
 		void set_table_name( std::string const& table_name ) ;
-		
+		void set_without_rowid() ;
+
 		void set_variant_names( std::vector< std::string > const& names ) ;
 		void add_variable( std::string const& ) ;
 
@@ -71,6 +72,7 @@ namespace qcdb {
 		qcdb::DBOutputter m_outputter ;
 		std::vector< std::string > m_key_entry_names ;
 		std::string m_table_name ;
+		bool m_without_rowid ;
 		std::size_t const m_max_variants_per_block ;
 		genfile::db::Connection::StatementPtr m_insert_data_sql ;
 		std::vector< Key > m_keys ;

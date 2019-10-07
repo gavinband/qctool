@@ -57,6 +57,7 @@ namespace qcdb {
 		m_outputter( filename, analysis_name, analysis_description, metadata, analysis_id, snp_match_fields ),
 		m_key_entry_names( generate_key_entry_names( number_of_key_fields )),
 		m_table_name( "analysis" + genfile::string_utils::to_string( m_outputter.analysis_id() ) ),
+		m_without_rowid( false ),
 		m_max_variants_per_block( 1000 )
 	{}
 
@@ -70,6 +71,10 @@ namespace qcdb {
 		m_table_name = table_name ;
 	}
 
+	void FlatTableMultiVariantDBOutputter::set_without_rowid() {
+		m_without_rowid = true ;
+	}
+
 	FlatTableMultiVariantDBOutputter::AnalysisId FlatTableMultiVariantDBOutputter::analysis_id() const {
 		return m_outputter.analysis_id() ;
 	}
@@ -79,7 +84,7 @@ namespace qcdb {
 		m_keys.clear() ;
 		m_values.clear() ;
 
-		if( options & qcdb::eCreateIndices ) {
+		if( options & qcdb::eCreateIndices && !m_without_rowid ) {
 			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			std::string sql = "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON `" + m_table_name + "` (";
 			for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
@@ -100,9 +105,10 @@ namespace qcdb {
 				"names",
 				"Can't change table column names because data has already been written."
 			) ;
- 		}
+		}
 		m_key_entry_names = names ;
 	}
+
 	void FlatTableMultiVariantDBOutputter::add_variable( std::string const& variable ) {
 		VariableMap::left_const_iterator where = m_variables.left.find( variable ) ;
 		if( where == m_variables.left.end() ) {
@@ -237,7 +243,15 @@ namespace qcdb {
 			insert_data_sql_values << "?" << to_string( bind_i ) ;
 		}
 
-		schema_sql << " ) ; " ;
+		if( m_without_rowid ) {
+			schema_sql << ", PRIMARY KEY( `analysis_id`" ;
+			for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
+				schema_sql  << ", `" << m_key_entry_names[i] << "_id`" ;
+			}
+			schema_sql << " ) ) WITHOUT ROWID ;" ;
+		} else {
+			schema_sql << " ) ; " ;
+		}
 
 		insert_data_sql_columns << ") " ;
 		insert_data_sql_values << ") ; " ;
@@ -267,7 +281,7 @@ namespace qcdb {
 			<< table_name << "` T " ;
 		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
 			view_sql << (boost::format( "INNER JOIN Variant V%d ON V%d.id = " + m_key_entry_names[i] + "_id " )
-				% (i+1) % (i+1) % (i+1)) ;
+				% (i+1) % (i+1) ) ;
 		}
 		view_sql << "INNER JOIN Analysis A ON A.id = T.analysis_id" ;
 
