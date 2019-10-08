@@ -69,7 +69,7 @@
 // #define DEBUG 1
 
 namespace globals {
-	std::string const program_name = "correlator" ;
+	std::string const program_name = "ldbird" ;
 	std::string const program_version = qctool_version ;
 	std::string const program_revision =  std::string( qctool_revision ).substr( 0, 7 ) ;
 }
@@ -148,8 +148,8 @@ public:
 
 struct CartesianProduct: public Visitor {
 public:
-	CartesianProduct():
-		m_current_source( 0 )
+	CartesianProduct( bool lower_triangle = false ):
+		m_lower_triangle( lower_triangle )
 	{}
 
 	void add_source(
@@ -158,7 +158,6 @@ public:
 	) {
 		m_names.push_back( name ) ;
 		m_sources.push_back( source ) ;
-		m_current_source = m_sources.size() - 1 ;
 	}
 	
 	bool step( Callback callback ) {
@@ -176,7 +175,6 @@ public:
 				} ;
 				m_readers.push_back( m_sources[i]->read_variant_data() ) ;
 			}
-			m_current_source = m_sources.size() - 1 ;
 		} else {
 			// Move to the next variant.
 			// We step to the next variant in each source, starting with the last.
@@ -188,7 +186,7 @@ public:
 					if( i == 0 ) {
 						return false ;
 					} else {
-						m_sources[i]->reset_to_start() ;
+						reset_source(i) ;
 						m_sources[i]->get_snp_identifying_data( &m_variants[i] ) ;
 					}
 				} else {
@@ -211,12 +209,17 @@ public:
 	
 	boost::optional< std::size_t > count() const {
 		std::size_t result = 1 ;
-		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-			boost::optional< std::size_t > source_size = m_sources[i]->total_number_of_snps() ;
-			if( !source_size ) {
-				return boost::optional< std::size_t >() ;
-			} else {
-				result *= *source_size ;
+		if( m_lower_triangle ) {
+			assert( m_sources.size() == 2 ) ;
+			result = (m_sources[0].number_of_snps_read() * (m_sources[0].number_of_snps_read() + 1 ) / 2) ;
+		} else {
+			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+				boost::optional< std::size_t > source_size = m_sources[i]->total_number_of_snps() ;
+				if( !source_size ) {
+					return boost::optional< std::size_t >() ;
+				} else {
+					result *= *source_size ;
+				}
 			}
 		}
 		return result ;
@@ -224,11 +227,27 @@ public:
 	
 private:
 	std::vector< std::string > m_names ;
+	bool const m_lower_triangle ;
 	std::vector< genfile::SNPDataSource* > m_sources ;
 	std::vector< genfile::VariantIdentifyingData > m_variants ;
 	std::vector< genfile::VariantDataReader::SharedPtr > m_readers ;
 	std::vector< int > m_changed ;
-	std::size_t m_current_source ;
+	
+private:
+	
+	void reset_source( std::size_t i ) {
+		m_sources[i]->reset_to_start() ;
+		if( m_lower_triangle ) {
+			assert( m_sources.size() == 2 ) ;
+			if( i == 1 ) {
+				genfile::VariantIdentifyingData variant ;
+				while( m_sources[1]->number_of_snps_read() < m_sources[0]->number_of_snps_read() ) {
+					m_sources[1]->get_snp_identifying_data( &variant ) ;
+					m_sources[1]->ignore_snp_probability_data() ;
+				}
+			}
+		}
+	}
 } ;
 
 struct CorrelatorOptions: public appcontext::CmdLineOptionProcessor
@@ -262,11 +281,11 @@ public:
 			.set_takes_values_until_next_option() ;
 
 		options[ "-g2" ]
-	        .set_description( 	"Path to second genotype file."
+	        .set_description( 	"Path to second genotype file.  If not given the first genotype file will be used."
 								"The given filename may contain the wildcard character '#', which expands to match a"
 								"one- or two-character chromosome identifier." )
 			.set_takes_values( 1 )
-			.set_minimum_multiplicity( 1 )
+			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 1 ) ;
 		options[ "-haploid" ]
 			.set_description( "Turn homozygous genotype calls into haploid calls. "
@@ -538,15 +557,29 @@ private:
 			excluded_samples
 		) ;
 
-		genfile::SNPDataSource::UniquePtr g2 = open_genotype_data_sources(
-			options().get< std::string >( "-g2" ),
-			get_variant_filter(
-				"-incl-range",
-				"-incl-rsids"
-			),
-			excluded_samples
-		) ;
-
+		genfile::SNPDataSource::UniquePtr g2 ;
+		if( options().check( "-g2" )) {
+			// Two files given, we'll do a full carThis mechanism chooses a full cartesian product or a lower triangle implementation.
+			// TODO: make this more obvious / cleaner.
+			g2 = open_genotype_data_sources(
+				options().get< std::string >( "-g2" ),
+				get_variant_filter(
+					"-incl-range",
+					"-incl-rsids"
+				),
+				excluded_samples
+			) ;
+		} else {
+			g2 = open_genotype_data_sources(
+				options().get< std::string >( "-g1" ),
+				get_variant_filter(
+					"-incl-range",
+					"-incl-rsids"
+				),
+				excluded_samples
+			) ;
+		}
+		
 		std::size_t const N = samples->size() ;
 		if( g1->number_of_samples() != N ) {
 			throw genfile::BadArgumentError(
@@ -583,7 +616,9 @@ private:
 			) ;
 			correlationStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 
-			CartesianProduct visitor ;
+			// This mechanism chooses a full cartesian product or a lower triangle implementation
+			// TODO: make this more obvious / cleaner.
+			CartesianProduct visitor( !options().check( "-g2" ) ) ;
 			visitor.add_source( "g1", g1.get() ) ;
 			visitor.add_source( "g2", g2.get() ) ;
 
