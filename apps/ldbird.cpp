@@ -208,17 +208,19 @@ public:
 	}
 	
 	boost::optional< std::size_t > count() const {
-		std::size_t result = 1 ;
-		if( m_lower_triangle ) {
-			assert( m_sources.size() == 2 ) ;
-			result = (m_sources[0].number_of_snps_read() * (m_sources[0].number_of_snps_read() + 1 ) / 2) ;
-		} else {
-			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-				boost::optional< std::size_t > source_size = m_sources[i]->total_number_of_snps() ;
-				if( !source_size ) {
-					return boost::optional< std::size_t >() ;
-				} else {
-					result *= *source_size ;
+		boost::optional< std::size_t > result ;
+		if( m_sources.size() > 0 && (result = m_sources[0]->size() )) {
+			if( m_lower_triangle ) {
+				assert( m_sources.size() == 2 ) ;
+				result = ((*result) * (*result + 1) / 2) ;
+			} else {
+				for( std::size_t i = 1; i < m_sources.size(); ++i ) {
+					boost::optional< std::size_t > source_size = m_sources[i]->size() ;
+					if( !source_size ) {
+						return boost::optional< std::size_t >() ;
+					} else {
+						(*result) *= (*source_size) ;
+					}
 				}
 			}
 		}

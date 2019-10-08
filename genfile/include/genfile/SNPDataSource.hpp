@@ -175,7 +175,8 @@ namespace genfile {
 
 		// Return the total number of snps the source contains.
 		typedef boost::optional< std::size_t > OptionalSnpCount ;
-		virtual OptionalSnpCount total_number_of_snps() const = 0 ;
+		virtual OptionalSnpCount total_number_of_snps() const = 0 ; // deprecated
+		OptionalSnpCount size() const { return total_number_of_snps() ; }
 
 		// Return a string identifying the source of the SNP data
 		virtual std::string get_source_spec() const = 0 ;
