@@ -269,8 +269,8 @@ public:
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option() ;
 
-		options.option_implies_option( "-g1-incl-range", "-g1" ) 
-		options.option_implies_option( "-g1-incl-rsids", "-g1" ) 
+		options.option_implies_option( "-g1-incl-range", "-g1" ) ;
+		options.option_implies_option( "-g1-incl-rsids", "-g1" ) ;
 
 		options[ "-g2" ]
 			.set_description( 	"Path to second genotype file.  If not given the first genotype file will be used."
@@ -291,8 +291,8 @@ public:
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option() ;
 
-		options.option_implies_option( "-g2-incl-range", "-g2" ) 
-		options.option_implies_option( "-g2-incl-rsids", "-g2" ) 
+		options.option_implies_option( "-g2-incl-range", "-g2" ) ;
+		options.option_implies_option( "-g2-incl-rsids", "-g2" ) ;
 
 		options[ "-s" ]
 			.set_description( "Path of sample file" )
