@@ -75,19 +75,6 @@ namespace globals {
 }
 
 namespace {
-	bool in_set( std::string const& arg, std::vector< std::string > const& values, std::set< std::string > const& permitted ) {
-		for( auto v: values ) {
-			if( permitted.find( v ) == permitted.end() ) {
-				throw appcontext::OptionValueInvalidException(
-					arg,
-					values,
-					arg + ": unexpected value (\"" + v + "\")"
-				) ;
-			}
-		}
-		return true ;
-	}
-	
 	std::vector< std::string > collect_unique_ids( std::vector< std::string > const& ids_or_filenames ) {
 		std::vector< std::string > result ;
 		for( auto elt: ids_or_filenames ) {
@@ -271,27 +258,42 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
-		options[ "-incl-rsids" ]
+		options[ "-g1-incl-rsids" ]
 			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
 			.set_takes_values_until_next_option()
 			.set_maximum_multiplicity( 100 ) ;
-		options[ "-incl-range" ]
+		options[ "-g1-incl-range" ]
 			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
 				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
 				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
 				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
 			.set_takes_values_until_next_option() ;
 
+		options.option_implies_option( "-g1-incl-range", "-g1" ) 
+		options.option_implies_option( "-g1-incl-rsids", "-g1" ) 
+
 		options[ "-g2" ]
-	        .set_description( 	"Path to second genotype file.  If not given the first genotype file will be used."
+			.set_description( 	"Path to second genotype file.  If not given the first genotype file will be used."
 								"The given filename may contain the wildcard character '#', which expands to match a"
 								"one- or two-character chromosome identifier." )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 1 ) ;
-		options[ "-haploid" ]
-			.set_description( "Turn homozygous genotype calls into haploid calls. "
-				"Heterozygous calls will be treated as missing" ) ;
+
+		options[ "-g2-incl-rsids" ]
+			.set_description( "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.")
+			.set_takes_values_until_next_option()
+			.set_maximum_multiplicity( 100 ) ;
+		options[ "-g2-incl-range" ]
+			.set_description( "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. "
+				"Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the "
+				"start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. "
+				"You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome." )
+			.set_takes_values_until_next_option() ;
+
+		options.option_implies_option( "-g2-incl-range", "-g2" ) 
+		options.option_implies_option( "-g2-incl-rsids", "-g2" ) 
+
 		options[ "-s" ]
 			.set_description( "Path of sample file" )
 			.set_takes_values( 1 )
@@ -352,6 +354,10 @@ public:
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
+		options[ "-table-prefix" ]
+			.set_description( "Specify a prefix to add to tables.  They will be called <prefix>Frequency and <prefix>R." )
+			.set_takes_single_value()
+			.set_default_value( "" ) ;
 		options[ "-threshold" ]
 			.set_description( "The threshold to apply to genotype probabilities, if necessary, to make calls." )
 			.set_takes_single_value()
@@ -553,8 +559,8 @@ private:
 		genfile::SNPDataSource::UniquePtr g1 = open_genotype_data_sources(
 			options().get< std::string >( "-g1" ),
 			get_variant_filter(
-				"-incl-range",
-				"-incl-rsids"
+				"-g1-incl-range",
+				"-g1-incl-rsids"
 			),
 			excluded_samples
 		) ;
@@ -566,8 +572,8 @@ private:
 			g2 = open_genotype_data_sources(
 				options().get< std::string >( "-g2" ),
 				get_variant_filter(
-					"-incl-range",
-					"-incl-rsids"
+					"-g2-incl-range",
+					"-g2-incl-rsids"
 				),
 				excluded_samples
 			) ;
@@ -575,8 +581,8 @@ private:
 			g2 = open_genotype_data_sources(
 				options().get< std::string >( "-g1" ),
 				get_variant_filter(
-					"-incl-range",
-					"-incl-rsids"
+					"-g1-incl-range",
+					"-g1-incl-rsids"
 				),
 				excluded_samples
 			) ;
@@ -601,8 +607,10 @@ private:
 		write_preamble( *g1, *g2, *samples ) ;
 		
 		{
+			std::string const fileSpec = options().get< std::string > ( "-o" ) ;
+			std::string const tablePrefix = options().get< std::string > ( "-table-prefix" ) ;
 			qcdb::Storage::UniquePtr frequencyStorage = qcdb::Storage::create(
-				options().get< std::string > ( "-o" ) + ":Frequency",
+				fileSpec + ":" + tablePrefix + "Frequency",
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
 				get_application_metadata()
@@ -610,7 +618,7 @@ private:
 			//frequencyStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 
 			qcdb::MultiVariantStorage::UniquePtr correlationStorage = qcdb::MultiVariantStorage::create(
-				options().get< std::string > ( "-o" ) + ":R+without rowid",
+				fileSpec + ":" + tablePrefix + "R+without rowid",
 				2,
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
