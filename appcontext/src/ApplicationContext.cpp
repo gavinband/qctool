@@ -163,8 +163,8 @@ namespace appcontext {
 			std::make_pair(
 				"$",
 				std::make_pair(
-					std::vector< std::string >( 1, m_application_name ),
-					m_application_version
+					std::vector< std::string >( 1, m_application_name + "(" + m_application_version + ")" ),
+					"user-supplied"
 				)
 			)
 		) ;
