@@ -328,10 +328,14 @@ public:
 			.set_takes_single_value()
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
-		options[ "-minimum-r2" ]
+		options[ "-min-r2" ]
 			.set_description( "Do not output results where r^2 is lower than this threshold." )
 			.set_takes_single_value()
 			.set_default_value( 0.05 ) ;
+		options[ "-min-maf" ]
+			.set_description( "Do not output results where the maf of eiteher variant is lower than this threshold." )
+			.set_takes_single_value()
+			.set_default_value( 0 ) ;
 		options[ "-assume-haploid" ]
 			.set_description( "Convert all data to haploid calls.  This converts homozygous calls"
 				" to haploid calls, and treats any heterozygous calls as missing.")
@@ -850,27 +854,41 @@ private:
 			m_nonmissingness.resize( changed.size() ) ;
 		}
 		double const prior_weight = options().get< double >( "-prior-weight" ) ;
+		double min_maf = 0.5 ;
 		for( std::size_t i = 0; i < changed.size(); ++i ) {
 			if( changed[i] == 1 ) {
 				DosageSetter setter( &(m_dosages[i]), &(m_ploidy[i]), &(m_nonmissingness[i]), options().check( "-assume-haploid" )) ;
 				readers[i]->get( ":genotypes:", genfile::to_GP_unphased( setter )) ;
-
+			}
+			
 #if DEBUG
-				std::cerr << globals::program_name + ":process_one(): variant " << i << ": " << variants[i] << ":\n" ;
-				std::cerr << "Loaded data with nonmissingness: " << m_nonmissingness[i] << ".\n" ;
+			std::cerr << globals::program_name + ":process_one(): variant " << i << ": " << variants[i] << ":\n" ;
+			std::cerr << "Loaded data with nonmissingness: " << m_nonmissingness[i] << ".\n" ;
 #endif
 
-				FrequencyStore::const_iterator where = m_frequencies.find( variants[i] ) ;
-				if( where == m_frequencies.end() ) {
-					m_frequencies[ variants[i] ] = compute_regularised_frequency( m_dosages[i], m_ploidy[i], m_nonmissingness[i], prior_weight ) ;
+			FrequencyStore::const_iterator where = m_frequencies.find( variants[i] ) ;
+			double frequency = 0.0 ;
+			if( where != m_frequencies.end() ) {
+				frequency = where->second ;
+			} else {
+				frequency = compute_regularised_frequency( m_dosages[i], m_ploidy[i], m_nonmissingness[i], prior_weight ) ;
+				
+				// not yet computed, so store it
+				m_frequencies[ variants[i] ] = frequency ;
 					frequencyOutput.store_per_variant_data(
 						variants[i],
 						"frequency",
-						m_frequencies[ variants[i] ]
+						frequency
 					) ;
-				}
 			}
+			min_maf = std::min( min_maf, std::min( frequency, 1.0 - frequency )) ;
 		}
+		
+		// Bail out if any of the variants are too rare
+		if( min_maf < options().get< double >( "-min-maf" )) {
+			return ;
+		}
+		
 		std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, m_dosages[0].size() )) ;
 		for( std::size_t i = 0; i < changed.size(); ++i ) {
 			included_samples = metro::impl::intersect_ranges( included_samples, m_nonmissingness[i] ) ;
@@ -882,7 +900,7 @@ private:
 			&covariance, &correlation, &N,
 			prior_weight
 		) ;
-		if( ( correlation * correlation ) >= options().get< double >( "-minimum-r2" ) ) {
+		if( ( correlation * correlation ) >= options().get< double >( "-min-r2" ) ) {
 			correlationOutput.store_data_for_key(
 				variants,
 				"N",
