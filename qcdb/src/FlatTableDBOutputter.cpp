@@ -28,7 +28,7 @@ namespace qcdb {
 		std::string const& snp_match_fields,
 		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
-		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
+		return UniquePtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields, analysis_id ) ) ;
 	}
 
 	FlatTableDBOutputter::SharedPtr FlatTableDBOutputter::create_shared(
@@ -39,7 +39,7 @@ namespace qcdb {
 		std::string const& snp_match_fields,
 		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
-		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields ) ) ;
+		return SharedPtr( new FlatTableDBOutputter( filename, analysis_name, analysis_description, metadata, snp_match_fields, analysis_id ) ) ;
 	}
 
 	FlatTableDBOutputter::FlatTableDBOutputter(
