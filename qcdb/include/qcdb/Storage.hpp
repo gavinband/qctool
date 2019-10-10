@@ -30,7 +30,8 @@ namespace qcdb {
 			std::string const& analysis_name,
 			std::string const& analysis_chunk,
 			Metadata const& metadata,
-			std::string const& compare_by = "position,alleles"
+			std::string const& compare_by = "position,alleles",
+			boost::optional< genfile::db::Connection::RowId > analysis_id = boost::optional< genfile::db::Connection::RowId >()
 		) ;
 		
 		virtual ~Storage() {} ;

@@ -66,7 +66,8 @@ namespace qcdb {
 		std::string const& analysis_name,
 		std::string const& analysis_chunk,
 		Metadata const& metadata,
-		std::string const& compare_by
+		std::string const& compare_by,
+		boost::optional< genfile::db::Connection::RowId > analysis_id
 	) {
 		Storage::UniquePtr result ;
 		std::vector< std::string > const file_spec = Storage::parse_filespec( filename ) ;
@@ -76,7 +77,8 @@ namespace qcdb {
 				analysis_name,
 				analysis_chunk,
 				metadata,
-				compare_by
+				compare_by,
+				analysis_id
 			) ;
 			// Set table name, if specified
 			if( file_spec.size() == 3 ) {

@@ -354,6 +354,9 @@ public:
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
 			.set_default_value( genfile::MissingValue() ) ;
+		options[ "-analysis-id" ]
+			.set_description( "Specify an integer ID for the current analysis." )
+			.set_takes_single_value() ;
 		options[ "-table-prefix" ]
 			.set_description( "Specify a prefix to add to tables.  They will be called <prefix>Frequency and <prefix>R." )
 			.set_takes_single_value()
@@ -607,13 +610,20 @@ private:
 		write_preamble( *g1, *g2, *samples ) ;
 		
 		{
+                        boost::optional< genfile::db::Connection::RowId > analysis_id ;
+                        if( options().check( "-analysis-id" ) ) {
+                                analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
+                        }
+
 			std::string const fileSpec = options().get< std::string > ( "-o" ) ;
 			std::string const tablePrefix = options().get< std::string > ( "-table-prefix" ) ;
 			qcdb::Storage::UniquePtr frequencyStorage = qcdb::Storage::create(
 				fileSpec + ":" + tablePrefix + "Frequency",
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
-				get_application_metadata()
+				get_application_metadata(),
+				"position,alleles",
+				analysis_id
 			) ;
 			//frequencyStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 
@@ -622,7 +632,9 @@ private:
 				2,
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
-				get_application_metadata()
+				get_application_metadata(),
+				"position,alleles",
+				analysis_id
 			) ;
 			correlationStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 
