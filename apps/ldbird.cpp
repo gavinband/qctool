@@ -641,6 +641,8 @@ private:
 				analysis_id
 			) ;
 			correlationStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
+			correlationStorage->add_variable( "N" ) ;
+			correlationStorage->add_variable( "encoded_r" ) ;
 
 			// This mechanism chooses a full cartesian product or a lower triangle implementation
 			// TODO: make this more obvious / cleaner.

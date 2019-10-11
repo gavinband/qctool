@@ -183,7 +183,7 @@ namespace qcdb {
 		std::vector< genfile::db::Connection::RowId > variant_ids ;
 		for( std::size_t key_i = 0; key_i < m_keys.size(); ++key_i ) {
 			variant_ids.resize( m_keys[key_i].size() ) ;
-			for( std::size_t i = 0; i < m_keys[i].size(); ++i ) {
+			for( std::size_t i = 0; i < m_keys[key_i].size(); ++i ) {
 				variant_ids[i] = m_outputter.get_or_create_variant( m_keys[key_i][i] ) ;
 			}
 			store_data_for_variants( key_i, m_outputter.analysis_id(), variant_ids ) ;
