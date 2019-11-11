@@ -26,8 +26,16 @@ namespace qcdb {
 			std::vector<int> const fields = comparer.get_compared_fields() ;
 
 			if(
-				std::find( fields.begin(), fields.end(), CompareFields::ePosition ) == fields.end()
-				|| std::find( fields.begin(), fields.end(), CompareFields::eAlleles ) == fields.end()
+				std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::ePosition)
+				) == fields.end()
+				|| std::find(
+					fields.begin(),
+					fields.end(),
+					static_cast<int>(CompareFields::eAlleles)
+				) == fields.end()
 			) {
 				throw genfile::BadArgumentError(
 					"qcdb::impl::get_match_rsid()",
