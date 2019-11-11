@@ -614,10 +614,10 @@ private:
 		write_preamble( *g1, *g2, *samples ) ;
 		
 		{
-                        boost::optional< genfile::db::Connection::RowId > analysis_id ;
-                        if( options().check( "-analysis-id" ) ) {
-                                analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
-                        }
+			boost::optional< genfile::db::Connection::RowId > analysis_id ;
+			if( options().check( "-analysis-id" ) ) {
+				analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
+			}
 
 			std::string const fileSpec = options().get< std::string > ( "-o" ) ;
 			std::string const tablePrefix = options().get< std::string > ( "-table-prefix" ) ;
