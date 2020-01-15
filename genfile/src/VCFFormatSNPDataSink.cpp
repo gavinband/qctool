@@ -243,7 +243,7 @@ namespace genfile {
 			std::vector< genfile::string_utils::slice > const& ids = id_data.get_identifiers( 1 ) ;
 			for( std::size_t i = 0; i < ids.size(); ++i ) {
 				if( ids[i] != primary_id ) {
-					(*m_stream_ptr) << "," << ids[i] ;
+					(*m_stream_ptr) << ";" << ids[i] ;
 				}
 			}
 		(*m_stream_ptr) << tab
