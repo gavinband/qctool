@@ -109,10 +109,17 @@ namespace metro {
 			int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
 			std::size_t const threads = m_pool->number_of_threads() ;
 			int const size = int(std::max( 512ul, (N+threads-1) / threads)) ;
-			for( int i = 0; i < N; i += size ) {
+			if( N == 0 ) {
+				// ensure we have at least one ll, even though no samples.
 				m_lls.push_back(
-					create_ll( *m_design, metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )))
+					create_ll( *m_design, m_design->nonmissing_samples() )
 				) ;
+			} else {
+				for( int i = 0; i < N; i += size ) {
+					m_lls.push_back(
+						create_ll( *m_design, metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )))
+					) ;
+				}
 			}
 			// sanity check: do parameter names match?
 			std::vector< std::string > parameter_names = m_lls[0].get_parameter_names() ;
