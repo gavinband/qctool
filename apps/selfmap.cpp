@@ -15,9 +15,11 @@
 #include "genfile/MissingValue.hpp"
 #include "genfile/string_utils/string_utils.hpp"
 #include "components/SNPSummaryComponent/GenomeSequence.hpp"
-#include "qcdb/Storage.hpp"
-#include "qcdb/FlatTableDBOutputter.hpp"
-#include "qcdb/FlatFileOutputter.hpp"
+#include "genfile/Error.hpp"
+#include "genfile/db/Connection.hpp"
+#include "genfile/db/SQLite3Connection.hpp"
+#include "genfile/db/SQLite3Statement.hpp"
+#include "genfile/db/Error.hpp"
 
 // #define DEBUG_SELFMAP 1
 
@@ -174,7 +176,8 @@ private:
 	std::size_t m_kmer_size ;
 	std::vector< genfile::GenomePositionRange > m_ranges ;
 
-	typedef std::map< std::string, std::vector< std::pair< genfile::GenomePosition, char > > > KmerMap ;
+	typedef std::vector< std::pair< genfile::GenomePosition, char > > KmerPositions ;
+	typedef std::map< std::string, KmerPositions > KmerMap ;
 	//typedef boost::unordered_map< std::string, std::vector< std::pair< genfile::Position, char > > > KmerMap ;
 	typedef boost::bimap< std::string, std::pair< genfile::GenomePosition, char > > KmerBimap ;
 	
@@ -247,81 +250,150 @@ private:
 #endif
 	}
 
-	qcdb::Storage::SharedPtr open_storage() const {
-		qcdb::Storage::SharedPtr storage ;
-		std::string const& filename = options().get< std::string >( "-o" ) ;
+	struct Storage {
+	public: 
+		typedef std::unique_ptr< Storage > UniquePtr ;
+		typedef genfile::db::Connection::RowId KmerId ;
 
-		if( filename.size() > 7 && filename.substr( filename.size() - 7, 7 ) == ".sqlite" ) {
-			qcdb::FlatTableDBOutputter::SharedPtr outputter = qcdb::FlatTableDBOutputter::create_shared(
-				options().get< std::string >( "-o" ),
-				options().get< std::string >( "-analysis-name" ),
-				options().get< std::string >( "-analysis-chunk" ),
-				options().get_values_as_map()
-			) ;
-			if( options().check( "-table-name" )) {
-				outputter->set_table_name( options().get< std::string >(  "-table-name" )) ;
+		static UniquePtr create( std::string const& filename, std::string const& prefix ) {
+			return UniquePtr( new Storage( filename, prefix )) ;
+		}
+
+		Storage( std::string const& filename, std::string const& table_prefix ):
+			m_filename( filename ),
+			m_prefix( table_prefix ),
+			m_connection( genfile::db::Connection::create( filename ))
+		{
+			setup_storage() ;
+		}
+		
+	public:
+		
+		KmerId store_kmer(
+			std::string const& kmer
+		) {
+			return get_or_insert_kmer( kmer ) ;
+		}
+
+		void store_overlap(
+			KmerId const& kmer_id,
+			genfile::GenomePosition const& position1,
+			char const orientation1,
+			genfile::GenomePosition const& position2,
+			char const orientation2
+		) {
+			m_insert_overlap_stmt
+				->bind( 1, kmer_id )
+				.bind( 2, std::string( position1.chromosome() ))
+				.bind( 3, position1.position() )
+				.bind( 4, std::string( 1, orientation1 ) )
+				.bind( 5, std::string( position2.chromosome() ))
+				.bind( 6, position2.position() )
+				.bind( 7, std::string( 1, orientation2 ) )
+				.step() ;
+			m_insert_overlap_stmt->reset() ;
+		}
+		
+		genfile::db::Connection::RowId get_or_insert_kmer( std::string const& kmer ) {
+			genfile::db::Connection::RowId result = 0 ;
+			m_find_kmer_stmt
+				->bind( 1, kmer )
+				.step() ;
+			if( m_find_kmer_stmt->empty() ) {
+				m_insert_kmer_stmt
+					->bind( 1, kmer )
+					.step() ;
+				result = m_connection->get_last_insert_row_id() ;
+			} else {
+				result = m_insert_kmer_stmt->get< genfile::db::Connection::RowId >( 0 ) ;
 			}
-			storage = outputter ;
-		} else {
-			storage = qcdb::FlatFileOutputter::create_shared(
-				options().get< std::string >( "-o" ),
-				options().get< std::string >( "-analysis-name" ),
-				options().get_values_as_map()
+			m_find_kmer_stmt->reset() ;
+			return result ;
+		}
+		
+		void finalise() const {
+			// nothing to do at present.
+		}
+		
+	private:
+		std::string const m_filename ;
+		std::string const m_prefix ;
+		genfile::db::Connection::UniquePtr m_connection ;
+		genfile::db::Connection::StatementPtr m_find_kmer_stmt ;
+		genfile::db::Connection::StatementPtr m_insert_kmer_stmt ;
+		genfile::db::Connection::StatementPtr m_insert_overlap_stmt ;
+
+	private:
+		void setup_storage() {
+			// Performance options
+			// Assume this program will write once, so we don't need
+			// extensive ACID options.
+			m_connection->run_statement( "PRAGMA locking_mode = EXCLUSIVE ;" ) ;
+			m_connection->run_statement( "PRAGMA journal_mode = MEMORY ;" ) ;
+			m_connection->run_statement( "PRAGMA synchronous = OFF ;" ) ;
+			
+			m_connection->run_statement(
+				"CREATE TABLE `" + m_prefix + "Kmer` ( id INT NOT NULL PRIMARY KEY, sequence TEXT NOT NULL ) ;"
+			) ;
+			
+			m_connection->run_statement(
+				"CREATE TABLE `" + m_prefix + "Overlap` ("
+					"kmer_id INT NOT NULL REFERENCES kmer(id),"
+					"chromosome1 TEXT NOT NULL, position1 TEXT NOT NULL, orientation1 TEXT NOT NULL,"
+					"chromosome2 TEXT NOT NULL, position2 TEXT NOT NULL, orientation2 TEXT NOT NULL"
+					"PRIMARY KEY (chromosome1, position1)"
+				") WITHOUT ROWID ;"
+			) ;
+			
+			m_find_kmer_stmt = m_connection->get_statement(
+				"SELECT id FROM `" + m_prefix + "Kmer` WHERE sequence == ? ;"
+			) ;
+
+			m_insert_kmer_stmt = m_connection->get_statement(
+				"INSERT INTO `" + m_prefix + "Kmer` (sequence) VALUES( ? ) ;"
+			) ;
+
+			m_insert_overlap_stmt = m_connection->get_statement(
+				"INSERT INTO `" + m_prefix + "Overlap` VALUES( ?, ?, ?, ?, ?, ? ) ;"
 			) ;
 		}
-		return storage ;
+	} ;
+
+	Storage::UniquePtr open_storage() const {
+		return Storage::create(
+			options().get< std::string >( "-o" ),
+			options().get< std::string >( "-table-prefix" )
+		) ;
 	}
 
-	void write_output( KmerMap const& kmerMap, qcdb::Storage::SharedPtr storage ) {
+	void write_output( KmerMap const& kmerMap, Storage::UniquePtr storage ) {
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Storing results" ) ;
-
-		storage->add_variable( "orientation" ) ;
-		storage->add_variable( "other_chromosome" ) ;
-		storage->add_variable( "other_position" ) ;
-		storage->add_variable( "other_orientation" ) ;
 
 		bool const include_diagonal = options().check( "-include-diagonal" ) ;
 		using genfile::string_utils::to_string ;
 		//genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
-		KmerMap::const_iterator i = kmerMap.begin() ;
+		KmerMap::const_iterator kmer_i = kmerMap.begin() ;
 		KmerMap::const_iterator end_i = kmerMap.end() ;
 		std::size_t count = 0 ;
-		for( ; i != end_i; ++i, ++count ) {
-			genfile::GenomePosition const& position = i->second[0].first ;
-			genfile::VariantIdentifyingData snp(
-				to_string( position ),
-				".",
-				position,
-				i->first, "."
-			) ;
-			for( std::size_t j = 0; j < i->second.size(); ++j ) {
-				if( i->second[j].second == '+' ) {
-					snp.set_position( i->second[j].first ) ;
-					for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < i->second.size(); ++k ) {
-						storage->create_new_variant( snp ) ;
-						storage->store_per_variant_data(
-							snp,
-							"orientation",
-							std::string( 1, i->second[j].second )
-						) ;
-						storage->store_per_variant_data(
-							snp,
-							"other_chromosome",
-							i->second[k].first.chromosome()
-						) ;
+		for( ; kmer_i != end_i; ++kmer_i, ++count ) {
+			std::string const& kmer = kmer_i->first ;
+			KmerPositions const& positions = kmer_i->second ;
 
-						storage->store_per_variant_data(
-							snp,
-							"other_position",
-							genfile::VariantEntry::Integer( i->second[k].first.position() )
-						) ;
-
-						storage->store_per_variant_data(
-							snp,
-							"other_orientation",
-							std::string( 1, i->second[k].second )
-						) ;
-					}
+			Storage::KmerId const kmer_id = storage->store_kmer( kmer ) ;
+			
+			for( std::size_t j = 0; j < positions.size(); ++j ) {
+				genfile::GenomePosition const& position1 = positions[j].first ;
+				char const orientation1 = positions[j].second ;
+				for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < positions.size(); ++k ) {
+					genfile::GenomePosition const& position2 = positions[k].first ;
+					char const orientation2 = positions[k].second ;
+					storage->store_overlap(
+						kmer_id,
+						position1,
+						orientation1,
+						position2,
+						orientation2
+					) ;
 				}
 			}
 			progress_context.notify_progress( count+1, kmerMap.size() ) ;
