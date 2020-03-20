@@ -78,69 +78,88 @@ void GenomeSequence::load_sequence(
 	enum State { eHeader = 0, eSequence = 1 } ;
 	State state = eHeader ;
 	ChromosomeSequence sequence ;
-	// State machine
-	// We are either reading a header line (which may be split into seperate reads
-	// because of the buffered input or a sequence line.
-	do {
+
+	{
+		// State machine
+		// We are either reading a header line,
+		// or reading sequence lines.
+		enum State { eHeader = 0, eSequence = 1 } ;
+		State state = eHeader ;
+
+		// try to read more data
 		stream->read( &buffer[0], BUFFER_SIZE ) ;
 		std::size_t const count = stream->gcount() ;
-		char const* p_end = &buffer[0] + count ;
-		for(
-			char const* p = &buffer[0] ;
-			p < p_end;
-			++p
-		 ) {
-			 char const* segment_end = std::find( p, p_end, '\n' ) ;
-			 if( state == eHeader ) {
-				 if( sequenceName.size() == 0 ) {
-					if( *p != '>' ) {
-						throw genfile::MalformedInputError(
-							filename,
-							"File does not appear to be a FASTA file (sequence does not start with a \">\" character)",
-							0
+		char const* p = &buffer[0] ;
+		char const* data_end = &buffer[0] + count ;
+
+		while( (*stream) || p < data_end ) { // while there is more data
+			char const* const line_or_data_end = std::find( p, data_end, '\n' ) ;
+
+			if( state == eHeader ) {
+				assert( p != data_end ) ;
+				if( *p != '>' ) {
+					throw genfile::MalformedInputError(
+						filename,
+						"File does not appear to be a FASTA file (sequence does not start with a \">\" character)",
+						0
+					) ;
+				}
+				// assume header line fits in one \n-terminated line
+				if( line_or_data_end == data_end ) {
+					throw genfile::MalformedInputError(
+						filename,
+						"File does not appear to be a FASTA file (sequence header line appears excessively long)",
+						0
+					) ;
+				}
+				sequenceName.assign( p+1, line_or_data_end ) ;
+				sequence.clear() ;
+				state = eSequence ;
+			} else {
+				// state == eSequence
+				sequence.insert( sequence.end(), p, line_or_data_end ) ;
+			}
+			p = std::min( line_or_data_end + 1, data_end ) ;
+			
+			// Deal with loading additional data if needed
+			if( p == data_end && *stream ) {
+				// try to read more data
+				stream->read( &buffer[0], BUFFER_SIZE ) ;
+				std::size_t const count = stream->gcount() ;
+				p = &buffer[0] ;
+				data_end = &buffer[0] + count ;
+			}
+			
+			// Store the existing sequence if it has ended
+			if( p == data_end || *p == '>' ) {
+				 // First try to parse useful info out of sequence header line
+				std::size_t colon = sequenceName.find( ':' ) ;
+				std::size_t dash = sequenceName.find( '-' ) ;
+				uint32_t sequenceStart = 1 ;
+				if( colon != -1 && dash != -1 && dash > colon ) {
+					try {
+						sequenceStart = genfile::string_utils::to_repr< uint32_t >(
+							sequenceName.substr( colon + 1, dash - colon - 1 )
 						) ;
 					}
-				}
-				sequenceName.append( p+1, segment_end ) ;
-				if( segment_end != p_end ) {
-					// eol, hence we have the whole sequence name
-					sequence.clear() ;
-					line_count = 0 ;
-					state = eSequence ;
-					//std::cerr << "GenomeSequence::load_sequence(): read header: \"" << sequenceName << "\".\n" ;
-				}
-			} else if( state == eSequence ) {
-				 sequence.insert( sequence.end(), p, segment_end ) ;
-				 ++line_count ;
-				 if( (segment_end == (p_end-1)) || ((segment_end < (p_end-1)) && (*(segment_end+1) == '>')) ) {
- 					//std::cerr << "GenomeSequence::load_sequence(): read sequence: \"" << std::string( sequence.begin(), sequence.end() ) << "\".\n" ;
-					// end of sequence.
-					// Store this in our map.
-					std::size_t colon = sequenceName.find( ':' ) ;
-					std::size_t dash = sequenceName.find( '-' ) ;
-					uint32_t sequenceStart = 1 ;
-					if( colon != -1 && dash != -1 && dash > colon ) {
-						try {
-							sequenceStart = genfile::string_utils::to_repr< uint32_t >( sequenceName.substr( colon + 1, dash - colon - 1 )) ;
-						}
-						catch( genfile::string_utils::StringConversionError const& e ) {
-							// ignore
-						}
+					catch( genfile::string_utils::StringConversionError const& e ) {
+						// ignore
 					}
-					if( m_data.find( sequenceName ) != m_data.end() ) {
-						throw genfile::DuplicateKeyError( filename, "sequence name=\"" + sequenceName + "\"" ) ;
-					}
-					m_data[ name + ":" + sequenceName ] = ChromosomeRangeAndSequence(
-						std::make_pair( sequenceStart, sequenceStart + sequence.size() ),
-						sequence
-					) ;
-					state = eHeader ;
-					sequenceName.clear() ;
-				 }
+				}
+				// Sanity check...
+				if( m_data.find( sequenceName ) != m_data.end() ) {
+					throw genfile::DuplicateKeyError( filename, "sequence name=\"" + sequenceName + "\"" ) ;
+				}
+				// ...and store sequence
+				m_data[ name + ":" + sequenceName ] = ChromosomeRangeAndSequence(
+					std::make_pair( sequenceStart, sequenceStart + sequence.size() ),
+					sequence
+				) ;
+
+				state = eHeader ;
 			}
-			p = segment_end ;
 		}
-	} while( *stream ) ;
+	}
 }
 
 std::string GenomeSequence::get_summary( std::string const& prefix, std::size_t column_width ) const {
