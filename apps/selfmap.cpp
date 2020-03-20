@@ -84,8 +84,8 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 				.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 				.set_takes_single_value()
 				.set_default_value( genfile::MissingValue() ) ;
-			options[ "-table-name" ]
-				.set_description( "Specify a name for the table to use when using -flat-table." )
+			options[ "-table-prefix" ]
+				.set_description( "Specify a prefix for the output table names." )
 				.set_takes_single_value() ;
 		}
 		{
