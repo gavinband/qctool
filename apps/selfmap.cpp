@@ -86,7 +86,8 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 				.set_default_value( genfile::MissingValue() ) ;
 			options[ "-table-prefix" ]
 				.set_description( "Specify a prefix for the output table names." )
-				.set_takes_single_value() ;
+				.set_takes_single_value()
+				.set_default_value( "" ) ;
 		}
 		{
 			options.declare_group( "Options affecting output" ) ;
@@ -166,6 +167,10 @@ public:
 			get_ui_context().logger() << "!! (" << e.what() << "): " << e.description() << ".\n" ;
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
+		catch( genfile::db::StatementStepError const& e ) {
+			get_ui_context().logger() << "!! (" << e.what() << "): " << e.description() << ".\n" ;
+			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
+		}
 	}
 
 	void post_summarise() {
@@ -177,7 +182,8 @@ private:
 	std::vector< genfile::GenomePositionRange > m_ranges ;
 
 	typedef std::vector< std::pair< genfile::GenomePosition, char > > KmerPositions ;
-	typedef std::map< std::string, KmerPositions > KmerMap ;
+	//typedef std::map< std::string, KmerPositions > KmerMap ;
+	typedef boost::unordered_map< std::string, KmerPositions > KmerMap ;
 	//typedef boost::unordered_map< std::string, std::vector< std::pair< genfile::Position, char > > > KmerMap ;
 	typedef boost::bimap< std::string, std::pair< genfile::GenomePosition, char > > KmerBimap ;
 	
@@ -210,6 +216,7 @@ private:
 			throw appcontext::HaltProgramWithReturnCode( -1 ) ;
 		}
 		std::string kmer ;
+		std::string kmer_reverse_complement ;
 
 		GenomeSequence::PhysicalSequenceRange range = m_sequences->get_sequence( start.chromosome(), start.position(), end.position() ) ;
 		genfile::Position rangePosition = range.first.start().position() ;
@@ -225,21 +232,24 @@ private:
 				std::cerr << "SelfMapApplication:run(): looking at kmer: " << kmer << "...\n" ;
 	#endif
 				kmer.assign( kmer_start, kmer_end ) ;
-				genfile::string_utils::to_upper( &kmer ) ;
+				kmer_reverse_complement.assign( kmer_start, kmer_end ) ;
+				impl::reverse_complement( &kmer ) ;
 				if( kmer.find( 'N' ) == std::string::npos ) {
-					(*result)[ kmer ].push_back(
-                        std::make_pair(
-                            genfile::GenomePosition( start.chromosome(), rangePosition ),
-                            '+'
-                        )
-                    ) ;
-					impl::reverse_complement( &kmer ) ;
-					(*result)[ kmer ].push_back(
-                        std::make_pair(
-                            genfile::GenomePosition( start.chromosome(), rangePosition + m_kmer_size ),
-                            '-'
-                        )
-                    ) ;
+					if( kmer <= kmer_reverse_complement ) {
+						(*result)[ kmer ].push_back(
+							std::make_pair(
+								genfile::GenomePosition( start.chromosome(), rangePosition ),
+								'+'
+							)
+						) ;
+					} else {
+						(*result)[ kmer_reverse_complement ].push_back(
+							std::make_pair(
+								genfile::GenomePosition( start.chromosome(), rangePosition ),
+								'-'
+							)
+						) ;
+					}
 				}
 			}
 			progress_context.notify_progress( rangePosition, range.first.end().position() - m_kmer_size ) ;
@@ -262,7 +272,8 @@ private:
 		Storage( std::string const& filename, std::string const& table_prefix ):
 			m_filename( filename ),
 			m_prefix( table_prefix ),
-			m_connection( genfile::db::Connection::create( filename ))
+			m_connection( genfile::db::Connection::create( filename )),
+			m_kmer_count(0)
 		{
 			setup_storage() ;
 		}
@@ -294,23 +305,6 @@ private:
 			m_insert_overlap_stmt->reset() ;
 		}
 		
-		genfile::db::Connection::RowId get_or_insert_kmer( std::string const& kmer ) {
-			genfile::db::Connection::RowId result = 0 ;
-			m_find_kmer_stmt
-				->bind( 1, kmer )
-				.step() ;
-			if( m_find_kmer_stmt->empty() ) {
-				m_insert_kmer_stmt
-					->bind( 1, kmer )
-					.step() ;
-				result = m_connection->get_last_insert_row_id() ;
-			} else {
-				result = m_insert_kmer_stmt->get< genfile::db::Connection::RowId >( 0 ) ;
-			}
-			m_find_kmer_stmt->reset() ;
-			return result ;
-		}
-		
 		void finalise() const {
 			// nothing to do at present.
 		}
@@ -322,6 +316,7 @@ private:
 		genfile::db::Connection::StatementPtr m_find_kmer_stmt ;
 		genfile::db::Connection::StatementPtr m_insert_kmer_stmt ;
 		genfile::db::Connection::StatementPtr m_insert_overlap_stmt ;
+		genfile::db::Connection::RowId m_kmer_count ;
 
 	private:
 		void setup_storage() {
@@ -333,15 +328,15 @@ private:
 			m_connection->run_statement( "PRAGMA synchronous = OFF ;" ) ;
 			
 			m_connection->run_statement(
-				"CREATE TABLE `" + m_prefix + "Kmer` ( id INT NOT NULL PRIMARY KEY, sequence TEXT NOT NULL ) ;"
+				"CREATE TABLE `" + m_prefix + "Kmer` ( sequence TEXT NOT NULL PRIMARY KEY, id INT NOT NULL ) WITHOUT ROWID ;"
 			) ;
 			
 			m_connection->run_statement(
-				"CREATE TABLE `" + m_prefix + "Overlap` ("
-					"kmer_id INT NOT NULL REFERENCES kmer(id),"
-					"chromosome1 TEXT NOT NULL, position1 TEXT NOT NULL, orientation1 TEXT NOT NULL,"
-					"chromosome2 TEXT NOT NULL, position2 TEXT NOT NULL, orientation2 TEXT NOT NULL"
-					"PRIMARY KEY (chromosome1, position1)"
+				"CREATE TABLE IF NOT EXISTS `" + m_prefix + "Overlap` ( "
+					"kmer_id INT NOT NULL REFERENCES `" + m_prefix + "Kmer`(id), "
+					"chromosome1 TEXT NOT NULL, position1 TEXT NOT NULL, orientation1 TEXT NOT NULL, "
+					"chromosome2 TEXT NOT NULL, position2 TEXT NOT NULL, orientation2 TEXT NOT NULL, "
+					"PRIMARY KEY (chromosome1, position1, orientation1, chromosome2, position2, orientation2 ) "
 				") WITHOUT ROWID ;"
 			) ;
 			
@@ -350,12 +345,31 @@ private:
 			) ;
 
 			m_insert_kmer_stmt = m_connection->get_statement(
-				"INSERT INTO `" + m_prefix + "Kmer` (sequence) VALUES( ? ) ;"
+				"INSERT INTO `" + m_prefix + "Kmer` (sequence, id) VALUES( ?, ? ) ;"
 			) ;
 
 			m_insert_overlap_stmt = m_connection->get_statement(
-				"INSERT INTO `" + m_prefix + "Overlap` VALUES( ?, ?, ?, ?, ?, ? ) ;"
+				"INSERT INTO `" + m_prefix + "Overlap` VALUES( ?, ?, ?, ?, ?, ?, ? ) ;"
 			) ;
+		}
+
+		genfile::db::Connection::RowId get_or_insert_kmer( std::string const& kmer ) {
+			genfile::db::Connection::RowId result = 0 ;
+			m_find_kmer_stmt
+				->bind( 1, kmer )
+				.step() ;
+			if( m_find_kmer_stmt->empty() ) {
+				m_insert_kmer_stmt
+					->bind( 1, kmer )
+					.bind( 2, ++m_kmer_count )
+					.step() ;
+				result = m_kmer_count ;
+				m_insert_kmer_stmt->reset() ;
+			} else {
+				result = m_insert_kmer_stmt->get< genfile::db::Connection::RowId >( 0 ) ;
+			}
+			m_find_kmer_stmt->reset() ;
+			return result ;
 		}
 	} ;
 
