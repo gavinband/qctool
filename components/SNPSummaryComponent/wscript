@@ -5,7 +5,7 @@ def build( bld ):
 	bld.stlib(
 		target = 'SNPSummaryComponent',
 		source = bld.path.ant_glob( 'src/*.cpp' ),
-		includes = './include',
 		use = 'eigen statfile integration appcontext genfile qcdb metro boost ZLIB',
+		includes = './include',
 		export_includes = './include'
 	)
