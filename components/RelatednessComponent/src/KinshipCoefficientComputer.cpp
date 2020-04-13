@@ -35,10 +35,14 @@
 #include "components/RelatednessComponent/PCAComputer.hpp"
 #include "components/RelatednessComponent/mean_centre_genotypes.hpp"
 
+#define USING_BOOST_THREADPOOL 0
+#if USING_BOOST_THREADPOOL
 #include "boost/threadpool.hpp"
+#else
+#include "metro/concurrency/threadpool.hpp"
+#endif
 
 // #define DEBUG_KINSHIP_COEFFICIENT_COMPUTER 2
-#define USING_BOOST_THREADPOOL 1
 
 namespace impl {
 	#if HAVE_EIGEN
@@ -401,10 +405,8 @@ namespace impl {
 			m_task_factory( task_factory ),
 			m_storage( 100, std::make_pair( Vector(), IntegerVector() ) ),
 			m_storage_index( 0 ),
-			m_data_index( 0 )
-#if USING_BOOST_THREADPOOL
-			,m_pool( m_worker->get_number_of_worker_threads() )
-#endif
+			m_data_index( 0 ),
+			m_pool( m_worker->get_number_of_worker_threads() )
 		{
 		}
 
@@ -498,6 +500,8 @@ namespace impl {
 		std::size_t m_data_index ;
 #if USING_BOOST_THREADPOOL
 		boost::threadpool::pool m_pool ;
+#else
+		metro::concurrency::threadpool m_pool ;
 #endif
 	} ;
 
