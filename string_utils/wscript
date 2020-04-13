@@ -36,9 +36,9 @@ def build( bld ):
 	bld.new_task_gen(
 		features = 'cxx cstaticlib',
 		target = 'string_utils',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob 'src/*.cpp' ),
 		includes='./include',
 		uselib = 'BOOST',
-		export_incdirs = './include'
+		export_includes = './include'
 	)
 	

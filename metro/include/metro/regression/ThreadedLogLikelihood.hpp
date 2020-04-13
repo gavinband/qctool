@@ -14,7 +14,7 @@
 #include "Eigen/Core"
 #include "metro/regression/LogLikelihood.hpp"
 #include "metro/regression/Design.hpp"
-#include "boost/threadpool.hpp"
+//#include "boost/threadpool.hpp"
 #include "metro/concurrency/threadpool.hpp"
 
 namespace metro {

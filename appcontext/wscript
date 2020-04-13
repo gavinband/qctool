@@ -1,42 +1,9 @@
-import os.path
-import glob
-
-def configure( conf ):
-	pass
-
-def create_test( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'worker',
-		uselib = 'BOOST_THREAD',
-		includes='./include',
-		unit_test=1
-	)
-
-def create_benchmark( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'worker',
-		includes='./include'
-	)
-
-
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld(
-		features = 'cxx cstaticlib',
+	bld.stlib(
 		target = 'appcontext',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob( 'src/*.cpp' ),
+		use = 'boost',
 		includes='./include',
-		uselib_local = 'genfile',
-		uselib = 'BOOST',
-		export_incdirs = './include'	
+		cxxflags = [ '-std=c++11' ],
+		export_includes = './include'	
 	)

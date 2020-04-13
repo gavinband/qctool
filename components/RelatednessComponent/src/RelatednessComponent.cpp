@@ -12,7 +12,6 @@
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
 #include "statfile/BuiltInTypeStatSource.hpp"
-#include "worker/Task.hpp"
 #include "appcontext/FileUtil.hpp"
 #include "appcontext/get_current_time_as_string.hpp"
 #include "components/SampleSummaryComponent/SampleStorage.hpp"
@@ -58,9 +57,8 @@ void RelatednessComponent::declare_options( appcontext::OptionProcessor& options
 		.set_maximum_multiplicity(1) ;
 	options[ "-kinship-method" ]
 		.set_description( "Method to use for relatedness matrix computation."
-			"The default is \"lookup-table\", which uses a lookup table to compute kinship values across"
-			" several SNPs at a time.  This is usually fastest.  Alternatives are \"cblas\""
-			" or \"eigen\", which use those linear algebra libraries to compute the matrix."
+			"The only permitted value is \"lookup-table\", which uses a lookup table to compute kinship values across"
+			" several SNPs at a time.  This is usually fastest."
 		)
 		.set_takes_single_value()
 		.set_default_value( "lookup-table" )
@@ -191,15 +189,7 @@ void RelatednessComponent::setup(
 	if( m_options.check( "-kinship" )) {
 		KinshipCoefficientComputer::Computation::UniquePtr computation ;
 		std::string const& method = m_options.get< std::string >( "-kinship-method" ) ;
-		if( method == "cblas" ) {
-			computation.reset(
-				impl::NormaliseGenotypesAndComputeXXt::create( m_worker, "cblas" ).release()
-			) ;
-		} else if( method == "eigen" ) {
-			computation.reset(
-				impl::NormaliseGenotypesAndComputeXXt::create( m_worker, "eigen" ).release()
-			) ;
-		} else if( method == "lookup-table" ) {
+		if( method == "lookup-table" ) {
 			computation.reset(
 				impl::NormaliseGenotypesAndComputeXXtFast::create(
 					m_worker, 4
@@ -209,7 +199,7 @@ void RelatednessComponent::setup(
 			throw genfile::BadArgumentError(
 				"RelatednessComponent::setup()",
 				"-method " + method,
-				"Method must be \"fast\", \"cblas\", or \"eigen\""
+				"Method must be \"lookup-table\""
 			) ;
 		}
 		

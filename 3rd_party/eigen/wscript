@@ -1,0 +1,7 @@
+def build( bld ):
+        bld(
+                target = 'eigen',
+                includes = './',
+                export_includes = './'
+        )
+

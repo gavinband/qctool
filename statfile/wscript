@@ -5,43 +5,20 @@ import glob
 def configure( conf ):
 	pass
 
-def create_tests( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'statfile boost-unit_test_framework',
-		uselib = 'BOOST_IOSTREAMS ZLIB BOOST_UNIT_TEST_FRAMEWORK',
+def build( bld ):
+	bld.stlib(
+		target = 'statfile',
+		source = bld.path.ant_glob( 'src/*.cpp' ),
+		includes='./include ../genfile/include',
+		use = 'genfile BOOST BOOST_IOSTREAMS ZLIB',
+		export_includes = './include'
+	)
+	
+	bld.program(
+		target = 'test_statfile',
+		source = bld.path.ant_glob( 'test/*.cpp' ),
+		use = 'statfile boost_unit_test_framework BOOST_IOSTREAMS ZLIB BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
 		install_path=None
 	)
-
-def create_benchmark( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = 'statfile',
-		includes='./include',
-		install_path=None
-	)
-
-
-def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'statfile',
-		source = bld.glob( 'src/*.cpp' ),
-		includes='./include ../genfile/include',
-		uselib_local = 'genfile',
-		uselib = 'BOOST BOOST_IOSTREAMS ZLIB',
-		export_incdirs = './include'
-	)
-
-	create_tests( bld, 'test_statfile' )

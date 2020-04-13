@@ -1,37 +1,11 @@
-import os.path
-import glob
-#import UnitTest
-
 def configure( conf ):
 	pass
 
-def create_tests( bld ):
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'test_snp_summary_component',
-		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile boost boost-unit_test_framework',
-		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1,
-		install_path=None
-	)
-
-
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
+	bld.stlib(
 		target = 'RelatednessComponent',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM CBLAS LAPACK',
-		uselib_local = 'eigen threadpool statfile appcontext worker genfile boost SampleSummaryComponent',
-		export_incdirs = './include'
+		use = 'eigen metro statfile appcontext worker genfile boost SampleSummaryComponent ZLIB CBLAS LAPACK',
+		export_includes = './include'
 	)
-
-	#create_tests( bld )

@@ -1,46 +1,12 @@
-import os.path
-import glob
-#import UnitTest
-
 def configure( conf ):
 	pass
 
-def create_test( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'test/' + name + '.cpp' ],
-		uselib_local = '',
-		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1,
-		install_path=None
-	)
-
-def create_benchmark( bld, name ):
-	bld(
-		features = 'cxx cprogram',
-		target = name,
-		source = [  'benchmarks/' + name + '.cpp' ],
-		uselib_local = '',
-		includes='./include',
-		install_path=None
-	)
-
-
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld(
-		features = 'cxx cstaticlib',
+	bld.stlib(
 		target = 'qcdb',
-		source = bld.glob( 'src/*.cpp' ),
-		includes='./include',
-		uselib = 'BOOST_THREAD',
-		uselib_local = 'sqlite3 statfile genfile appcontext',
-		export_incdirs = './include'
+		source = bld.path.ant_glob( 'src/*.cpp' ),
+		use = 'genfile sqlite3 statfile appcontext boost genfile',
+		includes = './include',
+		export_includes = './include'
 	)
 	

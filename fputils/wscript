@@ -10,7 +10,7 @@ def create_test( bld, name ):
 		features = 'cxx cprogram',
 		target = name,
 		source = [  'test/' + name + '.cpp' ],
-		uselib_local = 'fputils boost-unit_test_framework',
+		uselib_local = 'fputils boost_unit_test_framework',
 		uselib = 'BOOST_UNIT_TEST_FRAMEWORK',
 		includes='./include',
 		unit_test=1,
@@ -35,11 +35,11 @@ def build( bld ):
 	bld(
 		features = 'cxx cstaticlib',
 		target = 'fputils',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob 'src/*.cpp' ),
 		includes='./include',
 		uselib_local = 'boost',
 		uselib = 'BOOST',
-		export_incdirs = './include'
+		export_includes = './include'
 	)
 	
 	create_test( bld, 'test_log_sum_exp' )

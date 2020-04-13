@@ -16,8 +16,6 @@
 #include "genfile/wildcard.hpp"
 #include "genfile/ToGP.hpp"
 #include "statfile/BuiltInTypeStatSink.hpp"
-#include "integration/NewtonRaphson.hpp"
-#include "integration/Derivative.hpp"
 #include "genfile/db/Connection.hpp"
 #include "genfile/db/SQLStatement.hpp"
 #include "genfile/db/Error.hpp"

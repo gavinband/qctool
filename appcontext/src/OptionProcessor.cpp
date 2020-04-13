@@ -14,7 +14,7 @@
 #include <cassert>
 #include "appcontext/OptionDefinition.hpp"
 #include "appcontext/OptionProcessor.hpp"
-#include "genfile/string_utils.hpp"
+#include "appcontext/string_utils.hpp"
 
 namespace appcontext {
 	OptionProcessingException::OptionProcessingException( std::string option, std::vector< std::string > values, std::string msg )
@@ -432,9 +432,9 @@ namespace appcontext {
 
 		std::string description = (*this)[option_name].description() ;
 		if( (*this)[option_name].has_default_value() ) {
-			description += "  Defaults to \"" + genfile::string_utils::join( (*this)[option_name].default_values(), ", " ) + "\"." ;
+			description += "  Defaults to \"" + string_utils::join( (*this)[option_name].default_values(), ", " ) + "\"." ;
 		}
-		aStream << genfile::string_utils::wrap( description, 120, current_column, current_column )
+		aStream << string_utils::wrap( description, 120, current_column, current_column )
 			<< "\n" ;
 	}
 

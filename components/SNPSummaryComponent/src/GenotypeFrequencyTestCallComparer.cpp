@@ -11,7 +11,6 @@
 #include <boost/function.hpp>
 #include <Eigen/Core>
 #include "genfile/SingleSNPGenotypeProbabilities.hpp"
-#include "integration/NewtonRaphson.hpp"
 #include "components/SNPSummaryComponent/GenotypeFrequencyTestCallComparer.hpp"
 #include "metro/likelihood/Multinomial.hpp"
 #include "metro/likelihood/ProductOfMultinomials.hpp"

@@ -1,42 +1,45 @@
-import os.path
-import glob
-
 def configure( conf ):
 	pass
 
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld(
-		features = 'cxx cstaticlib',
-		name = 'boost',
-		target = 'boost',
-		source = [
-			'libs/iostreams/src/file_descriptor.cpp',
-			'libs/iostreams/src/gzip.cpp',
-			'libs/iostreams/src/mapped_file.cpp',
-			'libs/iostreams/src/zlib.cpp'
-			] +
-			bld.glob( 'libs/system/src/*.cpp' ) +
-			bld.glob( 'libs/regex/src/*.cpp' ) +
-			bld.glob( 'libs/thread/src/*.cpp' ) +
-			bld.glob( 'libs/thread/src/pthread/*.cpp' ) +
-			bld.glob( 'libs/filesystem/src/*.cpp' ) +
-			bld.glob( 'libs/date_time/src/posix_time/*.cpp' ) +
-			bld.glob( 'libs/timer/src/*.cpp' ) +
-			bld.glob( 'libs/chrono/src/*.cpp' ),
-		includes = './',
-		export_incdirs = './', 
-		uselib = 'ZLIB RT',
-		cxxflags = [ '-Wno-unused-function', '-Wno-keyword-macro', '-Wno-unused-const-variable' ]
+	sources = (
+		[
+            'libs/iostreams/src/file_descriptor.cpp',
+            'libs/iostreams/src/gzip.cpp',
+            'libs/iostreams/src/mapped_file.cpp',
+            'libs/iostreams/src/zlib.cpp'
+		] +
+		bld.path.ant_glob( 'libs/system/src/*.cpp' ) +
+		bld.path.ant_glob( 'libs/regex/src/*.cpp' ) +
+		bld.path.ant_glob( 'libs/thread/src/*.cpp' ) +
+		bld.path.ant_glob( 'libs/thread/src/pthread/once_atomic.cpp' ) +
+		bld.path.ant_glob( 'libs/thread/src/pthread/thread.cpp' ) +
+		bld.path.ant_glob( 'libs/filesystem/src/*.cpp' ) +
+		bld.path.ant_glob( 'libs/date_time/src/posix_time/*.cpp' ) +
+		bld.path.ant_glob( 'libs/timer/src/*.cpp' ) +
+		bld.path.ant_glob( 'libs/chrono/src/*.cpp' )
 	)
 
-	bld(
-		features = 'cxx cstaticlib',
-		target = 'boost-unit_test_framework',
+	bld.stlib(
+		target = 'boost',
+		source = sources,
+		includes = './',
+		export_includes = './', 
+		uselib = 'ZLIB BZIP2 RT',
+		cxxflags = [
+			'-std=c++11',
+			'-Wno-unused-local-typedefs',
+			'-Wno-c++11-long-long',
+			'-Wno-keyword-macro',
+			'-Wno-unused-const-variable',
+			'-Wno-deprecated-register',
+			'-Wno-unused-function',
+			'-Wno-redeclared-class-member'
+		]
+	)
+
+	bld.stlib(
+		target = 'boost_unit_test_framework',
 		source = [
 			'libs/test/src/compiler_log_formatter.cpp',
 			'libs/test/src/debug.cpp',
@@ -59,7 +62,6 @@ def build( bld ):
 			'libs/test/src/xml_log_formatter.cpp',
 			'libs/test/src/xml_report_formatter.cpp'
 		],
-		includes='./',
-		export_incdirs = './',
-		cxxflags = [ '-Wunused-function' ]
+		includes = './',
+		export_includes = './'
 	)

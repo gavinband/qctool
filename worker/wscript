@@ -1,33 +1,20 @@
-import os.path
-import glob
-#import UnitTest
-
 def configure( conf ):
 	pass
 
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld(
-		features = 'cxx cstaticlib',
+	bld.stlib(
 		target = 'worker',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib_local = 'boost',
-		uselib = 'BOOST BOOST_THREAD BOOST_DATE_TIME PTHREAD',
-		export_incdirs = './include'	
+		use = 'boost pthread',
+		export_includes = './include'	
 	)	
 	
-	bld(
-		features = 'cxx cprogram',
+	bld.program(
 		target = 'test_worker',
-		source = bld.glob( 'test/*.cpp' ),
-		includes='./include',
-		uselib_local = 'worker boost boost-unit_test_framework',
-		uselib = 'BOOST BOOST_THREAD BOOST_DATE_TIME BOOST_UNIT_TEST_FRAMEWORK PTHREAD',
+		source = bld.path.ant_glob( 'test/*.cpp' ),
+		includes = './include',
+		use = 'worker boost boost_unit_test_framework',
 		unit_test = 1,
 		install_path = None
 	)

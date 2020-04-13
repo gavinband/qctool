@@ -1,0 +1,7 @@
+def build( bld ):
+        bld(
+                target = 'catch',
+                includes = './',
+                export_includes = './'
+        )
+

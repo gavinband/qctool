@@ -1,37 +1,11 @@
-import os.path
-import glob
-#import UnitTest
-
 def configure( conf ):
 	pass
 
-def create_tests( bld ):
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'test_snp_summary_component',
-		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile boost-unit_test_framework',
-		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1,
-		install_path=None
-	)
-
-
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
+	bld.stlib(
 		target = 'SNPSummaryComponent',
-		source = bld.glob( 'src/*.cpp' ),
-		includes='./include',
-		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen statfile integration appcontext genfile qcdb metro boost',
-		export_incdirs = './include'
+		source = bld.path.ant_glob( 'src/*.cpp' ),
+		includes = './include',
+		use = 'eigen statfile integration appcontext genfile qcdb metro boost ZLIB',
+		export_includes = './include'
 	)
-
-	#create_tests( bld )

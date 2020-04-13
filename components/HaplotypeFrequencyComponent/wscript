@@ -5,33 +5,20 @@ import glob
 def configure( conf ):
 	pass
 
-def create_tests( bld ):
-	bld.new_task_gen(
-		features = 'cxx cprogram',
-		target = 'test_haplotype_frequency_component',
-		source = bld.glob( 'test/*.cpp' ),
-		uselib_local = 'genfile HaplotypeFrequencyComponent boost-unit_test_framework',
-		uselib = 'BOOST BOOST_SYSTEM BOOST_UNIT_TEST_FRAMEWORK',
-		includes='./include',
-		unit_test=1,
-		install_path=None
-	)
-
-
 def build( bld ):
-	import Options
-	
-	#---------------------
-	# libs
-	#---------------------
-	bld.new_task_gen(
-		features = 'cxx cstaticlib',
+	bld.stlib(
  		target = 'HaplotypeFrequencyComponent',
-		source = bld.glob( 'src/*.cpp' ),
+		source = bld.path.ant_glob( 'src/*.cpp' ),
 		includes='./include',
-		uselib = 'ZLIB BOOST BOOST_IOSTREAMS BOOST_SYSTEM BOOST_FILESYSTEM',
-		uselib_local = 'eigen genfile statfile integration appcontext qcdb',
-		export_incdirs = './include'
+		use = 'eigen genfile statfile integration appcontext qcdb boost ZLIB',
+		export_includes = './include'
 	)
 
-	create_tests( bld )
+	bld.program(
+		target = 'test_haplotype_frequency_component',
+		source = bld.path.ant_glob( 'test/*.cpp' ),
+		use = 'HaplotypeFrequencyComponent boost boost_unit_test_framework',
+		includes='./include',
+		unit_test = 1,
+		install_path = None
+	)

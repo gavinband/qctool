@@ -22,7 +22,6 @@ namespace genfile {
 	void VariableInSetSampleFilter::summarise( std::ostream& o ) const {
 		o << m_variable << " IN (" ;
 		Levels::const_iterator i = m_levels.begin() ;
-		Levels::const_iterator end_i = m_levels.end() ;
 		for( std::size_t count = 0; count < std::min( std::size_t( 5 ), m_levels.size() ); ++count, ++i ) {
 			o << ( count > 0 ? ", " : "" ) << *i ;
 		}

@@ -82,8 +82,6 @@ namespace impl {
 		int end_sample_j ;
 	} ;
 	
-	struct Dispatcher ;
-
 	struct NTaskDispatcher {
 	public:
 		typedef std::auto_ptr< NTaskDispatcher > UniquePtr ;
@@ -106,27 +104,6 @@ namespace impl {
 			worker::Worker* m_worker ;
 	} ;
 	
-	struct NormaliseGenotypesAndComputeXXt: public KinshipCoefficientComputer::Computation {
-		static UniquePtr create( worker::Worker*, std::string const& method ) ;
-		NormaliseGenotypesAndComputeXXt( worker::Worker*, std::string const& method ) ;
-
-		Computation::Matrix const& result() const ;
-		Computation::IntegerMatrix const& nonmissingness() const ;
-		std::string get_summary() const ;
-		
-		void begin_processing_snps( std::size_t number_of_samples, genfile::SNPDataSource::Metadata const& ) ;
-		void processed_snp( genfile::VariantIdentifyingData const& id_data, genfile::VariantDataReader::SharedPtr data_reader ) ;
-		void end_processing_snps() ;
-		std::size_t number_of_snps_included() const ;
-	private:
-		double const m_call_threshhold ;
-		double const m_allele_frequency_threshhold ;
-		std::size_t m_number_of_snps_included ;
-		Computation::Matrix m_result ;
-		Computation::IntegerMatrix m_nonmissingness ;
-		std::auto_ptr< Dispatcher > m_dispatcher ;
-	} ;
-
 	struct NormaliseGenotypesAndComputeXXtFast: public KinshipCoefficientComputer::Computation {
 		static UniquePtr create( worker::Worker*, std::size_t const number_of_snps_per_computation ) ;
 		
