@@ -77,6 +77,7 @@ namespace appcontext {
 		std::string json_escape( std::string const& value ) {
 			std::string result ;
 			result.reserve( value.size() * 2 ) ;
+			std::size_t last_i = 0 ;
 			for(
 				std::size_t i = value.find_first_of( "\"\n" ), last_i = 0;
 				last_i != std::string::npos;
