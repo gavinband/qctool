@@ -114,12 +114,14 @@ namespace {
 
 		TaggedSnp( TaggedSnp const& other ):
 			m_snp( other.m_snp ),
-			m_tag( other.m_tag )
+			m_tag( other.m_tag ),
+			m_data( other.m_data )
 		{}
 
 		TaggedSnp& operator=( TaggedSnp const& other ) {
 			m_snp = other.m_snp ;
 			m_tag = other.m_tag ;
+			m_data = other.m_data ;
 			return *this ;
 		}
 		
