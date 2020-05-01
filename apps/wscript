@@ -21,6 +21,7 @@ dependencies = {
 	"ldbird": external + components + base,
 	"multifinemap": external + components + base,
 	"selfmap": external + components + base,
+	"inthinnerator": external + components + base,
 	#'overrep': external + components + base,
 	#'gen-grep:', external + components + base,
 	#'inflation': external + components + base,

@@ -2261,12 +2261,25 @@ private:
 			}
 			
 			if( m_extra_column_names.size() > 0 ) {
+				bool const have_rank_column = options().check( "-rank-column" ) ;
+				std::string const rank_column = have_rank_column ? options().get< std::string >( "-rank-column" ) : "" ;
 				for( std::size_t i = 0; i < m_extra_column_names.size(); ++i ) {
-					storage.store_per_variant_data(
-						snps[snp_i].snp(),
-						m_extra_column_names[i],
-						snps[snp_i].datum(i)
-					) ;
+					std::string const& column = m_extra_column_names[i] ;
+					if( have_rank_column && column == rank_column ) {
+						// output as float
+						storage.store_per_variant_data(
+							snps[snp_i].snp(),
+							column,
+							genfile::string_utils::to_repr< double >( snps[snp_i].datum(i) )
+						) ;
+					} else {
+						// output as string
+						storage.store_per_variant_data(
+							snps[snp_i].snp(),
+							column,
+							snps[snp_i].datum(i)
+						) ;
+					}
 				}
 			}
 
