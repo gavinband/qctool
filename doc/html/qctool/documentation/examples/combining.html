@@ -63,6 +63,16 @@
 						If this is not the case then QCTOOL may be unable to match some variants.  Any variant that does not match
 						between datasets will be omitted from the output.
 					</p>
+					<p>
+
+						QCTOOL processed variant identifiers in the following way: it uses the primary identifier from
+						the first dataset as the overall primary identifier. It also keeps a list of all other identifiers observed
+						across the datasets. (When the input file is a VCF, the first identifier is treated as the primary identifier.
+						When the input is in GEN or BGEN format, the `rsid` column is treated as containing the primary identifier, and
+						alternative identifiers from the `SNPID` column are also processed.). The `-map-id-data` option can also
+						be used to force specific adjustments to these data.
+
+					</p>
 				</div>
 				<div class="task_name">
 					Controlling how variants are matched

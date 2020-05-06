@@ -10,6 +10,7 @@
 #include "genfile/gen.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/GenFileSNPDataSource.hpp"
+#include "genfile/string_utils/string_utils.hpp"
 
 namespace genfile {
 	GenFileSNPDataSource::GenFileSNPDataSource( std::auto_ptr< std::istream > stream, Chromosome chromosome ):
@@ -68,6 +69,7 @@ namespace genfile {
 	}
 	
 	void GenFileSNPDataSource::read_snp_identifying_data_impl( VariantIdentifyingData* result ) {
+		using string_utils::slice ;
 		std::string SNPID, rsid, allele1, allele2 ;
 		uint32_t position ;
 		Chromosome chromosome ;
@@ -77,15 +79,23 @@ namespace genfile {
 				gen::impl::read_snp_identifying_data( stream(), &chromosome_string, &SNPID, &rsid, &position, &allele1, &allele2 ) ;
 				if( *this ) {
 					*result = VariantIdentifyingData(
-						SNPID, rsid, GenomePosition( chromosome_string, position ), allele1, allele2
+						rsid, GenomePosition( chromosome_string, position ), allele1, allele2
 					) ;
+					std::vector< slice > elts = slice(SNPID).split( ";" ) ;
+					for( std::size_t i = 0; i < elts.size(); ++i ) {
+						result->add_identifier( elts[i] ) ;
+					}
 				}
 			} else {
 				gen::impl::read_snp_identifying_data( stream(), &SNPID, &rsid, &position, &allele1, &allele2 ) ;
 				if( *this ) {
 					*result = VariantIdentifyingData(
-						SNPID, rsid, GenomePosition( m_chromosome, position ), allele1, allele2
+						rsid, GenomePosition( m_chromosome, position ), allele1, allele2
 					) ;
+					std::vector< slice > elts = slice(SNPID).split( ";" ) ;
+					for( std::size_t i = 0; i < elts.size(); ++i ) {
+						result->add_identifier( elts[i] ) ;
+					}
 				}
 			}
 		} catch( InputError const& e ) {
