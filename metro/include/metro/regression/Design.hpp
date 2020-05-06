@@ -72,12 +72,13 @@ namespace metro {
 				boost::function< double( std::size_t ) > const& data
 			) ;
 			// add a single discrete covariate (which expands into multiple columns of zeroes and ones)
-			// levels are specified by non-negative integers.
-			// missing values are encoded by -1
+			// levels are specified by non-negative integers, with missing values
+			// encoded by -1.
+			// A seperate function must be supplied to give the names of levels.
 			void add_discrete_covariate(
 				std::string const& name,
 				boost::function< int( std::size_t ) > const& data,
-				boost::function< std::string( int ) > const& levels,
+				boost::function< std::string( int ) > const& levelNames,
 				int numberOfLevels
 			) ;
 

@@ -77,7 +77,8 @@ namespace metro {
 			m_transform( transform )
 		{
 			assert( covariates.rows() == m_outcome.rows() ) ;
-			assert( m_outcome_names.size() == m_outcome.cols() ) ;
+			assert( m_outcome_names.size() == std::size_t( m_outcome.cols() )) ;
+			assert( m_covariate_names.size() == std::size_t( m_covariates[0].cols() )) ;
 			recalculate() ;
 		}
 
@@ -178,6 +179,7 @@ namespace metro {
 		}
 
 		std::string const& Design::get_predictor_name( std::size_t i ) const {
+			assert( i < m_design_matrix_column_names.size() ) ;
 			return m_design_matrix_column_names[i] ;
 		}
 
@@ -186,6 +188,7 @@ namespace metro {
 		}
 
 		std::string const& Design::get_outcome_name( std::size_t i ) const {
+			assert( i < m_outcome_names.size() ) ;
 			return m_outcome_names[i] ;
 		}
 
@@ -205,19 +208,23 @@ namespace metro {
 			}
 
 			std::vector< std::size_t > widths( D + 1 ) ;
-			widths[0] = 9 ;
+			widths[0] = std::max( std::size_t( outcome().cols() * 4 - 1 ), 8ul ) ;
 			std::size_t const n_top = 8 ;
-			out << "        outcome   " ;
+			out << "       " << "   " << std::setw( widths[0] ) << "outcome" << "  " ;
 			for( int j = 0; j < D; ++j ) {
 				std::string const name = m_design_matrix_column_names[j]  ;
 				widths[j+1] = std::max( name.size(), 7ul ) ;
-				out << std::setw( widths[j+1] ) << name << " " ;
+				out << " " << std::setw( widths[j+1] ) << name ;
 			}
 			out << "\n" ;
 			for( int i = 0; i < N; ++i ) {
-				out << std::setw(5) << i ;
-				out << std::setw(3) << "   " ;
+				out << std::setw(7) << i ;
+				out << "   " ;
 				if( outcome().row(i).sum() == outcome().row(i).sum() ) {
+					std::size_t outcomesWidth = 4 * outcome().cols() - 1 ;
+					if( outcomesWidth < widths[0] ) {
+						out << std::string( widths[0] - outcomesWidth, ' ' ) ;
+					}
 					for( int j = 0; j < outcome().cols(); ++j ) {
 						out << ((j>0) ? " " : "" ) << std::setw(3) << outcome()(i,j) ;
 					}
@@ -419,21 +426,28 @@ namespace metro {
 					}
 				}
 				
+				// Set nonmissingness if necessary
+				if( nonmissingness != m_nonmissing_predictors ) {
+					m_nonmissing_predictors = nonmissingness ;
+					m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
+				}
+
+#if DEBUG_REGRESSIONDESIGN
+				std::cerr << "Design::set_predictors(): levels is:\n"
+					<< m_predictor_levels.block( 0, 0, 10, m_predictor_levels.cols() ) << "\n" ;
+#endif				
 				if( m_transform == eMeanCentre ) {
 					mean_centre_predictor_levels(
 						m_predictor_level_probabilities,
 						&m_predictor_levels,
-						nonmissingness
+						m_nonmissing_samples
 					) ;
 				}
+#if DEBUG_REGRESSIONDESIGN
+				std::cerr << "Design::set_predictors(): after mean centring, levels is:\n"
+					<< m_predictor_levels.block( 0, 0, 10, m_predictor_levels.cols() ) << "\n" ;
+#endif
 			}
-
-			// Set nonmissingness if necessary
-			if( nonmissingness != m_nonmissing_predictors ) {
-				m_nonmissing_predictors = nonmissingness ;
-				m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
-			}
-
 			
 			return *this ;
 		}
@@ -473,14 +487,6 @@ namespace metro {
 								* predictors.col(d).array() ;
 					}
 				}
-				
-				if( m_transform == eMeanCentre ) {
-					mean_centre_predictor_levels(
-						m_predictor_level_probabilities,
-						&m_predictor_levels,
-						nonmissingness
-					) ;
-				}
 			}
 
 			// Set nonmissingness if necessary
@@ -489,6 +495,13 @@ namespace metro {
 				m_nonmissing_samples = compute_nonmissing_samples( m_nonmissing_outcome, m_nonmissing_predictors, m_nonmissing_covariates ) ;
 			}
 
+			if( m_transform == eMeanCentre ) {
+				mean_centre_predictor_levels(
+					m_predictor_level_probabilities,
+					&m_predictor_levels,
+					m_nonmissing_samples
+				) ;
+			}
 			
 			return *this ;
 		}
@@ -498,28 +511,34 @@ namespace metro {
 			Matrix* predictor_levels,
 			SampleRanges const& included_samples
 		) const {
-			assert( probs.cols() == m_predictor_levels.rows() ) ;
-		
 			int const number_of_predictors_and_interactions = number_of_predictors() + number_of_interaction_terms() ;
+
+			// Compute mean of each predictor
 			RowVector means = RowVector::Zero( number_of_predictors_and_interactions ) ;
+			int const number_of_predictor_levels = probs.cols() ;
 			double total = 0 ;
 			for( std::size_t i = 0; i < included_samples.size(); ++i ) {
-				int const start = included_samples[i].begin() ;
-				int const end = included_samples[i].end() ;
-				for( int level_i = 0; level_i < m_predictor_levels.rows(); ++level_i ) {
+				metro::SampleRange const& range = included_samples[i] ;
+				for( int level_i = 0; level_i < number_of_predictor_levels; ++level_i ) {
 					means += (
-						( probs.col( level_i ).segment( start, end - start ) ).asDiagonal()
+						( probs.col( level_i ).segment( range.begin(), range.size() ) ).asDiagonal()
 						* predictor_levels->block(
-							start, number_of_predictors_and_interactions * level_i,
-							end - start, number_of_predictors_and_interactions
+							range.begin(), number_of_predictors_and_interactions * level_i,
+							range.size(), number_of_predictors_and_interactions
 						)
 					).colwise().sum() ;
 				}
-			
-				total += probs.block( start, 0, end - start, probs.cols() ).sum() ;
+				total += probs.block( range.begin(), 0, range.size(), probs.cols() ).sum() ;
 			}
 			means /= total ;
-			for( int level_i = 0; level_i < m_predictor_levels.rows(); ++level_i ) {
+
+#if DEBUG_REGRESSIONDESIGN
+			std::cerr << "Design::mean_centre_predictor_levels(): nonmissingnes = " << included_samples << ".\n" ;
+			std::cerr << "Design::mean_centre_predictor_levels(): covariate nonmissingness = " << m_nonmissing_covariates << ".\n" ;
+			std::cerr << "Design::mean_centre_predictor_levels(): means = " << means << ".\n" ;
+#endif
+			// Subtract means from the predictor levels
+			for( int level_i = 0; level_i < number_of_predictor_levels; ++level_i ) {
 				predictor_levels->block(
 					0, number_of_predictors_and_interactions * level_i,
 					predictor_levels->rows(), number_of_predictors_and_interactions
