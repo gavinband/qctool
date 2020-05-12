@@ -22,6 +22,8 @@ namespace metro {
 		public:
 			typedef std::unique_ptr< threadpool > UniquePtr ;
 			static UniquePtr create( int number_of_threads = std::thread::hardware_concurrency() ) ;
+			class BatchScheduler ;
+
 		public:
 			threadpool( int number_of_threads = std::thread::hardware_concurrency() ) ;
 			~threadpool() ;
@@ -36,6 +38,8 @@ namespace metro {
 
 			std::size_t number_of_threads() const { return m_threads.size() ; }
 
+			std::unique_ptr< BatchScheduler > batch_scheduler() { return BatchScheduler::UniquePtr( new BatchScheduler( *this )) ; }
+
 		private:
 			std::vector< std::thread > m_threads ;
 			std::deque< std::function<void()> > m_tasks ;
@@ -44,6 +48,40 @@ namespace metro {
 			std::condition_variable m_task_finished ;
 			unsigned int m_running_tasks ;
 			bool m_stop ;
+
+		public:
+			// class BatchScheduler
+			// This allows multiple jobs to be scheduled without notifying threads
+			// until the scheduler is destructed
+			friend class BatchScheduler ;
+			class BatchScheduler {
+			public:
+				typedef std::unique_ptr< BatchScheduler > UniquePtr ;
+			public:
+				BatchScheduler( threadpool& pool ):
+					m_pool( pool ),
+					m_lock( pool.m_queue_mutex )
+				{
+				}
+
+				~BatchScheduler() {
+					m_lock.unlock() ;
+					m_pool.m_task_available.notify_all() ;
+				}
+				
+				template<class Task>
+				void add( Task&& task ) {
+					m_pool.m_tasks.emplace_back( std::forward<Task>( task ) );
+				}
+				
+			private:
+				threadpool& m_pool ;
+				std::unique_lock< std::mutex > m_lock ;
+
+				// disallow copying
+				BatchScheduler( BatchScheduler const& ) ;
+				BatchScheduler& operator=( BatchScheduler const& ) ;
+			} ;
 		
 		private:
 			void thread_loop() ;

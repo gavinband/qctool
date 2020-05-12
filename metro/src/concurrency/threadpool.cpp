@@ -54,7 +54,7 @@ namespace metro {
 		}
 
 		void threadpool::thread_loop() {
-			while( true ) {
+			while(1) {
 				std::unique_lock<std::mutex> lock( m_queue_mutex ) ;
 				m_task_available.wait(
 					lock,
@@ -69,10 +69,14 @@ namespace metro {
 					{
 						lock.unlock();
 						task();
-						lock.lock();
 					}
+
+					lock.lock();
 					--m_running_tasks;
-					m_task_finished.notify_one();
+					if( m_running_tasks == 0 && m_tasks.size() == 0 ) {
+						lock.unlock() ;
+						m_task_finished.notify_one() ;
+					}
 				} else if( m_stop ) {
 					break;
 				}

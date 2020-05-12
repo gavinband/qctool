@@ -111,7 +111,12 @@ namespace metro {
 			//int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
 			int const N = m_design->outcome().rows() ;
 			std::size_t const threads = m_pool->number_of_threads() ;
-			int const size = int(std::max( 128ul, (N+threads-1) / threads)) ;
+			
+			// aim to submit jobs for some number of the number of threads,
+			// though at least 128 to avoid tiny jobs
+			//int const size = int(std::max( 128ul, (N+4*threads-1) / (4*threads))) ;
+			//int const size = int(std::max( 128ul, (N+2*threads-1) / (2*threads))) ;
+			int const size = int(std::max( 128ul, (N+threads-1) / (threads))) ;
 
 #if DEBUG
 			std::cerr << "ThreadedLogLikelihood::create_lls(): N = " << N << " samples...\n" ;
@@ -171,26 +176,34 @@ namespace metro {
 		}
 
 		void ThreadedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
-			for( std::size_t i = 0; i < m_lls.size(); ++i ) {
-//				m_pool->schedule(
-//					[this,i,parameters,numberOfDerivatives]() {
-//						std::cerr << "RUNNING: " << i << ".\n" ;
-						m_lls[i].evaluate_at( parameters, numberOfDerivatives ) ;
-//						std::cerr << "COMPLETED: " << i << ".\n" ;
-//					}
-//				) ;
+			{
+//				auto batch = m_pool->batch_scheduler() ;
+				for( std::size_t i = 0; i < m_lls.size(); ++i ) {
+//					batch->add(
+					m_pool->schedule(
+						[this,i,parameters,numberOfDerivatives]() {
+	//						std::cerr << "RUNNING: " << i << ".\n" ;
+							m_lls[i].evaluate_at( parameters, numberOfDerivatives ) ;
+	//						std::cerr << "COMPLETED: " << i << ".\n" ;
+						}
+					) ;
+				}
 			}
-//			std::cerr << "waiting...\n" ;
+			//std::cerr << "waiting...\n" ;
 			m_pool->wait() ;
 		}
 
 		void ThreadedLogLikelihood::evaluate( int const numberOfDerivatives ) {
-			for( std::size_t i = 0; i < m_lls.size(); ++i ) {
-				m_pool->schedule(
-					[this,i,numberOfDerivatives]() {
-						m_lls[i].evaluate( numberOfDerivatives ) ;
-					}
-				) ;
+			{
+//				auto batch = m_pool->batch_scheduler() ;
+				for( std::size_t i = 0; i < m_lls.size(); ++i ) {
+//					batch->add(
+					m_pool->schedule(
+						[this,i,numberOfDerivatives]() {
+							m_lls[i].evaluate( numberOfDerivatives ) ;
+						}
+					) ;
+				}
 			}
 //			std::cerr << "waiting...\n" ;
 			m_pool->wait() ;
