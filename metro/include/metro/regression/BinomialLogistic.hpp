@@ -4,8 +4,8 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef SNPTEST_CASE_CONTROL_ASSOCIATION_LOG_LIKELIHOOD_HPP
-#define SNPTEST_CASE_CONTROL_ASSOCIATION_LOG_LIKELIHOOD_HPP
+#ifndef METRO_REGRESSION_BINOMIALLOGISTIC_HPP
+#define METRO_REGRESSION_BINOMIALLOGISTIC_HPP
 
 #include <vector>
 #include <memory>
@@ -97,7 +97,12 @@ namespace metro {
 			// Evaluate
 			void evaluate_at_impl( Point const& parameters, std::vector< metro::SampleRange > const& included_samples, int const numberOfDerivatives ) ;
 
-			void setup_storage() ;
+			// setup_storage(): this allocates space in:
+			// m_hx, m_normalisedDhx, m_normalisedDdhx,
+			// m_first_derivative_terms,
+			// and defines m_storage_samples and m_number_of_stored_samples
+			// appropriately for the ranges of samples passed in.
+			void setup_storage( std::vector< metro::SampleRange > const& evaluation_samples ) ;
 
 			// Compute complete data likelihood, and its derivatives, for each predictor level
 			// and each sample

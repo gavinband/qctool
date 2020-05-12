@@ -94,6 +94,7 @@ namespace metro {
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
 #endif
+			setup_storage( m_included_samples ) ;
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -112,6 +113,7 @@ namespace metro {
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
 #endif
+			setup_storage( m_included_samples ) ;
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -130,6 +132,7 @@ namespace metro {
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
 #endif
+			setup_storage( m_included_samples ) ;
 		}
 
 		BinomialLogistic::BinomialLogistic(
@@ -149,6 +152,7 @@ namespace metro {
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "BinomialLogistic::BinomialLogistic(): created with " << impl::count_range( m_included_samples ) << " samples.\n" ;
 #endif
+			setup_storage( m_included_samples ) ;
 		}
 		
 		BinomialLogistic::~BinomialLogistic() {
@@ -219,16 +223,23 @@ namespace metro {
 			assert( parameters.size() == m_design->matrix().cols() ) ;
 			assert( numberOfDerivatives < 3 ) ;
 
-			if( evaluation_samples != m_evaluated_samples ) {
+			if(
+				evaluation_samples != m_evaluated_samples
+				|| m_design->get_number_of_predictor_levels() != m_hx.cols()
+				|| m_design->matrix().cols() != parameters.size()
+			) {
 				m_evaluated_samples = evaluation_samples ;
-				setup_storage() ;
-			}
-
-			if( evaluation_samples != m_evaluated_samples || parameters != m_parameters ) {
 				m_numberOfDerivativesComputed = -1 ;
 				m_numberOfCDLDerivativesComputed = -1 ;
-				m_parameters = parameters ;
+				setup_storage( m_evaluated_samples ) ;
 			}
+
+			if( parameters != m_parameters ) {
+				m_parameters = parameters ;
+				m_numberOfDerivativesComputed = -1 ;
+				m_numberOfCDLDerivativesComputed = -1 ;
+			}
+
 			
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << std::fixed << std::setprecision(4) ;
@@ -249,35 +260,41 @@ namespace metro {
 			evaluate( numberOfDerivatives ) ;
 		}
 
-		void BinomialLogistic::setup_storage() {
-			int const R = metro::impl::count_range( m_evaluated_samples ) ;
+		void BinomialLogistic::setup_storage( std::vector< metro::SampleRange > const& evaluation_samples ) {
+			int const R = metro::impl::count_range( evaluation_samples ) ;
 			int const L = m_design->get_number_of_predictor_levels() ;
+			int const D = m_design->matrix().cols() ;
 
 #if DEBUG_LOGLIKELIHOOD
 			std::cerr << "metro::regression::BinomialLogistic::setup_storage(): Number of evaluated samples is " << R << "\n" ;
 #endif
+
+			// To avoid reallocation we only resize the stored matrices
+			// if we need more rows
 			if( R > m_hx.rows() || L != m_hx.cols() ) {
 				m_hx.resize( R, L ) ;
 				m_normalisedDhx.resize( R, L ) ;
 				m_normalisedDdhx.resize( R, L ) ;
-				
-				// For each range in the evaluated samples, map to a range
-				// in the stored samples:
-				m_storage_samples.resize( m_evaluated_samples.size() ) ;
-				int storage_row = 0 ;
-				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
-					int const size = m_evaluated_samples[i].size() ;
-					m_storage_samples[i] = metro::SampleRange( storage_row, storage_row + size ) ;
-					storage_row += size ;
-				}
-				
+				m_first_derivative_terms.resize( R, D ) ;
+
 #if DEBUG_LOGLIKELIHOOD
 				std::cerr << "allocated storage: " << m_hx.rows() << " x " << m_hx.cols() << ".\n" ;
 #endif
 			}
-			// Since the aAllocated matrices may be larger than the number of
+
+			// Since the allocated matrices may be larger than the number of
 			// actual samples analysed, we keep track of this number as well.
 			m_number_of_stored_samples = R ;
+
+			// For each range in the evaluated samples, map to a range
+			// in the stored samples:
+			m_storage_samples.resize( evaluation_samples.size() ) ;
+			int storage_row = 0 ;
+			for( std::size_t i = 0; i < evaluation_samples.size(); ++i ) {
+				int const size = evaluation_samples[i].size() ;
+				m_storage_samples[i] = metro::SampleRange( storage_row, storage_row + size ) ;
+				storage_row += size ;
+			}
 		}
 		
 		void BinomialLogistic::evaluate( int const numberOfDerivatives ) {
@@ -312,9 +329,9 @@ namespace metro {
 				// Convert from complete data likelihood into expected complete data likelihood
 				// and derivatives
 				int const L = m_design->get_number_of_predictor_levels() ;
-				assert( m_hx.rows() == m_number_of_stored_samples && m_hx.cols() == L ) ;
-				assert( m_normalisedDhx.rows() == m_number_of_stored_samples && m_normalisedDhx.cols() == L ) ;
-				assert( m_normalisedDdhx.rows() == m_number_of_stored_samples && m_normalisedDdhx.cols() == L ) ;
+				assert( m_hx.rows() >= m_number_of_stored_samples && m_hx.cols() == L ) ;
+				assert( m_normalisedDhx.rows() >= m_number_of_stored_samples && m_normalisedDhx.cols() == L ) ;
+				assert( m_normalisedDdhx.rows() >= m_number_of_stored_samples && m_normalisedDdhx.cols() == L ) ;
 				for( std::size_t i = 0; i < m_evaluated_samples.size(); ++i ) {
 					SampleRange const& range = m_evaluated_samples[i] ;
 					SampleRange const& storage_range = m_storage_samples[i] ;
@@ -528,9 +545,8 @@ namespace metro {
 			// dimension of design matrix = dimension of parameters = dimension of derivative
 			// TODO: More generally we may have more parameters, e.g. multinomial logistic or normal linear model in which case something different must be done.  (Probably, identify_parameters can be used to generalise to this case?)
 			assert( D == m_parameters.size() ) ;
-
-			result->setZero(D) ;
-			result_terms->setZero( N, D ) ;
+			assert( result_terms->rows() >= m_number_of_stored_samples && result_terms->cols() == D ) ;
+			result_terms->setZero() ;
 
 			for( int g = 0; g < N_predictor_levels; ++g ) {
 				// At this point we have two sets of indexes - the originals, which index into the

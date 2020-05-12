@@ -17,6 +17,8 @@
 #include "metro/intersect_ranges.hpp"
 //#include "boost/threadpool.hpp"
 
+//#define DEBUG 1
+
 namespace metro {
 	namespace regression {
 		ThreadedLogLikelihood::UniquePtr ThreadedLogLikelihood::create( Design& design, CreateLL create_ll, int number_of_threads ) {
@@ -106,21 +108,35 @@ namespace metro {
 		}
 		
 		void ThreadedLogLikelihood::create_lls( CreateLL create_ll ) {
-			int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
+			//int const N = metro::impl::count_range( m_design->nonmissing_samples() ) ;
+			int const N = m_design->outcome().rows() ;
 			std::size_t const threads = m_pool->number_of_threads() ;
-			int const size = int(std::max( 512ul, (N+threads-1) / threads)) ;
+			int const size = int(std::max( 128ul, (N+threads-1) / threads)) ;
+
+#if DEBUG
+			std::cerr << "ThreadedLogLikelihood::create_lls(): N = " << N << " samples...\n" ;
+#endif
+
 			if( N == 0 ) {
 				// ensure we have at least one ll, even though no samples.
 				m_lls.push_back(
 					create_ll( *m_design, m_design->nonmissing_samples() )
 				) ;
 			} else {
+#if DEBUG
+				std::cerr << "ThreadedLogLikelihood::create_lls(): design nonmissing samples: " << m_design->nonmissing_samples() << ".\n" ;
+#endif
 				for( int i = 0; i < N; i += size ) {
-					m_lls.push_back(
-						create_ll( *m_design, metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )))
-					) ;
+					//std::vector< metro::SampleRange > ranges = metro::impl::intersect_ranges( m_design->nonmissing_samples(), SampleRange( i, i + size )) ;
+					std::vector< metro::SampleRange > ranges( 1, SampleRange( i, std::min( i + size, N ) )) ;
+#if DEBUG
+					std::cerr << "ThreadedLogLikelihood::create_lls(): creating ll " << m_lls.size() << " with " << metro::impl::count_range( ranges ) << " samples:\n"
+						<< ranges << ".\n" ;
+#endif
+					m_lls.push_back( create_ll( *m_design, ranges )) ;
 				}
 			}
+			
 			// sanity check: do parameter names match?
 			std::vector< std::string > parameter_names = m_lls[0].get_parameter_names() ;
 			for( std::size_t i = 1; i < m_lls.size(); ++i ) {
@@ -156,13 +172,13 @@ namespace metro {
 
 		void ThreadedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			for( std::size_t i = 0; i < m_lls.size(); ++i ) {
-				m_pool->schedule(
-					[this,i,parameters,numberOfDerivatives]() {
+//				m_pool->schedule(
+//					[this,i,parameters,numberOfDerivatives]() {
 //						std::cerr << "RUNNING: " << i << ".\n" ;
 						m_lls[i].evaluate_at( parameters, numberOfDerivatives ) ;
 //						std::cerr << "COMPLETED: " << i << ".\n" ;
-					}
-				) ;
+//					}
+//				) ;
 			}
 //			std::cerr << "waiting...\n" ;
 			m_pool->wait() ;
