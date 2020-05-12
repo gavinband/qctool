@@ -177,10 +177,10 @@ namespace metro {
 
 		void ThreadedLogLikelihood::evaluate_at( Point const& parameters, int const numberOfDerivatives ) {
 			{
-//				auto batch = m_pool->batch_scheduler() ;
+								auto batch = m_pool->batch_scheduler() ;
 				for( std::size_t i = 0; i < m_lls.size(); ++i ) {
-//					batch->add(
-					m_pool->schedule(
+					batch->add(
+//					m_pool->schedule(
 						[this,i,parameters,numberOfDerivatives]() {
 	//						std::cerr << "RUNNING: " << i << ".\n" ;
 							m_lls[i].evaluate_at( parameters, numberOfDerivatives ) ;
@@ -195,10 +195,10 @@ namespace metro {
 
 		void ThreadedLogLikelihood::evaluate( int const numberOfDerivatives ) {
 			{
-//				auto batch = m_pool->batch_scheduler() ;
+				auto batch = m_pool->batch_scheduler() ;
 				for( std::size_t i = 0; i < m_lls.size(); ++i ) {
-//					batch->add(
-					m_pool->schedule(
+					batch->add(
+//					m_pool->schedule(
 						[this,i,numberOfDerivatives]() {
 							m_lls[i].evaluate( numberOfDerivatives ) ;
 						}
