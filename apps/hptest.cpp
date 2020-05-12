@@ -158,7 +158,7 @@ public:
 		// File options
 		options.declare_group( "Input file options" ) ;
 	    options[ "-predictor" ]
-	        .set_description( 	"Path to host genotype files."
+	        .set_description( 	"Path to predictor genotype files."
 								"The given filename may contain the wildcard character '#', which expands to match a"
 								"one- or two-character chromosome identifier." )
 			.set_takes_values( 1 )
@@ -177,7 +177,7 @@ public:
 
 		options[ "-outcome" ]
 			.set_description(
-				"Path to parasite genotype files."
+				"Path to outcome genotype files."
 				"The given filename may contain the wildcard character '#', which expands to match a"
 				"one- or two-character chromosome identifier." )
 			.set_takes_values( 1 )
@@ -422,7 +422,7 @@ namespace {
 		}
 
 		void record_missing_sample() {
-			if( m_sample_i >= m_last_nonmissing_sample_i ) {
+			if( m_sample_i > m_last_nonmissing_sample_i ) {
 				m_nonmissing_samples->push_back(
 					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
 				) ;
@@ -851,8 +851,8 @@ private:
 		genfile::CohortIndividualSource const& samples
 	) {
 		get_ui_context().logger() << "Loaded data for " << samples.size() << " samples.\n" ;
-		get_ui_context().logger() << "    Host data:\n" << host.get_summary() << "\n" ;
-		get_ui_context().logger() << "Parasite data:\n" << para.get_summary() << "\n" ;
+		get_ui_context().logger() << "  Predictor data:\n" << host.get_summary() << "\n" ;
+		get_ui_context().logger() << "    Outcome data:\n" << para.get_summary() << "\n" ;
 	}
 
 	void test(
@@ -990,6 +990,10 @@ private:
 							nonmissing_predictor,
 							nonmissing_outcome
 						) ;
+
+						if( debug ) {
+							std::cerr << "INCLUDED SAMPLES: " << included_samples << "\n" ;
+						}
 						
 						output_cross_counts(
 							variants,
