@@ -43,9 +43,9 @@ namespace metro {
 			}
 		} else {
 #if 1
-		Eigen::VectorXd parameters = metro::find_maximum_by_modified_newton_raphson_with_line_search(
-			ll, starting_point, stopping_condition
-		) ;
+			Eigen::VectorXd parameters = metro::find_maximum_by_modified_newton_raphson_with_line_search(
+				ll, starting_point, stopping_condition
+			) ;
 #else
 			metro::Snptest25StoppingCondition< metro::regression::LogLikelihood > stopping_condition(
 				ll,
