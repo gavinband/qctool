@@ -94,9 +94,9 @@ def configure_variant( cfg, variant ):
 		configure_linux( cfg, cxxflags, linkflags )
 
 	# Now check for libraries
-	if cfg.check_cxx( lib = 'm', uselib_store = 'M' ):
+	if check_cxx( cfg, lib = 'm', uselib_store = 'M' ):
 		cfg.define( 'HAVE_M', 1 )
-	if cfg.check_cxx( lib='z', uselib_store='ZLIB' ):
+	if check_cxx( cfg, lib='z', uselib_store='ZLIB' ):
 		cfg.define( 'HAVE_ZLIB', 1 )
 	# disable support for some things
 	cfg.define( 'HAVE_BZIP2', 0 )
@@ -126,6 +126,13 @@ def configure_variant( cfg, variant ):
 	cfg.env[ 'LINKFLAGS' ] = linkflags
 	cfg.write_config_header( '%s/config/config.hpp' % variant )
 
+def check_cxx( cfg, **kwargs ):
+	try:
+		cfg.check_cxx( **kwargs )
+		return True
+	except:
+		return False
+		
 
 def configure_blas( cfg ):
 	import platform
@@ -137,7 +144,8 @@ def configure_blas( cfg ):
 			uselib_store = 'CBLAS'
 		):
 			cfg.define( 'HAVE_CBLAS', 1 )
-		if cfg.check_cxx(
+		if check_cxx(
+			cfg,
 			header_name = 'clapack.h',
 			lib = 'clapack',
 			cxxflags = '-I/System/Library/Frameworks/vecLib.framework/Headers',
@@ -153,32 +161,32 @@ int main() {
 	return int(result) ;
 }
 """
-		if cfg.check_cxx( lib = 'cblas', fragment = blasCode, uselib_store = 'CBLAS' ):
+		if check_cxx( cfg, lib = 'cblas', fragment = blasCode, uselib_store = 'CBLAS' ):
 			cfg.define( 'HAVE_CBLAS', 1 ) ;
-		elif cfg.check_cxx( lib = 'blas', fragment = blasCode, uselib_store = 'CBLAS' ):
+		elif check_cxx( cfg, lib = 'blas', fragment = blasCode, uselib_store = 'CBLAS' ):
 			cfg.define( 'HAVE_CBLAS', 1 ) ;
-		elif cfg.check_cxx( lib = 'openblas', fragment = blasCode, uselib_store = 'CBLAS' ):
+		elif check_cxx( cfg, lib = 'openblas', fragment = blasCode, uselib_store = 'CBLAS' ):
 			cfg.define( 'HAVE_CBLAS', 1 ) ;
-		if cfg.check_cxx(
+		if check_cxx(
+			cfg,
 			lib = 'lapack',
 			uselib_store = 'LAPACK'
 		):
 			cfg.define( 'HAVE_LAPACK', 1 )
 
 def configure_time( cfg ):
-	if cfg.check_cxx( header_name='mach/mach_time.h', uselib_store = 'MACH_TIME' ):
+	if check_cxx( cfg, header_name='mach/mach_time.h', uselib_store = 'MACH_TIME' ):
 		cfg.define( 'HAVE_MACH_TIME', 1 )
-	if cfg.check_cxx( header_name = 'sys/time.h', fragment = '#include "sys/time.h"\nint main(int argc, char** argv ) { struct timeval current_time ; gettimeofday( &current_time, 0 ) ; return 0 ; }' ):
+	if check_cxx( cfg, header_name = 'sys/time.h', fragment = '#include "sys/time.h"\nint main(int argc, char** argv ) { struct timeval current_time ; gettimeofday( &current_time, 0 ) ; return 0 ; }' ):
 		cfg.define( 'HAVE_GETTIMEOFDAY', 1 )
 
 def configure_darwin( cfg, cxxflags, linkflags ):
 	linkflags.extend( [ '-framework', 'CoreFoundation' ])
 
 def configure_linux( cfg, cxxflags, linkflags ):
-    cfg.check_cxx( lib='rt', uselib_store='rt', msg = 'rt' )
-    cfg.check_cxx( lib='pthread', uselib_store='pthread', msg = 'pthread' )
-    cfg.check_cxx( lib='dl', uselib_store='dl', msg = 'dl' )
-
+    check_cxx( cfg, lib='rt', uselib_store='rt', msg = 'rt' )
+    check_cxx( cfg, lib='pthread', uselib_store='pthread', msg = 'pthread' )
+    check_cxx( cfg, lib='dl', uselib_store='dl', msg = 'dl' )
 
 # This piece of code comes from
 # https://gitlab.com/ita1024/waf/-/blob/master/demos/variants/wscript
