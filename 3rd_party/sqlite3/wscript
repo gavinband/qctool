@@ -10,6 +10,6 @@ def build( bld ):
 		includes = './',
 		cflags = '-fPIC',
 		defines = 'SQLITE_ENABLE_COLUMN_METADATA SQLITE_ENABLE_STAT4 SQLITE_MAX_EXPR_DEPTH=10000 SQLITE_USE_URI=1',
-		#uselib = 'DL',
+		use = 'dl',
 		export_includes = './'
 	)
