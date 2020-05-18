@@ -342,10 +342,10 @@ public:
 			.set_description( "Specify a prior weight for samples.  "
 				" This augments data with one of each of the four possible haploid genotype combinations "
 				" for each pairwise comparison, with the total weight given."
-				" The default value (1) indicates each haplotype is given 1/4 weight."
+				" For example, a value of 1 indicates each haplotype is given 1/4 weight."
 			)
 			.set_takes_single_value()
-			.set_default_value( "1.0" )
+			.set_default_value( "0" )
 		;
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-analysis-name" ]
@@ -611,14 +611,17 @@ private:
 		
 		write_preamble( *g1, *g2, *samples ) ;
 		
-		{
-			boost::optional< genfile::db::Connection::RowId > analysis_id ;
-			if( options().check( "-analysis-id" ) ) {
-				analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
-			}
+		std::vector< int64_t > histogram( 2049, 0 ) ;
+		
+		boost::optional< genfile::db::Connection::RowId > analysis_id ;
+		if( options().check( "-analysis-id" ) ) {
+			analysis_id = options().get< genfile::db::Connection::RowId >( "-analysis-id" ) ;
+		}
 
-			std::string const fileSpec = options().get< std::string > ( "-o" ) ;
-			std::string const tablePrefix = options().get< std::string > ( "-table-prefix" ) ;
+		std::string const fileSpec = options().get< std::string > ( "-o" ) ;
+		std::string const tablePrefix = options().get< std::string > ( "-table-prefix" ) ;
+
+		{
 			qcdb::Storage::UniquePtr frequencyStorage = qcdb::Storage::create(
 				fileSpec + ":" + tablePrefix + "Frequency",
 				options().get< std::string > ( "-analysis-name" ),
@@ -638,6 +641,7 @@ private:
 				"position,alleles",
 				analysis_id
 			) ;
+
 			correlationStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 			correlationStorage->add_variable( "N" ) ;
 			correlationStorage->add_variable( "encoded_r" ) ;
@@ -648,10 +652,31 @@ private:
 			visitor.add_source( "g1", g1.get() ) ;
 			visitor.add_source( "g2", g2.get() ) ;
 
-			run( visitor, *samples, *frequencyStorage, *correlationStorage ) ;
+			run( visitor, *samples, *frequencyStorage, *correlationStorage, &histogram ) ;
 
 			frequencyStorage->finalise() ;
 			correlationStorage->finalise() ;
+		}
+		
+		{
+			qcdb::MultiVariantStorage::UniquePtr histogramStorage = qcdb::MultiVariantStorage::create(
+				fileSpec + ":" + tablePrefix + "Histogram",
+				0,
+				options().get< std::string > ( "-analysis-name" ),
+				options().get< std::string > ( "-analysis-chunk" ),
+				get_application_metadata(),
+				"position,alleles",
+				analysis_id
+			) ;
+			histogramStorage->add_variable( "encoded_r" ) ;
+			histogramStorage->add_variable( "count" ) ;
+			qcdb::MultiVariantStorage::Key const key ;
+			for( std::size_t i = 0; i < histogram.size(); ++i ) {
+				histogramStorage->create_new_key( key ) ;
+				histogramStorage->store_data_for_key( key, "encoded_r", int64_t(i) ) ;
+				histogramStorage->store_data_for_key( key, "count", histogram[i] ) ;
+			}
+			histogramStorage->finalise() ;
 		}
 	}
 	
@@ -821,24 +846,35 @@ private:
 		Visitor& visitor,
 		genfile::CohortIndividualSource const& samples,
 		qcdb::Storage& frequencyOutput,
-		qcdb::MultiVariantStorage& correlationOutput
+		qcdb::MultiVariantStorage& correlationOutput,
+		std::vector< int64_t >* histogram
 	) {
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
+		histogram->resize( 2049 ) ;
+		std::fill( histogram->begin(), histogram->end(), 0 ) ;
 		for(
 			std::size_t count = 0;
 			visitor.step(
-				[this,&frequencyOutput,&correlationOutput](
+				[this,&frequencyOutput,&correlationOutput,&histogram](
 					std::vector< int > const& changed,
 					std::vector< genfile::VariantIdentifyingData > const& variants,
 					std::vector< genfile::VariantDataReader::SharedPtr > const& readers
 				) {
-					this->process_one( changed, variants, readers, frequencyOutput, correlationOutput ) ;
+					this->process_one(
+						changed,
+						variants,
+						readers,
+						frequencyOutput,
+						correlationOutput,
+						histogram
+					) ;
 				}
 			) ;
 			++count
 		) {
 			progress_context( count, visitor.count() ) ;
 		} ;
+		progress_context.finish() ;
 	}
 	
 	void process_one(
@@ -846,7 +882,8 @@ private:
 		std::vector< genfile::VariantIdentifyingData > const& variants,
 		std::vector< genfile::VariantDataReader::SharedPtr > const& readers,
 		qcdb::Storage& frequencyOutput,
-		qcdb::MultiVariantStorage& correlationOutput
+		qcdb::MultiVariantStorage& correlationOutput,
+		std::vector< int64_t >* histogram
 	) {
 		if( m_dosages.size() != changed.size() ) {
 			m_dosages.resize( changed.size() ) ;
@@ -900,6 +937,18 @@ private:
 			&covariance, &correlation, &N,
 			prior_weight
 		) ;
+		
+		// ints in sqlite use only 2 bytes if up to +ve integer 2287.
+		// We map -1...1 to 0...2048, such that the transformation
+		//
+		// correlation = (stored_value / 1024) - 1.0
+		// or
+		// correlation = (stored_value - 1024.0) / 1024.0
+		// maps back to correlation space.
+		//
+		int64_t const encoded_r = ( std::round((correlation + 1.0) * 1024 )) ;
+		++((*histogram)[ encoded_r ]) ;
+
 		if( ( correlation * correlation ) >= options().get< double >( "-min-r2" ) ) {
 			correlationOutput.store_data_for_key(
 				variants,
@@ -912,15 +961,7 @@ private:
 			correlationOutput.store_data_for_key(
 				variants,
 				"encoded_r",
-				// ints in sqlite use only 2 bytes if up to +ve integer 2287.
-				// We map -1...1 to 0...2048, such that the transformation
-				//
-				// correlation = (stored_value / 1024) - 1.0
-				// or
-				// correlation = (stored_value - 1024.0) / 1024.0
-				// maps back to correlation space.
-				//
-				int64_t( std::round((correlation + 1.0) * 1024 ))
+				encoded_r
 			) ;
 		}
 #if DEBUG

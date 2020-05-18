@@ -84,7 +84,7 @@ namespace qcdb {
 		m_keys.clear() ;
 		m_values.clear() ;
 
-		if( options & qcdb::eCreateIndices && !m_without_rowid ) {
+		if( (options & qcdb::eCreateIndices) && (!m_without_rowid) && (m_key_entry_names.size() > 0) ) {
 			genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 			std::string sql = "CREATE INDEX IF NOT EXISTS " + m_table_name + "_index ON `" + m_table_name + "` (";
 			for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
@@ -177,7 +177,13 @@ namespace qcdb {
 		genfile::db::Connection::ScopedTransactionPtr transaction = m_outputter.connection().open_transaction( 7200 ) ;
 
 		if( !m_insert_data_sql.get() ) {
+#if DEBUG_FLATTABLEDBOUTPUTTER
+			std::cerr << "FlatTableMultiVariantDBOutputter::store_block(): creating schema...\n" ;
+#endif 
 			create_schema() ;
+#if DEBUG_FLATTABLEDBOUTPUTTER
+			std::cerr << "FlatTableMultiVariantDBOutputter::store_block(): ok.\n" ;
+#endif
 			// create_variables() ;
 		}
 		std::vector< genfile::db::Connection::RowId > variant_ids ;
@@ -206,11 +212,11 @@ namespace qcdb {
 		schema_sql << "CREATE TABLE IF NOT EXISTS "
 			<< table_name
 			<< " ( "
-			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
+			"analysis_id INT NOT NULL REFERENCES Entity( id )"
 				;
 		for( std::size_t i = 0; i < m_key_entry_names.size(); ++i ) {
-			schema_sql << (i>0 ? ", " : " " )
-				<< "`" << m_key_entry_names[i] << "_id` INT NOT NULL REFERENCES Variant( id )" ;
+			schema_sql
+				<< ", `" << m_key_entry_names[i] << "_id` INT NOT NULL REFERENCES Variant( id )" ;
 		}
 		
 		insert_data_sql << "INSERT INTO "
@@ -234,12 +240,12 @@ namespace qcdb {
 			insert_data_sql_columns << ", " ;
 			insert_data_sql_values << ", " ;
 			schema_sql
-				<< '"'
+				<< '`'
 				<< var_i->second
-				<< '"'
+				<< '`'
 				<< " NULL" ;
 				
-			insert_data_sql_columns << '"' << var_i->second << '"' ;
+			insert_data_sql_columns << '`' << var_i->second << '`' ;
 			insert_data_sql_values << "?" << to_string( bind_i ) ;
 		}
 
@@ -322,6 +328,9 @@ namespace qcdb {
 			if( where == m_values.end() ) {
 				m_insert_data_sql->bind( bind_i, genfile::MissingValue() ) ;
 			} else {
+#if DEBUG_FLATTABLEDBOUTPUTTER
+				std::cerr << "FlatTableMultiVariantDBOutputter::store_data_for_variants(): key " << key_i << ", bind( " << bind_i << ", " << where->second << " )\n" ;
+#endif
 				m_insert_data_sql->bind( bind_i, where->second ) ;
 			}
 		}
