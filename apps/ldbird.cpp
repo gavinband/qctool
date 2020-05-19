@@ -155,11 +155,16 @@ public:
 
 	bool step(  Callback callback ) {
 		int64_t const distant = std::numeric_limits< int64_t >::max() ;
+		std::vector< int > changed( m_sources.size(), 0 ) ;
 		while( step_impl() ) {
+			// keep track of cumulative changes
+			for( std::size_t i = 0; i < changed.size(); ++i ) {
+				changed[i] = std::max( changed[i], m_changed[i] ) ;
+			}
 			int64_t const min_distance = (m_min_distance == 0) ? distant : compute_min_distance( m_variants ) ;
 			if( min_distance >= m_min_distance ) {
 				callback(
-					m_changed,
+					changed,
 					m_variants,
 					m_readers
 				) ;
@@ -265,7 +270,7 @@ private:
 		for( std::size_t i = 0; i < ( variants.size()-1 ); ++i ) {
 			for( std::size_t j = i+1; j < variants.size(); ++j ) {
 				genfile::GenomePosition const& pos1 = variants[i].get_position() ;
-				genfile::GenomePosition const& pos2 = variants[i].get_position() ;
+				genfile::GenomePosition const& pos2 = variants[j].get_position() ;
 				int64_t distance = (
 					(pos1.chromosome() != pos2.chromosome())
 					?

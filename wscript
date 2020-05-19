@@ -3,7 +3,7 @@ import glob
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "2.1-dev"
+VERSION = "2.1.1"
 
 variants = {
 	"release": {
