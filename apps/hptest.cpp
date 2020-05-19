@@ -1293,15 +1293,6 @@ private:
 
 		output.store_data_for_key( variants, "N", total ) ;
 		output.store_data_for_key( variants, "missing", int( design.outcome().rows() - total ) ) ;
-		if( options().check( "-detailed" )) {
-			std::ostringstream ostr ;
-			if( total == 0 ) {
-				ostr << "NA" ;
-			} else {
-				ostr << included_samples ;
-			}
-			output.store_data_for_key( variants, "included_samples", ostr.str() ) ;
-		}
 		
 		for(
 			std::map< int, int >::const_iterator i = outcomeCounts.begin();
