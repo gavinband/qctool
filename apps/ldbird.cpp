@@ -46,6 +46,7 @@
 #include "metro/regression/Design.hpp"
 #include "metro/SampleRange.hpp"
 #include "metro/intersect_ranges.hpp"
+#include "metro/count_range.hpp"
 #include "metro/regression/BinomialLogistic.hpp"
 #include "metro/regression/ThreadedLogLikelihood.hpp"
 #include "metro/regression/IndependentNormalWeightedLogLikelihood.hpp"
@@ -134,8 +135,14 @@ public:
 struct CartesianProduct: public Visitor {
 public:
 	CartesianProduct( bool lower_triangle = false ):
-		m_lower_triangle( lower_triangle )
+		m_lower_triangle( lower_triangle ),
+		m_min_distance(0)
 	{}
+
+	void set_min_distance( int64_t distance ) {
+		assert( distance >= 0 ) ;
+		m_min_distance = distance ;
+	}
 
 	void add_source(
 		std::string const& name,
@@ -145,51 +152,21 @@ public:
 		m_sources.push_back( source ) ;
 	}
 	
-	bool step( Callback callback ) {
-		if( m_sources.empty() ) {
-			return false ;
-		}
-		if( m_changed.empty() ) {
-			// First call.  Populate our data structures.
-			m_changed.assign( m_sources.size(), 1 ) ;
-			m_variants.resize( m_sources.size() ) ;
-			assert( m_readers.size() == 0 ) ;
-			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
-					return false ;
-				} ;
-				m_readers.push_back( m_sources[i]->read_variant_data() ) ;
-			}
-		} else {
-			// Move to the next variant.
-			// We step to the next variant in each source, starting with the last.
-			// If a source is exhausted we reset it to the start and recurse to
-			// the preceding source.
-			std::size_t i = m_sources.size() - 1 ;
-			for( ; true; --i ) {
-				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
-					if( i == 0 ) {
-						return false ;
-					} else {
-						reset_source(i) ;
-						m_sources[i]->get_snp_identifying_data( &m_variants[i] ) ;
-					}
-				} else {
-					break ;
-				}
-			}
-			m_changed.assign( m_sources.size(), 0 ) ;
-			for( std::size_t j = i; j < m_sources.size(); ++j ) {
-				m_changed[j] = 1 ;
-				m_readers[j] = m_sources[j]->read_variant_data() ;
+
+	bool step(  Callback callback ) {
+		int64_t const distant = std::numeric_limits< int64_t >::max() ;
+		while( step_impl() ) {
+			int64_t const min_distance = (m_min_distance == 0) ? distant : compute_min_distance( m_variants ) ;
+			if( min_distance >= m_min_distance ) {
+				callback(
+					m_changed,
+					m_variants,
+					m_readers
+				) ;
+				return true ;
 			}
 		}
-		callback(
-			m_changed,
-			m_variants,
-			m_readers
-		) ;
-		return true ;
+		return false ;
 	}
 	
 	boost::optional< std::size_t > count() const {
@@ -215,6 +192,7 @@ public:
 private:
 	std::vector< std::string > m_names ;
 	bool const m_lower_triangle ;
+	int64_t m_min_distance ;
 	std::vector< genfile::SNPDataSource* > m_sources ;
 	std::vector< genfile::VariantIdentifyingData > m_variants ;
 	std::vector< genfile::VariantDataReader::SharedPtr > m_readers ;
@@ -222,6 +200,49 @@ private:
 	
 private:
 	
+	bool step_impl() {
+		if( m_sources.empty() ) {
+			return false ;
+		}
+		if( m_changed.empty() ) {
+			// First call.  Populate our data structures.
+			m_changed.assign( m_sources.size(), 1 ) ;
+			m_variants.resize( m_sources.size() ) ;
+			assert( m_readers.size() == 0 ) ;
+			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
+					return false ;
+				} ;
+				m_readers.push_back( m_sources[i]->read_variant_data() ) ;
+			}
+		} else {
+			// Move to the next variant.
+			// Use a linearised recursion to step through all combinations.
+			// We start at the last source and step to the next variant.
+			// If a source is exhausted we reset it to the start and recurse to
+			// the preceding source.
+			std::size_t i = m_sources.size() - 1 ;
+			for( ; true; --i ) {
+				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
+					if( i == 0 ) {
+						return false ;
+					} else {
+						reset_source(i) ;
+						m_sources[i]->get_snp_identifying_data( &m_variants[i] ) ;
+					}
+				} else {
+					break ;
+				}
+			}
+			m_changed.assign( m_sources.size(), 0 ) ;
+			for( std::size_t j = i; j < m_sources.size(); ++j ) {
+				m_changed[j] = 1 ;
+				m_readers[j] = m_sources[j]->read_variant_data() ;
+			}
+		}
+		return true ;
+	}
+
 	void reset_source( std::size_t i ) {
 		m_sources[i]->reset_to_start() ;
 		if( m_lower_triangle ) {
@@ -234,6 +255,28 @@ private:
 				}
 			}
 		}
+	}
+
+	// return minimum physical distance between any pair of variants on same chromosome,
+	// or maximum +pve value of int64 if all on different chromosomes
+	int64_t compute_min_distance( std::vector< genfile::VariantIdentifyingData > const& variants ) const {
+		int64_t const distant = std::numeric_limits< int64_t >::max() ;
+		int64_t result = distant ;
+		for( std::size_t i = 0; i < ( variants.size()-1 ); ++i ) {
+			for( std::size_t j = i+1; j < variants.size(); ++j ) {
+				genfile::GenomePosition const& pos1 = variants[i].get_position() ;
+				genfile::GenomePosition const& pos2 = variants[i].get_position() ;
+				int64_t distance = (
+					(pos1.chromosome() != pos2.chromosome())
+					?
+					distant
+					:
+					std::abs( int64_t(pos1.position()) - int64_t(pos2.position()))
+				) ;
+				result = std::min( result, distance ) ;
+			}
+		}
+		return result ;
 	}
 } ;
 
@@ -327,11 +370,24 @@ public:
 			.set_minimum_multiplicity( 0 )
 			.set_maximum_multiplicity( 100 ) ;
 		options[ "-min-r2" ]
-			.set_description( "Do not output results where r^2 is lower than this threshold." )
+			.set_description( "Do not output results where r^2 is lower than this threshold. "
+					" (These values are still computed and contribute to the histogram.)" )
 			.set_takes_single_value()
 			.set_default_value( 0.05 ) ;
 		options[ "-min-maf" ]
-			.set_description( "Do not output results where the maf of eiteher variant is lower than this threshold." )
+			.set_description( "Do not compute correlation results where the maf of either variant is lower than this threshold." )
+			.set_takes_single_value()
+			.set_default_value( 0 ) ;
+		options[ "-min-N" ]
+			.set_description( "Do not compute results where the total number of pairwise non-missing genotypes is below this threshold." )
+			.set_takes_single_value()
+			.set_default_value( 0 ) ;
+		options[ "-min-N-propn" ]
+			.set_description( "Ignore (do not compute or output) results where the propn of pairwise non-missing genotypes is below this threshold." )
+			.set_takes_single_value()
+			.set_default_value( 0.0 ) ;
+		options[ "-min-distance" ]
+			.set_description( "Ignore (do not compute or output) results where the variants are on the same chromosome and closer than this physical distance." )
 			.set_takes_single_value()
 			.set_default_value( 0 ) ;
 		options[ "-assume-haploid" ]
@@ -652,6 +708,10 @@ private:
 			visitor.add_source( "g1", g1.get() ) ;
 			visitor.add_source( "g2", g2.get() ) ;
 
+			if( options().check( "-min-distance" )) {
+				visitor.set_min_distance( options().get< int64_t >( "-min-distance" )) ;
+			}
+
 			run( visitor, *samples, *frequencyStorage, *correlationStorage, &histogram ) ;
 
 			frequencyStorage->finalise() ;
@@ -908,15 +968,22 @@ private:
 			if( where != m_frequencies.end() ) {
 				frequency = where->second ;
 			} else {
-				frequency = compute_regularised_frequency( m_dosages[i], m_ploidy[i], m_nonmissingness[i], prior_weight ) ;
+				std::pair< double, int64_t > computedFrequency = compute_regularised_frequency( m_dosages[i], m_ploidy[i], m_nonmissingness[i], prior_weight ) ;
+				frequency = computedFrequency.first ;
 				
 				// not yet computed, so store it
 				m_frequencies[ variants[i] ] = frequency ;
-					frequencyOutput.store_per_variant_data(
-						variants[i],
-						"frequency",
-						frequency
-					) ;
+				// Output the sample count and the frequency
+				frequencyOutput.store_per_variant_data(
+					variants[i],
+					"number_of_haplotypes",
+					computedFrequency.second
+				) ;
+				frequencyOutput.store_per_variant_data(
+					variants[i],
+					"frequency",
+					frequency
+				) ;
 			}
 			min_maf = std::min( min_maf, std::min( frequency, 1.0 - frequency )) ;
 		}
@@ -926,10 +993,23 @@ private:
 			return ;
 		}
 		
-		std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, m_dosages[0].size() )) ;
+		int const total_number_of_samples = m_dosages[0].size() ;
+		std::vector< metro::SampleRange > included_samples( 1, metro::SampleRange( 0, total_number_of_samples )) ;
 		for( std::size_t i = 0; i < changed.size(); ++i ) {
 			included_samples = metro::impl::intersect_ranges( included_samples, m_nonmissingness[i] ) ;
 		}
+		
+		// Bail out if there aren't enough samples in the pairwise comparison
+		{
+			std::size_t count = metro::impl::count_range( included_samples ) ;
+			if(
+				(count < options().get< double >( "-min-N" ))
+			 	   || (( double(count)/total_number_of_samples ) < options().get< double >( "-min-N-propn" ))
+			) {
+				return ;
+			}
+		}
+
 		double covariance = 0.0, correlation = 0.0, N = 0.0 ;
 		
 		compute_regularised_correlation(
@@ -985,7 +1065,7 @@ private:
 	
 private:
 	
-	double compute_regularised_frequency(
+	std::pair< double, int64_t > compute_regularised_frequency(
 		Eigen::VectorXd const& dosages,
 		Eigen::VectorXd const& ploidy,
 		std::vector< metro::SampleRange > const& included_samples,
@@ -1002,7 +1082,7 @@ private:
 		// evenly split between both alleles
 		result += prior_weight / 2 ;
 		N += prior_weight ;
-		return result / N ;
+		return std::make_pair( result / N, int64_t( N ) ) ;
 	}
 
 	void compute_regularised_correlation(
@@ -1024,12 +1104,12 @@ private:
 		typedef Eigen::VectorBlock< Eigen::VectorXd const > ConstBlock ;
 		typedef Eigen::VectorBlock< Eigen::VectorXi const > ConstIntegerBlock ;
 
-		// We compute correlation augmented by additional data adding up to prior_weight
-		// haploid samples evenly split between the four possible genotype combinations
+		// Although frequencies are computed above, we recompute here because the
+		// number of included samples may differ for the pairwise test.
 		for( std::size_t v = 0; v < frequencies.size(); ++v ) {
 			frequencies[v] = compute_regularised_frequency(
 				dosages[v], ploidy[v], included_samples, prior_weight
-			) ;
+			).first ;
 		}
 
 		double result = 0.0 ;
