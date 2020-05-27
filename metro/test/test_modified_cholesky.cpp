@@ -12,6 +12,8 @@
 #include <Eigen/Cholesky>
 #include "metro/ModifiedCholesky.hpp"
 
+// #define DEBUG 1
+
 AUTO_TEST_CASE( test_modified_cholesky_positive_definite ) {
 	typedef Eigen::VectorXd Vector ;
 	typedef Eigen::MatrixXd Matrix ;
@@ -77,14 +79,17 @@ AUTO_TEST_CASE( test_modified_cholesky_nonpositive_definite ) {
 				TEST_ASSERT( comp.vectorD()(j) >= std::numeric_limits< double >::epsilon() ) ;
 			}
 
+#if DEBUG
 			std::cerr << "---------\n" ;
 			std::cerr << "test_modified_cholesky_nonpositive_definite(): off-diagonal = " << test(0,1) << ",\n" ;
 			std::cerr << "test_modified_cholesky_nonpositive_definite(): original matrix is:\n"
 				<< test << ".\n" ;
+#endif
 			Matrix reconstructed = comp.matrixL() * Matrix( Vector( comp.vectorD() ).asDiagonal() ) * comp.matrixL().transpose() ;
+#if DEBUG
 			std::cerr << "test_modified_cholesky_nonpositive_definite(): reconstructed matrix is:\n"
 				<< reconstructed << ".\n" ;
-			
+#endif
 			// Modified cholesky is cholesky of a modified matrix with additions of +ve elements
 			// to the diagonal.  Check changes are +ve
 			BOOST_CHECK( (reconstructed.diagonal() - test.diagonal()).minCoeff() >= 0 ) ;
@@ -97,8 +102,9 @@ AUTO_TEST_CASE( test_modified_cholesky_nonpositive_definite ) {
 					+ std::numeric_limits< double >::epsilon()
 			) ;
 			BOOST_CHECK( (reconstructed.diagonal() - test.diagonal()).maxCoeff() <= errorBound ) ;
+#if DEBUG
 			std::cerr << "test_modified_cholesky_nonpositive_definite(): bound is " << errorBound << ".\n" ;
-			
+#endif			
 			// Check that error is confined to diagonal
 			{
 				Matrix a = reconstructed.triangularView< Eigen::UnitLower >() ;
@@ -148,25 +154,32 @@ AUTO_TEST_CASE( test_modified_cholesky_special_test_cases ) {
 			TEST_ASSERT( comp.vectorD()(j) >= std::numeric_limits< double >::epsilon() ) ;
 		}
 
+#if DEBUG
 		std::cerr << "---------\n" ;
 		std::cerr << "test_modified_cholesky_special_test_cases(): off-diagonal = " << test(0,1) << ",\n" ;
 		std::cerr << "test_modified_cholesky_special_test_cases(): original matrix is:\n"
 			<< test << ".\n" ;
+#endif
 		Matrix reconstructed =
 			comp.matrixL()
 			* Matrix( Vector( comp.vectorD() ).asDiagonal() )
 			* comp.matrixL().transpose() ;
+#if DEBUG
 		std::cerr << "test_modified_cholesky_special_test_cases(): reconstructed matrix (1) is:\n"
 			<< reconstructed << ".\n" ;
+#endif
 		reconstructed = comp.matrixP().transpose() * reconstructed ;
+#if DEBUG
 		std::cerr << "test_modified_cholesky_special_test_cases(): reconstructed matrix (2) is:\n"
 			<< reconstructed << ".\n" ;
+#endif
 		reconstructed = reconstructed * comp.matrixP() ;
+#if DEBUG
 		std::cerr << "test_modified_cholesky_special_test_cases(): reconstructed matrix (full) is:\n"
 			<< reconstructed << ".\n" ;
 		std::cerr << "test_modified_cholesky_special_test_cases(): permutation matrix is:\n"
 			<< ( comp.matrixP() * Matrix::Identity( test.rows(), test.rows() ) ) << ".\n" ;
-		
+#endif		
 		// Modified cholesky is cholesky of a modified matrix with additions of +ve elements
 		// to the diagonal.  Check changes are +ve
 		BOOST_CHECK( (reconstructed.diagonal() - test.diagonal()).minCoeff() >= 0 ) ;
@@ -180,8 +193,10 @@ AUTO_TEST_CASE( test_modified_cholesky_special_test_cases ) {
 		) ;
 		double const fangLearyR2 = 2.7335 ; // Add 0.0005 for rounding
 		Matrix const E = reconstructed - test ;
+#if DEBUG
 		std::cerr << "test_modified_cholesky_special_test_cases(): bound is " << errorBound << ", predicted r2 is: " << fangLearyR2 << "\n" ;
 		std::cerr << "test_modified_cholesky_special_test_cases(): max error is " << E.maxCoeff() << ".\n" ;
+#endif
 		BOOST_CHECK( E.maxCoeff() <= errorBound ) ;
 		BOOST_CHECK( E.maxCoeff() / 0.3780759 <= fangLearyR2 ) ;
 		
