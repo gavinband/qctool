@@ -15,7 +15,7 @@ namespace metro {
 	template<>
 	double log_sum_exp( std::vector< double > const& data ) {
 		if( data.size() == 0 ) {
-			return 0.0 ;
+			return -std::numeric_limits< double >::infinity() ;
 		}
 		std::vector< double >::const_iterator max_i = std::max_element( data.begin(), data.end() ) ;
 		double const max_value = *max_i ;
