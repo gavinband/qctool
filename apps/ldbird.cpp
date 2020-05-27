@@ -57,6 +57,7 @@
 #include "metro/maximisation.hpp"
 #include "metro/fit_model.hpp"
 #include "metro/CholeskyStepper.hpp"
+#include "metro/FishersExactTest.hpp"
 
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -95,27 +96,6 @@ namespace {
 		return result ;
 	}
 
-	int extract_mapped_categorical_value(
-		std::size_t sample_index,
-		genfile::CohortIndividualSource const& samples,
-		std::size_t column_index,
-		genfile::CrossCohortCovariateValueMapping const& mapping
-	) {
-		int value = -1 ;
-		genfile::VariantEntry entry = samples.get_entry( sample_index, column_index ) ;
-		if( !entry.is_missing() ) {
-			value = mapping.get_mapped_value( entry ).as< int >() ;
-		}
-		return value ;
-	}
-
-	std::string get_unmapped_level(
-		genfile::CrossCohortCovariateValueMapping const& mapping,
-		int level
-	) {
-		genfile::VariantEntry entry = mapping.get_unmapped_value( level ) ;
-		return entry.as< std::string >() ;
-	}
 }
 
 struct Visitor: public boost::noncopyable {
@@ -352,6 +332,9 @@ public:
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
+		options[ "-details" ]
+			.set_description( "Output counts and a Fisher's exact test P-value. "
+				"Currently only supported if genotypes are haploid." ) ;
 		
 		options.declare_group( "Model options" ) ;
 		options[ "-incl-samples"]
@@ -563,7 +546,7 @@ namespace {
 	} ;
 }
 
-struct CorrelatorApplication: public appcontext::ApplicationContext
+struct LDbirdApplication: public appcontext::ApplicationContext
 {
 public:
 	
@@ -573,7 +556,7 @@ public:
 	typedef Eigen::RowVectorXd RowVector ;
 	
 public:
-	CorrelatorApplication( int argc, char** argv ):
+	LDbirdApplication( int argc, char** argv ):
 		appcontext::ApplicationContext(
 			globals::program_name,
 			globals::program_version + ", revision " + globals::program_revision,
@@ -657,14 +640,14 @@ private:
 		std::size_t const N = samples->size() ;
 		if( g1->number_of_samples() != N ) {
 			throw genfile::BadArgumentError(
-				"CorrelatorApplication::unsafe_process()",
+				"LDbirdApplication::unsafe_process()",
 				"-g1 \"" + options().get< std::string >( "-g1" ) + "\"",
 				"Wrong number of samples (" + to_string(g1->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
 		}
 		if( g2->number_of_samples() != N ) {
 			throw genfile::BadArgumentError(
-				"CorrelatorApplication::unsafe_process()",
+				"LDbirdApplication::unsafe_process()",
 				"-g2 \"" + options().get< std::string >( "-g2" ) + "\"",
 				"Wrong number of samples (" + to_string(g2->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
@@ -1048,6 +1031,35 @@ private:
 				"encoded_r",
 				encoded_r
 			) ;
+			
+			if( options().check( "-details" )) {
+				using genfile::string_utils::to_string ;
+				if( m_ploidy[0].maxCoeff() != 1 ) {
+					throw genfile::BadArgumentError(
+						"LDbirdApplication::process_one()",
+						"-details",
+						"Data must be haploid to use -details"
+					) ;
+				}
+				Eigen::Matrix2d table = tabulate( m_dosages, m_ploidy, included_samples ) ;
+				for( int i = 0; i < 2; ++i ) {
+					for( int j = 0; j < 2; ++j ) {
+						correlationOutput.store_data_for_key(
+							variants,
+							"n_" + to_string(i) + to_string(j),
+							table(i,j)
+						) ;
+					}
+				}
+				
+				metro::FishersExactTest test( table ) ;
+				double pvalue = test.get_pvalue( metro::FishersExactTest::eTwoSided ) ;
+				correlationOutput.store_data_for_key(
+					variants,
+					"fet_pvalue",
+					pvalue
+				) ;
+			}
 		}
 #if DEBUG
 		std::cerr << globals::program_name + ":process_one():\n" ;
@@ -1155,6 +1167,34 @@ private:
 		*number_of_samples = N ;
 	}
 	
+	Eigen::Matrix2d tabulate(
+		std::vector< Eigen::VectorXd > const& dosages,
+		std::vector< Eigen::VectorXd > const& ploidy,
+		std::vector< metro::SampleRange > const& included_samples
+	) const {
+		typedef Eigen::VectorBlock< Eigen::VectorXd const > ConstBlock ;
+		typedef Eigen::VectorBlock< Eigen::VectorXi const > ConstIntegerBlock ;
+
+		int maxPloidy0 = 0 ;
+		int maxPloidy1 = 0 ;
+		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
+			metro::SampleRange const& range = included_samples[i] ;
+			maxPloidy0 = std::max( maxPloidy0, int( ploidy[0].segment( range.begin(), range.size() ).array().maxCoeff()) ) ;
+			maxPloidy1 = std::max( maxPloidy1, int( ploidy[1].segment( range.begin(), range.size() ).array().maxCoeff()) ) ;
+		}
+		assert( maxPloidy0 == 1 && maxPloidy1 == 1 ) ;
+		Eigen::Matrix2d tmp = Eigen::Matrix2d::Zero() ;
+		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
+			metro::SampleRange const& range = included_samples[i] ;
+			ConstBlock d0 = dosages[0].segment( range.begin(), range.size() ) ;
+			ConstBlock d1 = dosages[1].segment( range.begin(), range.size() ) ;
+			for( int j = range.begin(); j < range.end(); ++j ) {
+				++tmp( d0[j], d1[j] ) ;
+			}
+		}
+		return tmp ;
+	}
+
 	struct DosageSetter: public genfile::VariantDataReader::PerSampleSetter {
 		typedef std::vector< metro::SampleRange > SampleRanges ;
 
@@ -1304,7 +1344,7 @@ private:
 
 int main( int argc, char** argv ) {
     try {
-		CorrelatorApplication app( argc, argv ) ;
+		LDbirdApplication app( argc, argv ) ;
     }
 	catch( appcontext::HaltProgramWithReturnCode const& e ) {
 		return e.return_code() ;
