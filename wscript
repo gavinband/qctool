@@ -3,7 +3,7 @@ import glob
 
 srcdir="."
 APPNAME = "qctool"
-VERSION = "2.1.1"
+VERSION = "2.1.2"
 
 variants = {
 	"release": {
@@ -216,6 +216,7 @@ def create_app( bld, name, use = '' ):
 
 def build( bld ):
 	print( "Building %s variant..." % bld.variant )
+	bld.env[ 'VERSION' ] = VERSION
 	autogenerate_version( bld )
 
 	bld.stlib(
