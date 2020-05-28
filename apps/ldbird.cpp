@@ -1064,7 +1064,7 @@ private:
 #if DEBUG
 		std::cerr << globals::program_name + ":process_one():\n" ;
 		std::cerr << "dosage1: " << m_dosages[0].head( 15 ).transpose() << "...\n" ; 
-		std::cerr << "dosage2: " << m_dosages[0].head( 15 ).transpose() << "...\n" ; 
+		std::cerr << "dosage2: " << m_dosages[1].head( 15 ).transpose() << "...\n" ; 
 		std::cerr << "N: " << N << ".\n" ;
 		std::cerr << "covariance: " << covariance << ".\n" ;
 		std::cerr << "correlation: " << correlation << ".\n" ;
@@ -1186,10 +1186,8 @@ private:
 		Eigen::Matrix2d tmp = Eigen::Matrix2d::Zero() ;
 		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 			metro::SampleRange const& range = included_samples[i] ;
-			ConstBlock d0 = dosages[0].segment( range.begin(), range.size() ) ;
-			ConstBlock d1 = dosages[1].segment( range.begin(), range.size() ) ;
 			for( int j = range.begin(); j < range.end(); ++j ) {
-				++tmp( d0[j], d1[j] ) ;
+				++tmp( dosages[0][j], dosages[1][j] ) ;
 			}
 		}
 		return tmp ;
@@ -1291,12 +1289,11 @@ private:
 				if( m_treat_as_haploid ) {
 					// only homozygous genotypes are counted, others are assumed missing
 					// entry_i == 0 contributes 0 dosage anyway so just count the last entry
-					// (we are assuming variant is biallelic.)
 					//
 					// Sample considered missing if has nonzero probability on non-homozygous genotype
 					// (caught here), or if it has total 0 probability on homozygous genotypes (handled below).
 					if( entry_i == 0 || last_entry ) {
-						(*m_dosages)(m_sample_i) += entry_i * value ;
+						(*m_dosages)(m_sample_i) += ( last_entry ? value : 0.0 );
 						m_total_prob += value ;
 					} else if( value != 0 ) {
 						record_missing_sample() ;
