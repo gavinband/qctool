@@ -1284,30 +1284,33 @@ private:
 		}
 
 		void set_value( std::size_t entry_i, double const value ) {
-			if( m_sample_i >= m_last_nonmissing_sample_i ) {
-				m_total_prob += value ;
-				// handle missing data encoded as zeroes
-				if( m_total_prob == 0.0 && (entry_i + 1) == m_number_of_entries ) {
-					// missing
-					m_nonmissing_samples->push_back(
-						metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
-					) ;
-					// Skip this sample for next range.
-					m_last_nonmissing_sample_i = m_sample_i + 1 ;
-				} else {
-					// we assume two alleles, so entry_i is also the count of the B allele 
-					// in the genotype.
-					if( m_treat_as_haploid ) {
-						// only homozygous genotypes are counted, others are assumed missing
-						// entry_i == 0 contributes 0 dosage anyway
-						if( entry_i == (m_number_of_entries - 1) ) {
-							(*m_dosages)(m_sample_i) += value ;
-						}
-					} else {
-						(*m_dosages)(m_sample_i) += value * entry_i ;
+			if( !sample_recorded_missing() ) {
+				bool const last_entry = ((entry_i+1) == m_number_of_entries ) ;
+				// we assume two alleles, so entry_i is also the count of the B allele 
+				// in the genotype.
+				if( m_treat_as_haploid ) {
+					// only homozygous genotypes are counted, others are assumed missing
+					// entry_i == 0 contributes 0 dosage anyway so just count the last entry
+					// (we are assuming variant is biallelic.)
+					//
+					// Sample considered missing if has nonzero probability on non-homozygous genotype
+					// (caught here), or if it has total 0 probability on homozygous genotypes (handled below).
+					if( entry_i == 0 || last_entry ) {
+						(*m_dosages)(m_sample_i) += entry_i * value ;
 						m_total_prob += value ;
+					} else if( value != 0 ) {
+						record_missing_sample() ;
 					}
+				} else {
+					(*m_dosages)(m_sample_i) += value * entry_i ;
+					m_total_prob += value ;
 				}
+
+				// handle missing data encoded as zeroes
+				if( last_entry && m_total_prob == 0.0 ) {
+					record_missing_sample() ;
+				}
+				
 #if DEBUG > 2
 				std::cerr << "DosageSetter::set_value(): added value " << (value * entry_i) << " to entry " << entry_i << " for sample " << m_sample_i << ".\n" ;
 #endif
@@ -1339,6 +1342,20 @@ private:
 		SampleRanges* m_nonmissing_samples ;
 		std::size_t m_last_nonmissing_sample_i ;
 		std::size_t m_sample_i ;
+	private:
+		
+		bool sample_recorded_missing() const {
+			return m_sample_i < m_last_nonmissing_sample_i ;
+		}
+
+		void record_missing_sample() {
+			// missing
+			m_nonmissing_samples->push_back(
+				metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
+			) ;
+			// Skip this sample for next range.
+			m_last_nonmissing_sample_i = m_sample_i + 1 ;
+		}
 	} ;
 } ;
 
