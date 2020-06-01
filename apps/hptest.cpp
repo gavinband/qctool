@@ -40,6 +40,7 @@
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/GPThresholdingGTSetter.hpp"
 #include "genfile/db/Error.hpp"
+#include "genfile/CartesianProductVisitor.hpp"
 
 #include "components/SNPSummaryComponent/InfoComputation.hpp"
 
@@ -689,7 +690,12 @@ private:
 				analysis_id
 			) ;
 			storage->set_variant_names( std::vector< std::string >({ "predictor", "outcome" })) ;
-			test( *host, *para, *samples, *storage ) ;
+			
+			genfile::CartesianProductVisitor visitor ;
+			visitor.add_source( "predictor", host.get() ) ;
+			visitor.add_source( "outcome", para.get() ) ;
+			
+			test( visitor, *samples, *storage ) ;
 			storage->finalise() ;
 		}
 	}
@@ -856,15 +862,12 @@ private:
 	}
 
 	void test(
-		genfile::SNPDataSource& predictor_source,
-		genfile::SNPDataSource& outcome_source,
+		genfile::CartesianProductVisitor& visitor,
 		genfile::CohortIndividualSource const& samples,
 		qcdb::MultiVariantStorage& output
 	) {
 		using namespace metro ;
 		typedef std::vector< SampleRange > SampleRanges ;
-
-		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
 
 		std::vector< std::string > model_names ;
 		boost::ptr_vector< regression::Design > designs ;
@@ -873,8 +876,8 @@ private:
 
 		// Reserve some space for our variants
 		std::vector< genfile::VariantIdentifyingData > variants( 2 ) ;
-		genfile::VariantIdentifyingData& pv = variants[0] ;
-		genfile::VariantIdentifyingData& ov = variants[1] ;
+//		genfile::VariantIdentifyingData& pv = variants[0] ;
+//		genfile::VariantIdentifyingData& ov = variants[1] ;
 
 		// Storage
 		Matrix outcome = Matrix::Zero( samples.size(), 2 ) ;
@@ -890,138 +893,212 @@ private:
 		{
 			appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Testing" ) ;
 			std::size_t count = 0 ;
-			boost::optional< std::size_t > const total_count = 
-				( predictor_source.total_number_of_snps() && outcome_source.total_number_of_snps() )
-				? (*predictor_source.total_number_of_snps() * *outcome_source.total_number_of_snps())
-				: boost::optional< std::size_t >() ;
+			
 			bool have_summarised_models = false ;
 			bool outputAllVariants = options().check( "-output-all-variants" ) ;
 			bool const debug = options().check( "-debug" ) ;
 
-			while( predictor_source.get_snp_identifying_data( &pv )) {
-				ProbSetter predictor_setter( &predictor_probabilities, &predictor_ploidy, &nonmissing_predictor ) ;
-				predictor_source.read_variant_data()->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
-
-				// designs[0] is null model, specify a 0-column matrix.
-				designs[0].set_predictors( Eigen::MatrixXd::Zero( 1, 0 ), predictor_probabilities.rowwise().sum(), nonmissing_predictor ) ;
-				// designs[1..] are alternative models
-				for( std::size_t i = 1; i < designs.size(); ++i ) {
-					designs[i].set_predictors( predictorCodings[i], predictor_probabilities, nonmissing_predictor ) ;
-				}
-
-				bool predictorIncluded = true ;
-				double const predictorCount = 
-					std::min(
-						(predictor_probabilities.col(1) + 2.0 * predictor_probabilities.col(2)).array().sum(),
-						(predictor_probabilities.col(1) + 2.0 * predictor_probabilities.col(0)).array().sum()
-					) ;
-				if( predictorCount < options().get< double >( "-minimum-predictor-count" )) {
-					predictorIncluded = false ;
-				}
-
-				if( debug ) {
-					std::cerr << "PREDICTOR PROBS:\n" << predictor_probabilities.block( 0, 0, std::min( 30, int( predictor_probabilities.rows() ) ), predictor_probabilities.cols() ).transpose() << "\n" ;
-					std::cerr << "PREDICTOR INCLUDED SAMPLES: " << nonmissing_predictor << "\n" ;
-					std::cerr << "PREDICTOR CODINGS:\n" ;
-					for( std::size_t i = 1; i < designs.size(); ++i ) {
-						std::cerr << predictorCodings[i] << ".\n" ;
-					}
-				}
-				outcome_source.reset_to_start() ;
-				while( outcome_source.get_snp_identifying_data( &ov )) {
-					if( debug ) {
-						std::cerr << "++ Testing:\n"
-								  << "++ PREDICTOR variant: " << pv << "\n"
-								  << "++   OUTCOME variant: " << ov << "\n" ;
-					}
-
-					{
-						genfile::VariantDataReader::UniquePtr outcomeReader = outcome_source.read_variant_data() ;
-						CallSetter callSetter( &outcome, &outcome_ploidy, &nonmissing_outcome ) ;
-						if( options().check( "-treat-outcome-as-haploid" )) {
-							callSetter.set_haploidify() ;
-						}
-						if( outcomeReader->supports( "GT" )) {
-							outcomeReader->get( "GT", callSetter ) ;
-						} else if( outcomeReader->supports( "GP" )) {
-							outcomeReader->get(
-								"GP",
-								genfile::GPThresholdingGTSetter( callSetter, options().get< double >( "-outcome-genotype-call-threshold" ) )
+			while(
+				visitor.step(
+					[&] (
+						std::vector< int > const& changed,
+						std::vector< genfile::VariantIdentifyingData > const& variants,
+						std::vector< genfile::VariantDataReader::SharedPtr > const& readers
+					) {
+						bool predictorIncluded = true ;
+						double predictorCount = 0.0 ;
+						bool outcomeIncluded = true ;
+						double outcomeCount = 0.0 ;
+						if( changed[0] == 1 ) {
+//							std::cerr << "Predictor changed!" << ".\n" ;
+							std::pair< bool, double > const result = set_predictor(
+								variants[0],
+								readers[0],
+								&predictor_probabilities,
+								&predictor_ploidy,
+								&nonmissing_predictor,
+								predictorCodings,
+								&designs
 							) ;
-						} else {
-							throw genfile::BadArgumentError(
-								"HPTestApplication::test()",
-								"outcome_source",
-								"Source must support hard genotype calls (GT) or genotype probabilities (GP) field."
-							) ;
-						}
-						if( debug ) {
-							std::cerr << "OUTCOME:\n" << outcome.block( 0, 0, std::min( 30, int( outcome.rows() ) ), outcome.cols() ).transpose() << ".\n" ;
-							std::cerr << "OUTCOME INCLUDED SAMPLES: " << nonmissing_outcome << "\n" ;
+							predictorIncluded = result.first ;
+							predictorCount = result.second ;
 						}
 
-						for( std::size_t i = 0; i < designs.size(); ++i ) {
-							designs[i].set_outcome(
-								outcome,
-								nonmissing_outcome,
-								std::vector< std::string >({outcomeName + "=0", outcomeName + "=1"} )
+						if( changed[1] == 1 ) {
+//							std::cerr << "Outcome changed!" << ".\n" ;
+							std::pair< bool, double > const result = set_outcome(
+								variants[1],
+								readers[1],
+								&outcome,
+								&outcome_ploidy,
+								&nonmissing_outcome,
+								&designs
 							) ;
+							outcomeIncluded = result.first ;
+							outcomeCount = result.second ;
 						}
-					}
-					
-					bool outcomeIncluded = true ;
-					double const outcomeCount =  std::min( outcome.col(0).sum(), outcome.col(1).sum() ) ;
-					if( outcomeCount < options().get< double >( "-minimum-outcome-count" )) {
-						outcomeIncluded = false ;
-					}
 				
-					if( !have_summarised_models ) {
-						summarise_models( model_names, designs ) ;
-						have_summarised_models = true ;
-					}
-					
-					if( outputAllVariants || (predictorIncluded && outcomeIncluded)) {
-						output_design( designs[1], variants, designs[1].nonmissing_samples(), output ) ;
-
-						output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
-						output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
-						
-						std::vector< metro::SampleRange > const included_samples = metro::impl::intersect_ranges(
-							nonmissing_predictor,
-							nonmissing_outcome
-						) ;
-
-						if( debug ) {
-							std::cerr << "INCLUDED SAMPLES: " << included_samples << "\n" ;
+						if( !have_summarised_models ) {
+							summarise_models( model_names, designs ) ;
+							have_summarised_models = true ;
 						}
+					
+						if( outputAllVariants || (predictorIncluded && outcomeIncluded)) {
+							output_design( designs[1], variants, designs[1].nonmissing_samples(), output ) ;
+
+							output.store_data_for_key( variants, "minimum_outcome_count", outcomeCount ) ;
+							output.store_data_for_key( variants, "minimum_predictor_count", predictorCount ) ;
 						
-						output_cross_counts(
-							variants,
-							output,
-							cross_tabulate(
-								predictor_probabilities,
-								outcome,
-								outcome_ploidy,
-								included_samples
-							)
-						) ;
+							std::vector< metro::SampleRange > const included_samples = metro::impl::intersect_ranges(
+								nonmissing_predictor,
+								nonmissing_outcome
+							) ;
+
+							if( debug ) {
+								std::cerr << "INCLUDED SAMPLES: " << included_samples << "\n" ;
+							}
+						
+							output_cross_counts(
+								variants,
+								output,
+								cross_tabulate(
+									predictor_probabilities,
+									outcome,
+									outcome_ploidy,
+									included_samples
+								)
+							) ;
 								
-						info_computation.compute(
-							variants[0],
-							predictor_probabilities,
-							predictor_ploidy,
-							included_samples
-						) ;
-						output.store_data_for_key( variants, "predictor_info", info_computation.info() ) ;
+							info_computation.compute(
+								variants[0],
+								predictor_probabilities,
+								predictor_ploidy,
+								included_samples
+							) ;
+							output.store_data_for_key( variants, "predictor_info", info_computation.info() ) ;
+						}
+						// Set up ll
+						if( predictorIncluded && outcomeIncluded ) {
+							test( model_names, designs, variants, output ) ;
+						} 
+						progress_context( ++count, visitor.count() ) ;
 					}
-					// Set up ll
-					if( predictorIncluded && outcomeIncluded ) {
-						test( model_names, designs, variants, output ) ;
-					} 
-					progress_context( ++count, total_count ) ;
-				}
+				)
+			) {
+				progress_context( ++count, visitor.count() ) ;
 			}
 		}
+	}
+
+	std::pair< bool, double > set_predictor(
+		genfile::VariantIdentifyingData const& variant,
+		genfile::VariantDataReader::SharedPtr predictor_source,
+		Matrix* predictor_probabilities,
+		IntegerVector* predictor_ploidy,
+		std::vector< metro::SampleRange >* nonmissing_predictor,
+		std::vector< Eigen::MatrixXd > const& predictorCodings,
+		boost::ptr_vector< metro::regression::Design >* designs
+	) {
+		bool result = true ;
+		bool const debug = options().check( "-debug" ) ;
+		ProbSetter predictor_setter( predictor_probabilities, predictor_ploidy, nonmissing_predictor ) ;
+		predictor_source->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
+
+		// designs[0] is null model, specify a 0-column matrix.
+		(*designs)[0].set_predictors(
+			Eigen::MatrixXd::Zero( 1, 0 ),
+			predictor_probabilities->rowwise().sum(),
+			*nonmissing_predictor
+		) ;
+		// designs[1..] are alternative models
+		for( std::size_t i = 1; i < designs->size(); ++i ) {
+			(*designs)[i].set_predictors(
+				predictorCodings[i],
+				*predictor_probabilities,
+				*nonmissing_predictor
+			) ;
+		}
+
+		double const predictorCount = 
+			std::min(
+				(predictor_probabilities->col(1) + 2.0 * predictor_probabilities->col(2)).array().sum(),
+				(predictor_probabilities->col(1) + 2.0 * predictor_probabilities->col(0)).array().sum()
+			) ;
+		if( predictorCount < options().get< double >( "-minimum-predictor-count" )) {
+			result = false ;
+		}
+
+		if( debug ) {
+			std::cerr << "PREDICTOR PROBS:\n"
+				<< predictor_probabilities->block(
+					0, 0,
+					std::min( 30, int( predictor_probabilities->rows() ) ), predictor_probabilities->cols()
+				).transpose() << "\n" ;
+			std::cerr << "PREDICTOR INCLUDED SAMPLES: " << (*nonmissing_predictor) << "\n" ;
+			std::cerr << "PREDICTOR CODINGS:\n" ;
+			for( std::size_t i = 1; i < designs->size(); ++i ) {
+				std::cerr << predictorCodings[i] << ".\n" ;
+			}
+		}
+
+		return std::make_pair( result, predictorCount ) ;
+	}
+
+	std::pair< bool, double > set_outcome(
+		genfile::VariantIdentifyingData const& variant,
+		genfile::VariantDataReader::SharedPtr outcomeReader,
+		Matrix* outcome,
+		Vector* outcome_ploidy,
+		std::vector< metro::SampleRange >* nonmissing_outcome,
+		boost::ptr_vector< metro::regression::Design >* designs
+	) {
+		bool result = true ;
+		bool const debug = options().check( "-debug" ) ;
+		CallSetter callSetter( outcome, outcome_ploidy, nonmissing_outcome ) ;
+		if( options().check( "-treat-outcome-as-haploid" )) {
+			callSetter.set_haploidify() ;
+		}
+		if( outcomeReader->supports( "GT" )) {
+			outcomeReader->get( "GT", callSetter ) ;
+		} else if( outcomeReader->supports( "GP" )) {
+			outcomeReader->get(
+				"GP",
+				genfile::GPThresholdingGTSetter(
+					callSetter,
+					options().get< double >( "-outcome-genotype-call-threshold" )
+				)
+			) ;
+		} else {
+			throw genfile::BadArgumentError(
+				"HPTestApplication::test()",
+				"outcome_source",
+				"Source must support hard genotype calls (GT) or genotype probabilities (GP) field."
+			) ;
+		}
+		if( debug ) {
+			std::cerr << "OUTCOME:\n" << outcome->block(
+				0, 0,
+				std::min( 30, int( outcome->rows() ) ), outcome->cols()
+			).transpose() << ".\n" ;
+			std::cerr << "OUTCOME INCLUDED SAMPLES: " << (*nonmissing_outcome) << "\n" ;
+		}
+
+		std::string const& outcomeName = options().get< std::string >( "-outcome-name" ) ;
+
+		for( std::size_t i = 0; i < designs->size(); ++i ) {
+			(*designs)[i].set_outcome(
+				*outcome,
+				*nonmissing_outcome,
+				std::vector< std::string >({outcomeName + "=0", outcomeName + "=1"} )
+			) ;
+		}
+
+		double const outcomeCount =  std::min( outcome->col(0).sum(), outcome->col(1).sum() ) ;
+		if( outcomeCount < options().get< double >( "-minimum-outcome-count" )) {
+			result = false ;
+		}
+
+		return std::make_pair( result, outcomeCount ) ;
 	}
 
 	Matrix cross_tabulate(

@@ -41,6 +41,7 @@
 #include "genfile/VariableInSetSampleFilter.hpp"
 #include "genfile/GPThresholdingGTSetter.hpp"
 #include "genfile/db/Error.hpp"
+#include "genfile/CartesianProductVisitor.hpp"
 
 #include "metro/constants.hpp"
 #include "metro/regression/Design.hpp"
@@ -97,173 +98,6 @@ namespace {
 	}
 
 }
-
-struct Visitor: public boost::noncopyable {
-public:
-	typedef boost::function<
-		void (
-			std::vector< int > const& changed,
-			std::vector< genfile::VariantIdentifyingData > const& variants,
-			std::vector< genfile::VariantDataReader::SharedPtr > const& readers
-	) > Callback ;
-public:
-	~Visitor() {} ;
-	virtual bool step( Callback callback ) = 0 ;
-	virtual boost::optional< std::size_t > count() const = 0 ;
-} ;
-
-struct CartesianProduct: public Visitor {
-public:
-	CartesianProduct( bool lower_triangle = false ):
-		m_lower_triangle( lower_triangle ),
-		m_min_distance(0)
-	{}
-
-	void set_min_distance( int64_t distance ) {
-		assert( distance >= 0 ) ;
-		m_min_distance = distance ;
-	}
-
-	void add_source(
-		std::string const& name,
-		genfile::SNPDataSource* source
-	) {
-		m_names.push_back( name ) ;
-		m_sources.push_back( source ) ;
-	}
-	
-
-	bool step(  Callback callback ) {
-		int64_t const distant = std::numeric_limits< int64_t >::max() ;
-		std::vector< int > changed( m_sources.size(), 0 ) ;
-		while( step_impl() ) {
-			// keep track of cumulative changes
-			for( std::size_t i = 0; i < changed.size(); ++i ) {
-				changed[i] = std::max( changed[i], m_changed[i] ) ;
-			}
-			int64_t const min_distance = (m_min_distance == 0) ? distant : compute_min_distance( m_variants ) ;
-			if( min_distance >= m_min_distance ) {
-				callback(
-					changed,
-					m_variants,
-					m_readers
-				) ;
-				return true ;
-			}
-		}
-		return false ;
-	}
-	
-	boost::optional< std::size_t > count() const {
-		boost::optional< std::size_t > result ;
-		if( m_sources.size() > 0 && (result = m_sources[0]->size() )) {
-			if( m_lower_triangle ) {
-				assert( m_sources.size() == 2 ) ;
-				result = ((*result) * (*result + 1) / 2) ;
-			} else {
-				for( std::size_t i = 1; i < m_sources.size(); ++i ) {
-					boost::optional< std::size_t > source_size = m_sources[i]->size() ;
-					if( !source_size ) {
-						return boost::optional< std::size_t >() ;
-					} else {
-						(*result) *= (*source_size) ;
-					}
-				}
-			}
-		}
-		return result ;
-	}
-	
-private:
-	std::vector< std::string > m_names ;
-	bool const m_lower_triangle ;
-	int64_t m_min_distance ;
-	std::vector< genfile::SNPDataSource* > m_sources ;
-	std::vector< genfile::VariantIdentifyingData > m_variants ;
-	std::vector< genfile::VariantDataReader::SharedPtr > m_readers ;
-	std::vector< int > m_changed ;
-	
-private:
-	
-	bool step_impl() {
-		if( m_sources.empty() ) {
-			return false ;
-		}
-		if( m_changed.empty() ) {
-			// First call.  Populate our data structures.
-			m_changed.assign( m_sources.size(), 1 ) ;
-			m_variants.resize( m_sources.size() ) ;
-			assert( m_readers.size() == 0 ) ;
-			for( std::size_t i = 0; i < m_sources.size(); ++i ) {
-				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
-					return false ;
-				} ;
-				m_readers.push_back( m_sources[i]->read_variant_data() ) ;
-			}
-		} else {
-			// Move to the next variant.
-			// Use a linearised recursion to step through all combinations.
-			// We start at the last source and step to the next variant.
-			// If a source is exhausted we reset it to the start and recurse to
-			// the preceding source.
-			std::size_t i = m_sources.size() - 1 ;
-			for( ; true; --i ) {
-				if( !m_sources[i]->get_snp_identifying_data( &m_variants[i] )) {
-					if( i == 0 ) {
-						return false ;
-					} else {
-						reset_source(i) ;
-						m_sources[i]->get_snp_identifying_data( &m_variants[i] ) ;
-					}
-				} else {
-					break ;
-				}
-			}
-			m_changed.assign( m_sources.size(), 0 ) ;
-			for( std::size_t j = i; j < m_sources.size(); ++j ) {
-				m_changed[j] = 1 ;
-				m_readers[j] = m_sources[j]->read_variant_data() ;
-			}
-		}
-		return true ;
-	}
-
-	void reset_source( std::size_t i ) {
-		m_sources[i]->reset_to_start() ;
-		if( m_lower_triangle ) {
-			assert( m_sources.size() == 2 ) ;
-			if( i == 1 ) {
-				genfile::VariantIdentifyingData variant ;
-				while( m_sources[1]->number_of_snps_read() < m_sources[0]->number_of_snps_read() ) {
-					m_sources[1]->get_snp_identifying_data( &variant ) ;
-					m_sources[1]->ignore_snp_probability_data() ;
-				}
-			}
-		}
-	}
-
-	// return minimum physical distance between any pair of variants on same chromosome,
-	// or maximum +pve value of int64 if all on different chromosomes
-	int64_t compute_min_distance( std::vector< genfile::VariantIdentifyingData > const& variants ) const {
-		int64_t const distant = std::numeric_limits< int64_t >::max() ;
-		int64_t result = distant ;
-		for( std::size_t i = 0; i < ( variants.size()-1 ); ++i ) {
-			for( std::size_t j = i+1; j < variants.size(); ++j ) {
-				genfile::GenomePosition const& pos1 = variants[i].get_position() ;
-				genfile::GenomePosition const& pos2 = variants[j].get_position() ;
-				int64_t distance = (
-					(pos1.chromosome() != pos2.chromosome())
-					?
-					distant
-					:
-					std::abs( int64_t(pos1.position()) - int64_t(pos2.position()))
-				) ;
-				result = std::min( result, distance ) ;
-			}
-		}
-		return result ;
-	}
-} ;
 
 struct CorrelatorOptions: public appcontext::CmdLineOptionProcessor
 {
@@ -692,7 +526,7 @@ private:
 
 			// This mechanism chooses a full cartesian product or a lower triangle implementation
 			// TODO: make this more obvious / cleaner.
-			CartesianProduct visitor( !options().check( "-g2" ) ) ;
+			genfile::CartesianProductVisitor visitor( !options().check( "-g2" ) ) ;
 			visitor.add_source( "g1", g1.get() ) ;
 			visitor.add_source( "g2", g2.get() ) ;
 
@@ -891,7 +725,7 @@ private:
 
 
 	void run(
-		Visitor& visitor,
+		genfile::MultiSourceVisitor& visitor,
 		genfile::CohortIndividualSource const& samples,
 		qcdb::Storage& frequencyOutput,
 		qcdb::MultiVariantStorage& correlationOutput,
@@ -933,6 +767,8 @@ private:
 		qcdb::MultiVariantStorage& correlationOutput,
 		std::vector< int64_t >* histogram
 	) {
+		using genfile::string_utils::to_string ;
+
 		if( m_dosages.size() != changed.size() ) {
 			m_dosages.resize( changed.size() ) ;
 			m_ploidy.resize( changed.size() ) ;
@@ -1033,17 +869,9 @@ private:
 			) ;
 			
 			if( options().check( "-details" )) {
-				using genfile::string_utils::to_string ;
-				if( m_ploidy[0].maxCoeff() != 1 ) {
-					throw genfile::BadArgumentError(
-						"LDbirdApplication::process_one()",
-						"-details",
-						"Data must be haploid to use -details"
-					) ;
-				}
-				Eigen::Matrix2d table = tabulate( m_dosages, m_ploidy, included_samples ) ;
-				for( int i = 0; i < 2; ++i ) {
-					for( int j = 0; j < 2; ++j ) {
+				Eigen::MatrixXd const table = tabulate( m_dosages, m_ploidy, included_samples ) ;
+				for( int i = 0; i < table.rows(); ++i ) {
+					for( int j = 0; j < table.cols(); ++j ) {
 						correlationOutput.store_data_for_key(
 							variants,
 							"n_" + to_string(i) + to_string(j),
@@ -1052,13 +880,15 @@ private:
 					}
 				}
 				
-				metro::FishersExactTest test( table ) ;
-				double pvalue = test.get_pvalue( metro::FishersExactTest::eTwoSided ) ;
-				correlationOutput.store_data_for_key(
-					variants,
-					"fet_pvalue",
-					pvalue
-				) ;
+				if( m_ploidy[0].maxCoeff() == 1 ) {
+					metro::FishersExactTest test( table ) ;
+					double pvalue = test.get_pvalue( metro::FishersExactTest::eTwoSided ) ;
+					correlationOutput.store_data_for_key(
+						variants,
+						"fet_pvalue",
+						pvalue
+					) ;
+				}
 			}
 		}
 #if DEBUG
@@ -1167,7 +997,7 @@ private:
 		*number_of_samples = N ;
 	}
 	
-	Eigen::Matrix2d tabulate(
+	Eigen::MatrixXd tabulate(
 		std::vector< Eigen::VectorXd > const& dosages,
 		std::vector< Eigen::VectorXd > const& ploidy,
 		std::vector< metro::SampleRange > const& included_samples
@@ -1182,15 +1012,14 @@ private:
 			maxPloidy0 = std::max( maxPloidy0, int( ploidy[0].segment( range.begin(), range.size() ).array().maxCoeff()) ) ;
 			maxPloidy1 = std::max( maxPloidy1, int( ploidy[1].segment( range.begin(), range.size() ).array().maxCoeff()) ) ;
 		}
-		assert( maxPloidy0 == 1 && maxPloidy1 == 1 ) ;
-		Eigen::Matrix2d tmp = Eigen::Matrix2d::Zero() ;
+		Eigen::MatrixXd result = Eigen::MatrixXd::Zero( maxPloidy0 + 1, maxPloidy1 + 1 ) ;
 		for( std::size_t i = 0; i < included_samples.size(); ++i ) {
 			metro::SampleRange const& range = included_samples[i] ;
 			for( int j = range.begin(); j < range.end(); ++j ) {
-				++tmp( dosages[0][j], dosages[1][j] ) ;
+				++result( dosages[0][j], dosages[1][j] ) ;
 			}
 		}
-		return tmp ;
+		return result ;
 	}
 
 	struct DosageSetter: public genfile::VariantDataReader::PerSampleSetter {
