@@ -201,8 +201,11 @@ public:
 		options[ "-treat-outcome-as-haploid" ]
 			.set_description( "Turn outcome homozygous genotype calls into haploid calls. "
 				"Heterozygous calls will be treated as missing" ) ;
-	    options[ "-s" ]
-	        .set_description( "Path of sample file" )
+		options[ "-treat-predictor-as-haploid" ]
+			.set_description( "Turn predictor homozygous genotype calls or probabilities into haploid calls or probabilities. "
+				"Samples with nonzero probability of heterozygous genotype will be treated as missing." ) ;
+		options[ "-s" ]
+			.set_description( "Path of sample file" )
 			.set_takes_values( 1 )
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
@@ -330,10 +333,13 @@ public:
 
 
 namespace {
-	struct CallSetter: public genfile::VariantDataReader::PerSampleSetter {
+	// counts the number of each allele carried by each sample
+	// Outputs count of 1st allele in column 0 of output genotypes,
+	// 2nd allele in column 1, etc.
+	struct AlleleCounter: public genfile::VariantDataReader::PerSampleSetter {
 		typedef std::vector< metro::SampleRange > SampleRanges ;
 		
-		CallSetter(
+		AlleleCounter(
 			Eigen::MatrixXd* genotypes,
 			Eigen::VectorXd* ploidy,
 			SampleRanges* nonmissing_samples
@@ -342,17 +348,17 @@ namespace {
 			m_ploidy( ploidy ),
 			m_nonmissing_samples( nonmissing_samples ),
 			m_sample_i(0),
-			m_haploidify( false )
+			m_coerce_to_haploid( false )
 		{
 			assert( genotypes != 0 && nonmissing_samples != 0 && ploidy != 0 ) ;
 		}
 
-		void set_haploidify() { m_haploidify = true ; }
+		void set_coerce_to_haploid() { m_coerce_to_haploid = true ; }
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
 			if( nAlleles != 2 ) {
 				throw genfile::BadArgumentError(
-					"CallSetter::initialise()",
+					"AlleleCounter::initialise()",
 					"nAlleles=" + genfile::string_utils::to_string( nAlleles ),
 					"I only support biallelic variants"
 				) ;
@@ -379,19 +385,19 @@ namespace {
 		) {
 			if( value_type != genfile::eAlleleIndex ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::set_number_of_entries()",
+					"AlleleCounter::set_number_of_entries()",
 					"value_type=" + genfile::string_utils::to_string( value_type ),
 					"Expected a hard-called genotype, consider using threshholded calls."
 				) ;
 			}
 			if( order_type != genfile::ePerOrderedHaplotype && order_type != genfile::ePerUnorderedHaplotype ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::set_number_of_entries()",
+					"AlleleCounter::set_number_of_entries()",
 					"order_type=" + genfile::string_utils::to_string( order_type ),
 					"Expected a hard-called genotype, consider using threshholded calls."
 				) ;
 			}
-			if( m_haploidify ) {
+			if( m_coerce_to_haploid ) {
 				(*m_ploidy)(m_sample_i) = 1 ;
 			} else {
 				(*m_ploidy)(m_sample_i) = ploidy ;
@@ -404,9 +410,9 @@ namespace {
 		}
 		
 		void set_value( std::size_t entry_i, Integer const value ) {
-			// Only accumulate if not missing
+			// Only accumulate if not already set missing
 			if( m_sample_i >= m_last_nonmissing_sample_i ) {
-				if( m_haploidify && entry_i > 0 ) {
+				if( m_coerce_to_haploid && entry_i > 0 ) {
 					// Set anything that isn't homozygous to missing
 					if( (*m_genotypes)(m_sample_i,value) != 1 ) {
 						(*m_genotypes).row(m_sample_i).setZero() ;
@@ -446,7 +452,7 @@ namespace {
 		SampleRanges* m_nonmissing_samples ;
 		std::size_t m_last_nonmissing_sample_i ;
 		std::size_t m_sample_i ;
-		bool m_haploidify ;
+		bool m_coerce_to_haploid ;
 	} ;
 	
 	struct ProbSetter: public genfile::VariantDataReader::PerSampleSetter {
@@ -459,10 +465,16 @@ namespace {
 		):
 			m_genotypes( genotypes ),
 			m_ploidy( ploidy ),
+			m_coerce_to_haploid( false ),
 			m_nonmissing_samples( nonmissing_samples ),
-			m_sample_i(0)
+			m_sample_i(0),
+			m_number_of_entries(0)
 		{
 			assert( genotypes != 0 && nonmissing_samples != 0 && ploidy != 0 ) ;
+		}
+
+		void set_coerce_to_haploid() {
+			m_coerce_to_haploid = true ;
 		}
 
 		void initialise( std::size_t nSamples, std::size_t nAlleles ) {
@@ -473,6 +485,8 @@ namespace {
 					"I only support biallelic variants"
 				) ;
 			}
+			// This currently supports constant ploidy only, up to ploidy = 2
+			// Allocate enough space for this with biallelic variants
 			m_genotypes->resize( nSamples, 3 ) ;
 			m_genotypes->setZero() ;
 			m_ploidy->resize( nSamples ) ;
@@ -488,43 +502,38 @@ namespace {
 		}
 
 		void set_number_of_entries(
-			uint32_t ploidy, std::size_t n,
+			uint32_t ploidy, std::size_t number_of_entries,
 			genfile::OrderType const order_type,
 			genfile::ValueType const value_type
 		) {
 			if( value_type != genfile::eProbability ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::set_number_of_entries()",
+					"Probsetter::set_number_of_entries()",
 					"value_type=" + genfile::string_utils::to_string( value_type ),
 					"Expected genotype call probabilities (e.g. GP field)."
 				) ;
 			}
 			if( order_type != genfile::ePerUnorderedGenotype ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::set_number_of_entries()",
+					"ProbSetter::set_number_of_entries()",
 					"order_type=" + genfile::string_utils::to_string( order_type ),
 					"Expected genotype call probabilities (e.g. GP field)."
 				) ;
 			}
-			if( ploidy != 2 ) {
+			if( ploidy > 2 ) {
 				throw genfile::BadArgumentError(
-					"Callsetter::set_number_of_entries()",
+					"ProbSetter::set_number_of_entries()",
 					"order_type=" + genfile::string_utils::to_string( order_type ),
-					"Expected a diploid sample."
+					"Expected an at-most diploid sample."
 				) ;
 			}
-			(*m_ploidy)(m_sample_i) = ploidy ;
+			(*m_ploidy)(m_sample_i) = m_coerce_to_haploid ? 1 : ploidy ;
+			m_number_of_entries = number_of_entries ;
 		}
 
 		void set_value( std::size_t entry_i, genfile::MissingValue const value ) {
 			// This sample has missing data, end our current sample range here.
-			if( m_sample_i > m_last_nonmissing_sample_i ) {
-				m_nonmissing_samples->push_back(
-					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
-				) ;
-			}
-			// Skip this sample for next range.
-			m_last_nonmissing_sample_i = m_sample_i + 1 ;
+			record_missing_sample() ;
 		}
 
 		void set_value( std::size_t entry_i, Integer const value ) {
@@ -532,8 +541,17 @@ namespace {
 		}
 
 		void set_value( std::size_t entry_i, double const value ) {
-			if( m_sample_i >= m_last_nonmissing_sample_i ) {
-				(*m_genotypes)(m_sample_i, entry_i) = value ;
+			if( m_sample_i >= m_last_nonmissing_sample_i && value != 0.0 ) {
+				if( m_coerce_to_haploid ) {
+					int const index = (entry_i / (m_number_of_entries-1)) ;
+					if( ( entry_i == 0 || (entry_i+1) == m_number_of_entries )) {
+						(*m_genotypes)(m_sample_i, index) = value ;
+					} else {
+						record_missing_sample() ;
+					}
+				} else {
+					(*m_genotypes)(m_sample_i, entry_i) = value ;
+				}
 			}
 		}
 
@@ -570,9 +588,22 @@ namespace {
 	private:
 		Eigen::MatrixXd* m_genotypes ;
 		Eigen::VectorXi* m_ploidy ;
+		bool m_coerce_to_haploid ;
 		SampleRanges* m_nonmissing_samples ;
 		std::size_t m_last_nonmissing_sample_i ;
 		std::size_t m_sample_i ;
+		std::size_t m_number_of_entries ;
+		
+		void record_missing_sample() {
+			if( m_sample_i > m_last_nonmissing_sample_i ) {
+				// remember the current range of nonmissing samples
+				m_nonmissing_samples->push_back(
+					metro::SampleRange( m_last_nonmissing_sample_i, m_sample_i )
+				) ;
+			}
+			// Record this sample as missing
+			m_last_nonmissing_sample_i = m_sample_i + 1 ;
+		}
 	} ;
 }
 
@@ -981,7 +1012,6 @@ private:
 						if( predictorIncluded && outcomeIncluded ) {
 							test( model_names, designs, variants, output ) ;
 						} 
-						progress_context( ++count, visitor.count() ) ;
 					}
 				)
 			) {
@@ -1002,6 +1032,9 @@ private:
 		bool result = true ;
 		bool const debug = options().check( "-debug" ) ;
 		ProbSetter predictor_setter( predictor_probabilities, predictor_ploidy, nonmissing_predictor ) ;
+		if( options().check( "-treat-predictor-as-haploid" )) {
+			predictor_setter.set_coerce_to_haploid() ;
+		}
 		predictor_source->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
 
 		// designs[0] is null model, specify a 0-column matrix.
@@ -1012,9 +1045,21 @@ private:
 		) ;
 		// designs[1..] are alternative models
 		for( std::size_t i = 1; i < designs->size(); ++i ) {
+			assert( predictorCodings[i].rows() == predictor_probabilities->cols() ) ;
+
+			// optimisation: ignore columns with zero probability
+			int lower = 0;
+			int upper = predictor_probabilities->cols() ;
+//			for( ; lower < upper && (*predictor_probabilities).col(lower).array().abs().maxCoeff() == 0; ++lower ) ;
+//			for( ; upper > lower && (*predictor_probabilities).col(upper).array().abs().maxCoeff() == 0; --upper ) ;
+//			assert( upper >= lower ) ;
+
 			(*designs)[i].set_predictors(
-				predictorCodings[i],
-				*predictor_probabilities,
+				predictorCodings[i].block( lower, 0, upper - lower, predictorCodings[i].cols() ),
+				predictor_probabilities->block(
+					0, lower,
+					predictor_probabilities->rows(), upper - lower
+				),
 				*nonmissing_predictor
 			) ;
 		}
@@ -1054,17 +1099,17 @@ private:
 	) {
 		bool result = true ;
 		bool const debug = options().check( "-debug" ) ;
-		CallSetter callSetter( outcome, outcome_ploidy, nonmissing_outcome ) ;
+		AlleleCounter counter( outcome, outcome_ploidy, nonmissing_outcome ) ;
 		if( options().check( "-treat-outcome-as-haploid" )) {
-			callSetter.set_haploidify() ;
+			counter.set_coerce_to_haploid() ;
 		}
 		if( outcomeReader->supports( "GT" )) {
-			outcomeReader->get( "GT", callSetter ) ;
+			outcomeReader->get( "GT", counter ) ;
 		} else if( outcomeReader->supports( "GP" )) {
 			outcomeReader->get(
 				"GP",
 				genfile::GPThresholdingGTSetter(
-					callSetter,
+					counter,
 					options().get< double >( "-outcome-genotype-call-threshold" )
 				)
 			) ;
