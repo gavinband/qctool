@@ -12,7 +12,7 @@ The programs included are
 ## Obtaining QCTOOL ##
 
 Basic instructions for obtaining and/or compiling QCTOOL can be found on the
-[QCTOOL download page](doc/tip/html/qctool/documentation/download.html).
+[QCTOOL download page](doc/tip/doc/html/qctool/documentation/download.html).
 For further information, see the wiki page on [compiling QCTOOL](/wiki/Compiling%20QCTOOL).
 
 ## Acknowledgements ##
