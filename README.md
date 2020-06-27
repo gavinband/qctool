@@ -6,13 +6,13 @@ together with some other utility programs.
 
 The programs included are
 
-* [QCTOOL](http://www.well.ox.ac.uk/~gav/qctool), a program for manipulation and quality control of gwas datasets and other genome-wide data.
-* [Inthinnerator](http://www.well.ox.ac.uk/~gav/inthinnerator), a program for thinning genetic variants using a recombination map.
+* [QCTOOL](http://www.well.ox.ac.uk/~gav/qctool), a program for manipulation and quality control of gwas datasets and other genome-wide data.  Read [the QCTOOL documentation](http://www.well.ox.ac.uk/~gav/qctool).
+* [Inthinnerator](http://www.well.ox.ac.uk/~gav/inthinnerator), a program for thinning genetic variants using a recombination map.  Read [the inthinnerator documentation](http://www.well.ox.ac.uk/~gav/inthinnerator).
 
 ## Obtaining QCTOOL ##
 
 Basic instructions for obtaining and/or compiling QCTOOL can be found on the
-[QCTOOL download page](doc/tip/doc/html/qctool/documentation/download.html).
+[QCTOOL download page](http://www.well.ox.ac.uk/~gav/qctool/documentation/download.html).
 For further information, see the wiki page on [compiling QCTOOL](/wiki/Compiling%20QCTOOL).
 
 ## Acknowledgements ##
