@@ -21,9 +21,9 @@ QCTOOL was written by Gavin Band, based on an initial design by Gavin Band and J
 
 QCTOOL gratefully makes use of functionality from the following projects:
 
-- zlib (http://zlib.net/)
+- zlib (<http://zlib.net/>)
 - the boost C++ libraries (<http://www.boost.org>)
 - sqlite3 (<http://www.sqlite.org>),
 - the Eigen library (<http://eigen.tuxfamily.org>)
-- the SNPHWE code from Wigginton et al (http://www.sph.umich.edu/csg/abecasis/Exact)
-- the Zstandard library(http://www.zstd.net).
+- the SNPHWE code from Wigginton et al (<http://www.sph.umich.edu/csg/abecasis/Exact>)
+- the Zstandard library(<http://www.zstd.net>).
