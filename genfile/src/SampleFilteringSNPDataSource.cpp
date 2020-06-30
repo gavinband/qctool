@@ -46,8 +46,39 @@ namespace genfile {
 		return m_source->number_of_samples() - m_indices_of_samples_to_filter_out.size() ;
 	}
 
+	bool SampleFilteringSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
+
+	namespace {
+		void set_vector_entry(
+			std::size_t i,
+			std::string const& id,
+			std::vector< std::string >* result
+		) {
+			assert( i < result->size() ) ;
+			(*result)[i] = id ;
+		}
+	}
+
 	void SampleFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
-		return m_source->get_sample_ids( getter ) ;
+		std::vector< std::string > ids( number_of_samples() ) ;
+		m_source->get_sample_ids(
+			boost::bind( &set_vector_entry, _1, _2, &ids )
+		) ;
+		std::vector< std::size_t >::const_iterator
+			i( m_indices_of_samples_to_filter_out.begin() ),
+			end_i( m_indices_of_samples_to_filter_out.end() ) ;
+
+		std::size_t index_of_last_unfiltered_sample = 0 ;
+		std::size_t index_of_filtered_sample = 0 ;
+
+		std::size_t filtered_index = 0 ;
+		for( ; i != end_i; ++i ) {
+			for( std::size_t sample_i = index_of_last_unfiltered_sample; sample_i < *i; ++sample_i ) {
+				getter( filtered_index++, ids[sample_i] ) ;
+			}
+		}
 	}
 
 	SNPDataSource::OptionalSnpCount SampleFilteringSNPDataSource::total_number_of_snps() const {
@@ -89,7 +120,7 @@ namespace genfile {
 
 	void SampleFilteringSNPDataSource::read_source_probability_data() {
 		m_source->read_snp_probability_data(
-		 	boost::bind( &SampleFilteringSNPDataSource::set_unfiltered_genotype_probabilities, this, _1, _2, _3, _4 )
+			boost::bind( &SampleFilteringSNPDataSource::set_unfiltered_genotype_probabilities, this, _1, _2, _3, _4 )
 		) ;
 	}
 

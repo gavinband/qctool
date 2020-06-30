@@ -12,6 +12,8 @@
 #include "config/config.hpp"
 #include <boost/optional.hpp>
 #include <boost/function.hpp>
+#include <boost/bind.hpp>
+#include "genfile/string_utils/string_utils.hpp"
 #include "genfile/SNPDataSource.hpp"
 #include "genfile/ReorderingSNPDataSource.hpp"
 #include "genfile/VariantDataReader.hpp"
@@ -81,6 +83,46 @@ namespace genfile {
 		m_ints.resize( m_order.size() ) ;
 		m_strings.resize( m_order.size() ) ;
 		m_doubles.resize( m_order.size() ) ;
+	}
+
+	namespace {
+		void set_reordered_entry(
+			std::size_t i,
+			std::string const& value,
+			std::vector< std::size_t > const& order,
+			std::vector< std::string >* result
+		) {
+			std::size_t const j = order[i] ;
+			if( j != ReorderingSNPDataSource::eNotIncluded ) {
+				(*result)[j] = value ;
+			}
+		}
+	}
+
+	bool ReorderingSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
+
+	void ReorderingSNPDataSource::get_sample_ids(
+		GetSampleIds callback
+	) const {
+		std::vector< std::string > sample_ids( m_order.size() ) ;
+		for( std::size_t i = 0; i < m_order.size(); ++i ) {
+			sample_ids[i] = ("(anonymous_sample_" + genfile::string_utils::to_string(i) + ")") ;
+		}
+		if( m_source->has_sample_ids() ) {
+			m_source->get_sample_ids(
+				boost::bind(
+					&set_reordered_entry,
+					_1, _2,
+					m_order,
+					&sample_ids
+				)
+			) ;
+		}
+		for( std::size_t i = 0; i < m_order.size(); ++i ) {
+			callback( i, sample_ids[i] ) ;
+		}
 	}
 	
 	struct ReorderingVariantDataReader: public VariantDataReader {

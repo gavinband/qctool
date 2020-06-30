@@ -32,6 +32,7 @@ namespace genfile {
 		Metadata get_metadata() const ;
 
 		unsigned int number_of_samples() const { return m_bgen_context.number_of_samples ; }
+		bool has_sample_ids() const ;
 		void get_sample_ids( GetSampleIds ) const ;
 		OptionalSnpCount total_number_of_snps() const { return m_bgen_context.number_of_variants ; }
 		operator bool() const { return m_stream_ptr->good() ; }

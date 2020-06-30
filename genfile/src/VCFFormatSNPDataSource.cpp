@@ -149,6 +149,10 @@ namespace genfile {
 		return m_metadata ;
 	}
 
+	bool VCFFormatSNPDataSource::has_sample_ids() const {
+		return true ;
+	}
+
 	void VCFFormatSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		for( std::size_t i = 9; i < m_column_names.size(); ++i ) {
 			getter( i-9, m_column_names[i] ) ;

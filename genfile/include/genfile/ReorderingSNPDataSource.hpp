@@ -55,6 +55,8 @@ namespace genfile {
 		unsigned int number_of_samples() const {
 			return m_order.size() ;
 		};
+		bool has_sample_ids() const ;
+		void get_sample_ids( GetSampleIds ) const ;
 		OptionalSnpCount total_number_of_snps() const {
 			return m_source->total_number_of_snps() ;
 		} ;
@@ -105,9 +107,9 @@ namespace genfile {
 		std::vector< std::vector< Integer > > m_ints ;
 		std::vector< std::vector< std::string > > m_strings ;
 		std::vector< std::vector< double > > m_doubles ;
-		
+		std::vector< std::string > m_sample_ids ;
+
 		friend struct ReorderingVariantDataReader ;
-		
 	} ;
 }
 

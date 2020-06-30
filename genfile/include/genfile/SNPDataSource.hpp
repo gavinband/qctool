@@ -171,6 +171,7 @@ namespace genfile {
 		virtual unsigned int number_of_samples() const = 0;
 
 		typedef boost::function< void( std::size_t, std::string ) > GetSampleIds ;
+		virtual bool has_sample_ids() const = 0 ;
 		virtual void get_sample_ids( GetSampleIds ) const {} ;
 
 		// Return the total number of snps the source contains.

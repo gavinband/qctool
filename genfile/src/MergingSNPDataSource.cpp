@@ -138,6 +138,16 @@ namespace genfile {
 			return m_sources[0]->number_of_samples() ;
 		}
 	}
+	
+	bool MergingSNPDataSource::has_sample_ids() const {
+		return !m_sources.empty() && m_sources[0]->has_sample_ids() ;
+	}
+
+	void MergingSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
+		if( !m_sources.empty() ) {
+			return m_sources[0]->get_sample_ids( getter ) ;
+		}
+	}
 
 	// Return the total number of snps the source contains.
 	SNPDataSource::OptionalSnpCount MergingSNPDataSource::total_number_of_snps() const {
