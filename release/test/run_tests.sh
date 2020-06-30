@@ -1,2 +1,2 @@
 #!/bin/bash
-pybot -d "./output" tests.txt
+python3 -m robot -d "./output" tests.txt
