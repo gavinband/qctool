@@ -75,6 +75,10 @@ class QctoolRunner:
 		for option in [ 'snp-stats', 'sample-stats' ]:
 			if values.get( option, None ) is not None:
 				cmd.extend( [ '-%s' % option ] )
+
+		for option in [ 'force' ]:
+			if option in values:
+				cmd.extend( [ '-%s' % option ] )
 		
 		if ogdata is not None:
 			cmd.extend( [ '-og', ogdata ])

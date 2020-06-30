@@ -24,6 +24,12 @@ Runs basic commands
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "" }	fail
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "", "osample": "<tmp>" }	ok
 
+Rejects mismatching samples
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ] }	ok
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.sample" ] }	ok
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.wrongids.sample" ] }	fail
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.wrongids.sample" ], "force": 1 }	ok
+
 Accepts output formats
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "gen" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "vcf" }	ok
@@ -54,22 +60,37 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
 Filters samples
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	# test -incl-samples, with or without a sample file
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],      "s": [ "data/test.sample" ],                             "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ],                             "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],       "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],                                                               "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ],                                                          "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],                                    "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ],                                                                "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],                                    "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "vcf" }	data/test.sample-filtered.vcf
+
+	# test -excl-samples, with or without a sample file
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],      "s": [ "data/test.sample" ],                             "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ],                             "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],       "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],                                                               "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ],                                                          "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],                                    "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ],                                                                "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],                                    "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "vcf" }	data/test.sample-filtered.vcf
+
+	# test -incl-samples-where
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],      "s": [ "data/test.sample" ],                             "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ],                             "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ],       "s": [ "data/test.sample" ],                             "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],       "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+
+	# test -excl-samples-where
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ],      "s": [ "data/test.sample" ],                             "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ],                             "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ],       "s": [ "data/test.sample" ],                             "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ],       "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
 
 Filters SNPs
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	data/test.filtered.gen
