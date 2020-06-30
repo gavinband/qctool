@@ -15,7 +15,7 @@ class QctoolRunner:
 		self.qctool = qctool
 		self.command = 'snp-stats'
 		self.gdata = [ 'data/test.gen' ]
-		self.sdata = [ 'data/test.sample' ]
+		self.sdata = None
 		self.log = None
 		self.outputFilename = None
 
@@ -45,8 +45,9 @@ class QctoolRunner:
 		logger.debug( gdata, sdata )
 		for i in range( 0, len(gdata) ):
 			cmd += [ "-g", gdata[i] ]
-		for i in range( 0, len(sdata) ):
-			cmd += [ "-s", sdata[i] ]
+		if sdata is not None:
+			for i in range( 0, len(sdata) ):
+				cmd += [ "-s", sdata[i] ]
 		
 		for option in [
 			'vcf-genotype-field',

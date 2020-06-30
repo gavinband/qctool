@@ -1138,6 +1138,14 @@ private:
 				}
 			}
 			if( boost::filesystem::exists( order_type ) ) {
+				if( !m_options.check( "-s" ) && m_snp_data_source->has_sample_ids() ) {
+					throw genfile::BadArgumentError(
+						"QCToolCmdLineContext::setup()",
+						"-reorder " + order_type,
+						"Cannot reorder samples because the input files do not contain sample IDs.  (Do you need to specify -s?)"
+					) ;
+				}
+				
 				// order type is a file specifying the order.
 				std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( order_type ) ;
 				std::vector< std::string > id_order ;
