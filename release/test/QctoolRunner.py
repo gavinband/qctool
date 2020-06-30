@@ -3,7 +3,12 @@ import subprocess
 import tempfile
 import json
 from robot.api import logger
-from StringIO import StringIO
+try:
+	# Python 2
+	from StringIO import StringIO
+except ImportError:
+	# Python 3
+	from io import StringIO
 
 class QctoolRunner:
 	def __init__( self, qctool ):
@@ -24,7 +29,7 @@ class QctoolRunner:
 			qctool = self.qctool
 		filenames = {}
 		temp = open( 'temp', 'a' )
-		print >> temp, command
+		print( command, file = temp )
 		values = json.load( StringIO( command ))
 		gdata = values.get( 'g', self.gdata )
 		sdata = values.get( 's', self.sdata )
@@ -76,12 +81,14 @@ class QctoolRunner:
 		if osdata is not None:
 			cmd.extend( [ '-os', osdata ])
 		
-		print >> temp, ' '.join( cmd )
+		print( ' '.join( cmd ), file = temp )
 		try:
-			subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			#subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			subprocess.check_call( cmd, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL )
 			if expected != 'ok':
 				raise Exception( "Expected failure: %s" % command )
-		except subprocess.CalledProcessError, e:
+			print( 'ok', file = temp )
+		except subprocess.CalledProcessError as e:
 			if expected == 'ok':
 				raise Exception( "Expected success: %s" % command )
 		finally:

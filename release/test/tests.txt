@@ -2,8 +2,7 @@
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.0.6
-${INTHINNERATOR}	../../build/release/inthinnerator_v2.0.6
+${QCTOOL}	../../build/release/qctool_v2.0.8-beta
 
 *** Settings ***
 Library	OperatingSystem
@@ -164,7 +163,7 @@ Roundtrips gen files via bgen (v1.2, odd bit counts)
 
 CheckRun
 	[Arguments]	@{command}
-	${result} =	Run Process	@{command}
+	${result} =	Run Process	@{command}	stdout=DEVNULL	stderr=DEVNULL
 	ShouldBeEqualAsIntegers	${result.rc}	0
 
 RunsCommandWithResult

@@ -213,7 +213,7 @@ namespace genfile {
 	namespace {
 		void combine_ids( std::set< std::string >* target, std::string* combined, std::string const& value ) {
 			if( target->insert( value ).second ) {
-				(*combined) += ( combined->size() > 0 ? "," : "" ) + value ;
+				(*combined) += ( combined->size() > 0 ? "/" : "" ) + value ;
 			}
 		}
 	}
@@ -226,6 +226,7 @@ namespace genfile {
 		}
 		
 		VariantIdentifyingData this_snp ;
+		VariantIdentifyingData merged_snp ;
 		std::string merged_SNPID, merged_rsid, merged_allele1, merged_allele2 ;
 		std::set< std::string > rsids ;
 		std::set< std::string > SNPIDs ;
@@ -262,7 +263,7 @@ namespace genfile {
 						this_source_snp.get_identifiers( boost::bind( &combine_ids, &SNPIDs, &merged_SNPID, _1 ), 1 ) ;
 					}
 					if( rsids.insert( this_source_snp.get_primary_id() ).second ) {
-						merged_rsid += "," + std::string( this_source_snp.get_primary_id() ) ;
+						merged_rsid += ";" + std::string( this_source_snp.get_primary_id() ) ;
 					}
 					if( m_comparator.get_flip_alleles_if_necessary() ) {
 						assert( this_snp.number_of_alleles() == 2 ) ;
@@ -292,11 +293,15 @@ namespace genfile {
 				}
 			}
 		}
-		if( SNPIDs.size() == 0 ) {
-			merged_SNPID = "." ;
-		}
 		if( *this ) {
-			*result = VariantIdentifyingData( merged_SNPID, merged_rsid, this_snp.get_position(), merged_allele1, merged_allele2 ) ;
+			VariantIdentifyingData merged_snp( this_snp.get_primary_id(), this_snp.get_position(), merged_allele1, merged_allele2 ) ;
+			for( std::set< std::string >::const_iterator i = rsids.begin(); i != rsids.end(); ++i ) {
+				merged_snp.add_identifier( *i ) ;
+			}
+			for( std::set< std::string >::const_iterator i = SNPIDs.begin(); i != SNPIDs.end(); ++i ) {
+				merged_snp.add_identifier( *i ) ;
+			}
+			*result = merged_snp ;
 			// Remember the flips.
 			m_flips = flips ;
 		}
