@@ -61,7 +61,7 @@ namespace genfile {
 		}
 	}
 
-	void SampleFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
+	void SampleFilteringSNPDataSource::get_sample_ids( GetSampleIds callback ) const {
 		std::vector< std::string > ids( number_of_samples() ) ;
 		m_source->get_sample_ids(
 			boost::bind( &set_vector_entry, _1, _2, &ids )
@@ -71,13 +71,15 @@ namespace genfile {
 			end_i( m_indices_of_samples_to_filter_out.end() ) ;
 
 		std::size_t index_of_last_unfiltered_sample = 0 ;
-		std::size_t index_of_filtered_sample = 0 ;
-
-		std::size_t filtered_index = 0 ;
+		std::size_t index_in_output = 0 ;
 		for( ; i != end_i; ++i ) {
 			for( std::size_t sample_i = index_of_last_unfiltered_sample; sample_i < *i; ++sample_i ) {
-				getter( filtered_index++, ids[sample_i] ) ;
+				callback( index_in_output++, ids[sample_i] ) ;
 			}
+			index_of_last_unfiltered_sample = (*i) + 1 ;
+		}
+		for( std::size_t sample_i = index_of_last_unfiltered_sample; sample_i < m_source->number_of_samples() ; ++sample_i ) {
+			callback( index_in_output++, ids[sample_i] ) ;
 		}
 	}
 
