@@ -149,6 +149,10 @@ namespace genfile {
 		return m_metadata ;
 	}
 
+	bool VCFFormatSNPDataSource::has_sample_ids() const {
+		return true ;
+	}
+
 	void VCFFormatSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		for( std::size_t i = 9; i < m_column_names.size(); ++i ) {
 			getter( i-9, m_column_names[i] ) ;
@@ -288,7 +292,7 @@ namespace genfile {
 
 		// If we get here reading was successful.
 		// Now parse these fields into the result.
-		std::vector< std::string > ids = string_utils::split( m_ID, "," ) ;
+		std::vector< std::string > ids = string_utils::split( m_ID, ";" ) ;
 		VariantIdentifyingData variant ;
 		if( ids.size() == 0 ) {
 			variant.set_primary_id( genfile::string_utils::slice( "." ) ) ;

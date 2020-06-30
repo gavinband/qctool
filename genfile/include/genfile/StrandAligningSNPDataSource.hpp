@@ -75,6 +75,7 @@ namespace genfile {
 		operator bool() const { return *m_source ; }
 		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const { return m_source->number_of_samples() ; }
+		bool has_sample_ids() const ;
 		void get_sample_ids( GetSampleIds ) const ;
 		OptionalSnpCount total_number_of_snps() const { return m_source->total_number_of_snps() ; }
 		std::string get_source_spec() const { return "strand-aligned:" + m_source->get_source_spec() ; }

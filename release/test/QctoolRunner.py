@@ -3,14 +3,19 @@ import subprocess
 import tempfile
 import json
 from robot.api import logger
-from StringIO import StringIO
+try:
+	# Python 2
+	from StringIO import StringIO
+except ImportError:
+	# Python 3
+	from io import StringIO
 
 class QctoolRunner:
 	def __init__( self, qctool ):
 		self.qctool = qctool
 		self.command = 'snp-stats'
 		self.gdata = [ 'data/test.gen' ]
-		self.sdata = [ 'data/test.sample' ]
+		self.sdata = None
 		self.log = None
 		self.outputFilename = None
 
@@ -24,7 +29,7 @@ class QctoolRunner:
 			qctool = self.qctool
 		filenames = {}
 		temp = open( 'temp', 'a' )
-		print >> temp, command
+		print( command, file = temp )
 		values = json.load( StringIO( command ))
 		gdata = values.get( 'g', self.gdata )
 		sdata = values.get( 's', self.sdata )
@@ -40,8 +45,9 @@ class QctoolRunner:
 		logger.debug( gdata, sdata )
 		for i in range( 0, len(gdata) ):
 			cmd += [ "-g", gdata[i] ]
-		for i in range( 0, len(sdata) ):
-			cmd += [ "-s", sdata[i] ]
+		if sdata is not None:
+			for i in range( 0, len(sdata) ):
+				cmd += [ "-s", sdata[i] ]
 		
 		for option in [
 			'vcf-genotype-field',
@@ -70,18 +76,24 @@ class QctoolRunner:
 		for option in [ 'snp-stats', 'sample-stats' ]:
 			if values.get( option, None ) is not None:
 				cmd.extend( [ '-%s' % option ] )
+
+		for option in [ 'force' ]:
+			if option in values:
+				cmd.extend( [ '-%s' % option ] )
 		
 		if ogdata is not None:
 			cmd.extend( [ '-og', ogdata ])
 		if osdata is not None:
 			cmd.extend( [ '-os', osdata ])
 		
-		print >> temp, ' '.join( cmd )
+		print( ' '.join( cmd ), file = temp )
 		try:
-			subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			#subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			subprocess.check_call( cmd, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL )
 			if expected != 'ok':
 				raise Exception( "Expected failure: %s" % command )
-		except subprocess.CalledProcessError, e:
+			print( 'ok', file = temp )
+		except subprocess.CalledProcessError as e:
 			if expected == 'ok':
 				raise Exception( "Expected success: %s" % command )
 		finally:

@@ -110,6 +110,7 @@ VAR = data.frame(
 )
 VAR[which(chromosomes != "autosomes"),1] = chromosomes[ which( chromosomes != "autosomes" ) ]
 
+colnames(G) = sprintf( "sample_%d", 1:ncol(G))
 write( '##fileformat=VCFv4.2\n##FORMAT=<ID=GT,Type=String,Number=1,Description="genotype">', file = vcf.filename )
 write.table( cbind( VAR, G ), file = vcf.filename, sep = '\t', col.names = T, row.names = F, quote = F, append = T )
 

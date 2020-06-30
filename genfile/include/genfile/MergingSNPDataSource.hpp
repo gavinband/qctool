@@ -31,6 +31,9 @@ namespace genfile {
 		operator bool() const ;
 		// Return the number of samples represented in the snps in this source.
 		unsigned int number_of_samples() const ;
+		bool has_sample_ids() const ;
+		void get_sample_ids( GetSampleIds getter ) const ;
+
 		// Return the total number of snps the source contains.
 		OptionalSnpCount total_number_of_snps() const ;
 
@@ -38,8 +41,7 @@ namespace genfile {
 		std::string get_source_spec() const ;
 
 	private:
-		void get_snp_identifying_data_impl( 
-VariantIdentifyingData* variant		) ;	
+		void get_snp_identifying_data_impl( VariantIdentifyingData* variant ) ;	
 
 		VariantDataReader::UniquePtr read_variant_data_impl()  ;
 

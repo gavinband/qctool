@@ -83,6 +83,7 @@ namespace genfile {
 
 		Metadata get_metadata() const ;
 		unsigned int number_of_samples() const ;
+		bool has_sample_ids() const ;
 		void get_sample_ids( GetSampleIds ) const ;
 
 		OptionalSnpCount total_number_of_snps() const ;

@@ -20,6 +20,7 @@ namespace statfile {
 		operator bool() const { return *m_source ; }
 		Metadata get_metadata() const { return Metadata() ; }
 		unsigned int number_of_samples() const { return 0 ; }
+		bool has_sample_ids() const { return false ; }
 		OptionalSnpCount total_number_of_snps() const { return m_source->number_of_rows() ; }
 
 		std::string get_source_spec() const ;

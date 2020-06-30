@@ -110,6 +110,10 @@ namespace genfile {
 		return m_number_of_samples ;
 	}
 
+	bool SNPDataSourceChain::has_sample_ids() const {
+		return m_sources.size() > 0 && m_sources[0]->has_sample_ids() ;
+	}
+
 	void SNPDataSourceChain::get_sample_ids( GetSampleIds setter ) const {
 		if( m_sources.size() > 0 ) {
 			m_sources[0]->get_sample_ids( setter ) ;

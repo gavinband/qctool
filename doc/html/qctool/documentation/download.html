@@ -45,29 +45,37 @@
 				<p>
 					QCTOOL is available either as binaries or as source code.  The recommended approach is to download and compile
 					the QCTOOL source code on the machine(s) you will be working on.  However, for convenience a small number of
-					precompiled binary packages can be found <a href="http://www.well.ox.ac.uk/~gav/resources/">here</a>.
-					These provided as-is and will not work on all platforms; if a suitable version is not available please
+					precompiled binary packages are provided below.   These provided as-is and will not work on all platforms; if a suitable version is not available please
 					download the QCTOOL source code and compile instead.
 				</p>
+				<table class="file_formats">
+					<tr><th>Version</th><th>Platform</th><th>file</th>
+					<tr><td>v2.0.6</th><th>Mac OS X</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-osx.tgz">qctool_v2.0.6-osx.tgz</a></th>
+					<tr><td>v2.0.6</th><th>Ubuntu Linux 16.04</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-Ubuntu16.04-x86_64.tgz">qctool_v2.0.6-Ubuntu16.04-x86_64.tgz</a></th>
+					<tr><td>v2.0.6</th><th>CentOS Linux 7.3</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz">qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz</a></th>
+				</table>
+				</table>
 				<h3>
 					Downloading source
 				</h3>
 				<p>
-					The source code to qctool is available as a mercurial repository
-					hosted <a href="http://www.bitbucket.org/gavinband/qctool">on bitbucket</a>.
-					To obtain source code, use the mercurial command-line client <code>hg</code>, a GUI client such as
-					<a href="https://www.sourcetreeapp.com">SourceTree</a>, or alternatively download a
-					tarball from the <a href="https://bitbucket.org/gavinband/qctool/downloads/?tab=branches">Downloads page on bitbucket</a>.
+					The source code to qctool is available as a <a href="https://fossil-scm.org">fossil</a> repository
+					at <a href="https://code.enkre.net/qctool">https://code.enkre.net/qctool</a>.
+					To obtain source code, use the fossil command-line client, or alternatively download a
+					tarball from this table.  (Note that this currently generates a tarball on the fly, which may take a while).
 				</p>
+				<table class="file_formats">
+					<tr><th>Version</th><th>file</th>
+					<tr><td>release</th><th><a href="https://code.enkre.net/qctool/zip/v2.0.7/qctool.tgz">https://code.enkre.net/qctool/zip/release/qctool.tgz</a></th>
+					<tr><td>trunk</th><th><a href="https://code.enkre.net/qctool/zip/trunk/qctool.tgz">https://code.enkre.net/qctool/zip/trunk/qctool.tgz</a></th>
+				</table>
+				<h3>
+					Versioning scheme
+				</h3>
 				<p>
-					Please note QCTOOL v2 is currently in 'release candidate' status, please make sure you download code for the <code>beta</code> branch.
-					For example, using the <code>hg</code> command-line tool, the command
-				</p>
-					<div class="terminal">
-						<code>$ hg clone -r beta https://gavinband@bitbucket.org/gavinband/qctool</code>
-					</div>
-					<p>
-					will download source code for the latest beta branch and place it in a newly created <code>qctool</code> directory.
+					As of version 2.1, QCTOOL will follow a versioning scheme whereby odd minor numbers (2.1.x etc.) represent
+					development work while even numbers (2.0.x) represent release versions.
+					The current latest release versions are 2.0 version.
 				</p>
 				<h3>
 					Compiling
@@ -94,7 +102,7 @@ $ ./build/release/qctool_v2.0-&lt;version&gt; -help
 			<p>which should print out a list of options.</p>
 			<h3>Further information</h3>
 			<p>
-				The <a href="https://bitbucket.org/gavinband/qctool/wiki/Home">QCTOOL wiki</a> contains further information
+				The <a href="https://code.enkre.net/qctool/wiki?name=Home">QCTOOL wiki</a> contains further information
 				which may be useful if you are unable to compile QCTOOL or need to tweak compilation for specific platforms.
 			</p>
 		</section>

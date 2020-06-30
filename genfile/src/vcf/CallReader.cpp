@@ -252,12 +252,22 @@ namespace genfile {
 		void CallReader::load_genotypes() {
 			// Find the GT field in the format string...
 			std::size_t const GT_field_pos = std::find( m_format_elts.begin(), m_format_elts.end(), "GT" ) - m_format_elts.begin() ;
-			// ...it is required to be the first field.
-			if( GT_field_pos != 0 ) {
+
+			m_ploidy.resize( m_number_of_samples ) ;
+			if( GT_field_pos == m_format_elts.size() ) {
+				// GT not present.
+				// assume ploidy=2
+				std::fill(
+					m_ploidy.begin(),
+					m_ploidy.end(),
+					2
+				) ;
+				return ;
+			} else if( GT_field_pos != 0 ) {
+				// ...else it is required to be the first field.
 				throw MalformedInputError( "(data)", 0 ) ;
 			}
 
-			m_ploidy.resize( m_number_of_samples ) ;
 			m_order_types.resize( m_number_of_samples ) ;
 			m_genotype_calls.reserve( m_number_of_samples * 2 ) ;
 			std::size_t total_number_of_calls = 0 ;

@@ -71,6 +71,10 @@ namespace genfile {
 		return m_source->number_of_samples() ;
 	}
 
+	bool VariantIdentifyingDataFilteringSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
+
 	void VariantIdentifyingDataFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		return m_source->get_sample_ids( getter ) ;
 	}
