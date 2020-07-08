@@ -102,6 +102,13 @@ struct SelfMapOptions: public appcontext::CmdLineOptionProcessor {
 			options[ "-log" ]
 				.set_description( "Specify the path of a log file; all screen output will be copied to the file." )
 				.set_takes_single_value() ;
+			options[ "-omit-sequence" ]
+				.set_description(
+					"Do not output sequence of kmers, just the counts. "
+					"(This reduces the output file size but means kmer sequence will need "
+					"to be looked up again if needed for downstream analysis.)")
+			;
+				
 		}
 
 		{
@@ -308,6 +315,7 @@ private:
 
 		void store_overlap(
 			KmerId const& kmer_id,
+			unsigned long const k,
 			genfile::GenomePosition const& position1,
 			char const orientation1,
 			genfile::GenomePosition const& position2,
@@ -315,12 +323,13 @@ private:
 		) {
 			m_insert_overlap_stmt
 				->bind( 1, kmer_id )
-				.bind( 2, std::string( position1.chromosome() ))
-				.bind( 3, position1.position() )
-				.bind( 4, std::string( 1, orientation1 ) )
-				.bind( 5, std::string( position2.chromosome() ))
-				.bind( 6, position2.position() )
-				.bind( 7, std::string( 1, orientation2 ) )
+				.bind( 2, k )
+				.bind( 3, std::string( position1.chromosome() ))
+				.bind( 4, position1.position() )
+				.bind( 5, std::string( 1, orientation1 ) )
+				.bind( 6, std::string( position2.chromosome() ))
+				.bind( 7, position2.position() )
+				.bind( 8, std::string( 1, orientation2 ) )
 				.step() ;
 			m_insert_overlap_stmt->reset() ;
 		}
@@ -353,6 +362,7 @@ private:
 			m_connection->run_statement(
 				"CREATE TABLE IF NOT EXISTS `" + m_prefix + "Overlap` ( "
 					"kmer_id INT NOT NULL REFERENCES `" + m_prefix + "Kmer`(id), "
+					"k INT NOT NULL, "
 					"chromosome1 TEXT NOT NULL, position1 TEXT NOT NULL, orientation1 TEXT NOT NULL, "
 					"chromosome2 TEXT NOT NULL, position2 TEXT NOT NULL, orientation2 TEXT NOT NULL, "
 					"PRIMARY KEY (chromosome1, position1, orientation1, chromosome2, position2, orientation2 ) "
@@ -364,7 +374,7 @@ private:
 			) ;
 
 			m_insert_overlap_stmt = m_connection->get_statement(
-				"INSERT INTO `" + m_prefix + "Overlap` VALUES( ?, ?, ?, ?, ?, ?, ? ) ;"
+				"INSERT INTO `" + m_prefix + "Overlap` VALUES( ?, ?, ?, ?, ?, ?, ?, ? ) ;"
 			) ;
 		}
 	} ;
@@ -380,6 +390,7 @@ private:
 		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Storing results" ) ;
 
 		bool const include_diagonal = options().check( "-include-diagonal" ) ;
+		bool const output_sequence = !options().check( "-omit-sequence" ) ;
 		using genfile::string_utils::to_string ;
 		//genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
 		KmerMap::const_iterator kmer_i = kmerMap.begin() ;
@@ -392,7 +403,7 @@ private:
 
 			Storage::KmerId const kmer_id = count_and_positions.first ;
 			storage->store_kmer(
-				kmer, kmer_id, positions.size()
+				output_sequence ? kmer : ".", kmer_id, positions.size()
 			) ;
 			
 			for( std::size_t j = 0; j < positions.size(); ++j ) {
@@ -403,6 +414,7 @@ private:
 					char const orientation2 = positions[k].second ;
 					storage->store_overlap(
 						kmer_id,
+						kmer.size(),
 						position1,
 						orientation1,
 						position2,
