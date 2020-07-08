@@ -292,8 +292,7 @@ private:
 		Storage( std::string const& filename, std::string const& table_prefix ):
 			m_filename( filename ),
 			m_prefix( table_prefix ),
-			m_connection( genfile::db::Connection::create( filename )),
-			m_kmer_count(0)
+			m_connection( genfile::db::Connection::create( filename ))
 		{
 			setup_storage() ;
 		}
@@ -344,7 +343,6 @@ private:
 		genfile::db::Connection::UniquePtr m_connection ;
 		genfile::db::Connection::StatementPtr m_insert_kmer_stmt ;
 		genfile::db::Connection::StatementPtr m_insert_overlap_stmt ;
-		genfile::db::Connection::RowId m_kmer_count ;
 
 	private:
 		void setup_storage() {
