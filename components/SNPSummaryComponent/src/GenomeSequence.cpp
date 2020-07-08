@@ -43,12 +43,14 @@ void GenomeSequence::load_sequence(
 	ProgressCallback callback
 ) {
 	for( std::size_t i = 0; i < filenames.size(); ++i ) {
-		std::vector< std::string > const elts = genfile::string_utils::split( filenames[i], "=" ) ;
-		if( elts.size() != 2 ) {
+		std::vector< std::string > elts = genfile::string_utils::split( filenames[i], "=" ) ;
+		if( elts.size() == 1 ) {
+			elts.insert( elts.begin(), "" ) ;
+		} else if( elts.size() > 2 ) {
 			throw genfile::BadArgumentError(
 				"GenomeSequence::load_sequence()",
 				"filenames[" + genfile::string_utils::to_string(i) + "]=\"" + filenames[i] + "\"",
-				"Filespec should be in the form: name=<path to fasta file>"
+				"Filespec should be in the form: name=<path> or just <path>"
 			) ;
 		}
 		load_sequence( elts[0], elts[1] ) ;
@@ -91,6 +93,8 @@ void GenomeSequence::load_sequence(
 		std::size_t const count = stream->gcount() ;
 		char const* p = &buffer[0] ;
 		char const* data_end = &buffer[0] + count ;
+
+		std::string const prefix = ( name == "" ? "" : ( name + ":" )) ;
 
 		while( (*stream) || p < data_end ) { // while there is more data
 			char const* const line_or_data_end = std::find( p, data_end, '\n' ) ;
@@ -150,8 +154,15 @@ void GenomeSequence::load_sequence(
 				if( m_data.find( sequenceName ) != m_data.end() ) {
 					throw genfile::DuplicateKeyError( filename, "sequence name=\"" + sequenceName + "\"" ) ;
 				}
+				
+				// Only take the first whitespace-seperated string from the fasta header as the sequence name
+				std::size_t pos = sequenceName.find( ' ' ) ;
+				if( pos != std::string::npos ) {
+					sequenceName.resize( pos ) ;
+				}
+				
 				// ...and store sequence
-				m_data[ name + ":" + sequenceName ] = ChromosomeRangeAndSequence(
+				m_data[ prefix + sequenceName ] = ChromosomeRangeAndSequence(
 					std::make_pair( sequenceStart, sequenceStart + sequence.size() ),
 					sequence
 				) ;
