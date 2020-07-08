@@ -315,7 +315,7 @@ private:
 
 		void store_overlap(
 			KmerId const& kmer_id,
-			unsigned long const k,
+			int64_t const size,
 			genfile::GenomePosition const& position1,
 			char const orientation1,
 			genfile::GenomePosition const& position2,
@@ -323,7 +323,7 @@ private:
 		) {
 			m_insert_overlap_stmt
 				->bind( 1, kmer_id )
-				.bind( 2, k )
+				.bind( 2, size )
 				.bind( 3, std::string( position1.chromosome() ))
 				.bind( 4, position1.position() )
 				.bind( 5, std::string( 1, orientation1 ) )
