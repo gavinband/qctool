@@ -24,6 +24,7 @@ namespace metro {
 		void add_sample_range( std::string const& strata, metro::SampleRange const& range ) ;
 
 		std::size_t number_of_strata() const { return m_strata_names.size() ; }
+		std::size_t size() const { return m_strata_names.size() ; }
 		std::string const& stratum_name( std::size_t i ) const ;
 		std::vector< metro::SampleRange > const& stratum( std::size_t i ) const ;
 		std::vector< metro::SampleRange > const& stratum( std::string const& strata_name ) const ;
@@ -33,8 +34,6 @@ namespace metro {
 		std::map< std::string, std::size_t > m_index_by_strata ;
 		std::vector< std::vector< metro::SampleRange > > m_sample_ranges ;
 	} ;
-	
-	std::ostream& operator<<( std::ostream&, std::vector< metro::SampleRange > const& ) ;
 }
 
 #endif

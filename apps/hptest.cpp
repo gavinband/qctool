@@ -58,6 +58,7 @@
 #include "metro/maximisation.hpp"
 #include "metro/fit_model.hpp"
 #include "metro/CholeskyStepper.hpp"
+#include "metro/SampleStratification.hpp"
 
 #include "qcdb/MultiVariantStorage.hpp"
 #include "qcdb/FlatTableDBOutputter.hpp"
@@ -293,7 +294,9 @@ public:
 			.set_description( "Specify the name of one or more covariates to include in the model."
 				" These must be columns named in the sample file." )
 			.set_takes_values_until_next_option() ;
-			
+		options[ "-stratify" ]
+			.set_description( "Specify the name of a discrete covariate to stratify across" )
+			.set_takes_single_value() ;
 		options.declare_group( "Model fitting options" ) ;
 		options[ "-tolerance" ]
 			.set_description( "Tolerance" )
@@ -633,7 +636,8 @@ public:
 private:
 
 	metro::concurrency::threadpool::UniquePtr m_pool ;
-		
+	metro::SampleStratification m_stratification ;
+	
 private:
 	void process() {
 		try {
@@ -668,6 +672,10 @@ private:
 			samples.reset(
 				genfile::SampleFilteringCohortIndividualSource::create( samples, excluded_samples ).release()
 			) ;
+		}
+
+		if( options().check( "-stratify" )) {
+			m_stratification = compute_stratification( *samples, options().get< std::string >( "-stratify" )) ;
 		}
 
 		genfile::SNPDataSource::UniquePtr host = open_genotype_data_sources(
@@ -842,6 +850,38 @@ private:
 			}
 		}
 		return genfile::SampleFilter::UniquePtr( result.release() ) ;
+	}
+	
+	metro::SampleStratification compute_stratification(
+		genfile::CohortIndividualSource const& samples,
+		std::string const& column
+	) const {
+		using genfile::string_utils::to_string ;
+
+		metro::SampleStratification result ;
+		genfile::CohortIndividualSource::ColumnSpec const& column_spec = samples.get_column_spec() ;
+
+		if( !column_spec[ column ].is_discrete() ) {
+			throw genfile::BadArgumentError(
+				"PerVariantComputationManager::get_stratification()",
+				"column=\"" + column + "\"",
+				"argument to -stratify must be a discrete covariate in the sample file."
+			) ;
+		}
+		// Add strata.
+		// We do this via the a value mapping in order to ensure that values are taken in sorted order.
+		genfile::CrossCohortCovariateValueMapping::UniquePtr mapping
+			= genfile::CrossCohortCovariateValueMapping::create( column_spec[ column ] ) ;
+
+		int const highest_level = int( mapping->get_number_of_distinct_mapped_values() ) ;
+		for( int level = 0; level < highest_level; ++level ) {
+			genfile::VariantEntry const unmapped_value = mapping->get_unmapped_value( level ) ;
+			std::vector< std::size_t > const samples_in_strata = samples.find_samples_by_value( column, unmapped_value ) ;
+			for( std::size_t i = 0; i < samples_in_strata.size(); ++i ) {
+				result.add_sample( column + "=" + to_string( unmapped_value ), samples_in_strata[i] ) ;
+			}
+		}
+		return result ;
 	}
 	
 	genfile::SNPDataSource::UniquePtr open_genotype_data_sources(
@@ -1036,6 +1076,13 @@ private:
 			predictor_setter.set_coerce_to_haploid() ;
 		}
 		predictor_source->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
+
+		if( m_stratification.size() > 0 ) {
+			stratify_predictors(
+				predictor_probabilities,
+				m_stratification
+			) ;
+		}
 
 		// designs[0] is null model, specify a 0-column matrix.
 		(*designs)[0].set_predictors(
@@ -1292,6 +1339,10 @@ private:
 				assert(0) ;
 			}
 
+			if( m_stratification.size() > 0 ) {
+				stratify_model( &predictor_levels, &predictorNames, m_stratification ) ;
+			}
+
 			names->push_back( elts[0] ) ;
 			designs->push_back(
 				metro::regression::Design::create(
@@ -1301,6 +1352,65 @@ private:
 			) ;
 			predictorCodings->push_back( predictor_levels ) ;
 		}
+	}
+	
+	// This must be implemented to match stratify_predictors() below.
+	// Each column of the levels corresponds to a parameter and each row to a predictor level.
+	// We expand the predictors so that each parameter is split into one parameter per strata.
+	void stratify_model(
+		Eigen::MatrixXd* predictor_levels,
+		std::vector< std::string >* predictor_names,
+		metro::SampleStratification const& stratification
+	) {
+		int const L = predictor_levels->rows() ;
+		int const P = predictor_levels->cols() ;
+		Eigen::MatrixXd stratified(
+			L * stratification.number_of_strata(),
+			P * stratification.number_of_strata()
+		) ;
+		stratified.setZero() ;
+		std::vector< std::string > stratified_names ;
+		for( std::size_t stratum_i = 0; stratum_i < stratification.number_of_strata(); ++stratum_i ) {
+			for( std::size_t j = 0; j < stratification.stratum(stratum_i).size(); ++j ) {
+				stratified.block(
+					stratum_i * L, stratum_i,
+					L, P
+				) = (*predictor_levels) ;
+			}
+			for( std::size_t name_i = 0; name_i < predictor_names->size(); ++name_i ) {
+				stratified_names.push_back( predictor_names->at(name_i) + "/" + stratification.stratum_name( stratum_i )) ;
+			}
+		}
+		
+		(*predictor_levels) = stratified ;
+		(*predictor_names) = stratified_names ;
+	}
+	
+	// This must be implemented to match stratify_models() above.
+	void stratify_predictors(
+		Eigen::MatrixXd* predictor_probs,
+		metro::SampleStratification const& stratification
+	) {
+		assert( stratification.size() > 0 ) ;
+		int const N = predictor_probs->rows() ;
+		int const L = predictor_probs->cols() ;
+
+		Eigen::MatrixXd stratified_predictor_probs( N, L * stratification.size() ) ;
+		for( std::size_t i = 0; i < stratification.size(); ++i ) {
+			for( std::size_t j = 0; j < stratification.stratum(i).size(); ++j ) {
+				metro::SampleRange const& range = stratification.stratum(i)[j] ;
+				Eigen::Block< Eigen::MatrixXd > const block = predictor_probs->block(
+					range.begin(), 0,
+					range.size(), L
+				) ;
+				stratified_predictor_probs.block(
+					range.begin(), L * i,
+					range.size(), L
+				) = block ;
+			}
+		}
+		
+		*predictor_probs = stratified_predictor_probs ;
 	}
 	
 	std::vector< genfile::string_utils::slice > parse_model_spec( genfile::string_utils::slice const& spec ) {

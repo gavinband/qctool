@@ -69,12 +69,4 @@ namespace metro {
 		}
 		return m_sample_ranges[ where->second ] ;
 	}
-	
-	std::ostream& operator<<( std::ostream& out, std::vector< metro::SampleRange > const& range ) {
-		for( std::size_t i = 0; i < range.size(); ++i ) {
-			out << ((i>0) ? " " : "" ) << range[i] ;
-		}
-		return out ;
-	}
-	
 }
