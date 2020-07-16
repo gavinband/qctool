@@ -34,6 +34,8 @@ namespace metro {
 		std::map< std::string, std::size_t > m_index_by_strata ;
 		std::vector< std::vector< metro::SampleRange > > m_sample_ranges ;
 	} ;
+
+	std::ostream& operator<<( std::ostream& o, SampleStratification const& stratification ) ;
 }
 
 #endif

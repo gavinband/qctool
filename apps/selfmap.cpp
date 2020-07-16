@@ -385,44 +385,62 @@ private:
 	}
 
 	void write_output( KmerMap const& kmerMap, Storage::UniquePtr storage ) {
-		appcontext::UIContext::ProgressContext progress_context = get_ui_context().get_progress_context( "Storing results" ) ;
 
 		bool const include_diagonal = options().check( "-include-diagonal" ) ;
 		bool const output_sequence = !options().check( "-omit-sequence" ) ;
 		using genfile::string_utils::to_string ;
 		//genfile::GenomePosition position ( m_range.start().chromosome(), 0 ) ;
-		KmerMap::const_iterator kmer_i = kmerMap.begin() ;
-		KmerMap::const_iterator end_i = kmerMap.end() ;
-		std::size_t count = 0 ;
-		for( ; kmer_i != end_i; ++kmer_i, ++count ) {
-			std::string const& kmer = kmer_i->first ;
-			KmerCountAndPositions const& count_and_positions = kmer_i->second ;
-			KmerPositions const& positions = count_and_positions.second ;
 
-			Storage::KmerId const kmer_id = count_and_positions.first ;
-			storage->store_kmer(
-				output_sequence ? kmer : ".", kmer_id, positions.size()
-			) ;
-			
-			for( std::size_t j = 0; j < positions.size(); ++j ) {
-				genfile::GenomePosition const& position1 = positions[j].first ;
-				char const orientation1 = positions[j].second ;
-				for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < positions.size(); ++k ) {
-					genfile::GenomePosition const& position2 = positions[k].first ;
-					char const orientation2 = positions[k].second ;
-					storage->store_overlap(
-						kmer_id,
-						kmer.size(),
-						position1,
-						orientation1,
-						position2,
-						orientation2
-					) ;
-				}
+		{
+			appcontext::UIContext::ProgressContext progress_context
+				= get_ui_context().get_progress_context( "Storing kmers" ) ;
+			KmerMap::const_iterator kmer_i = kmerMap.begin() ;
+			KmerMap::const_iterator end_i = kmerMap.end() ;
+			std::size_t count = 0 ;
+			for( ; kmer_i != end_i; ++kmer_i, ++count ) {
+				std::string const& kmer = kmer_i->first ;
+				KmerCountAndPositions const& count_and_positions = kmer_i->second ;
+				KmerPositions const& positions = count_and_positions.second ;
+
+				Storage::KmerId const kmer_id = count_and_positions.first ;
+				storage->store_kmer(
+					output_sequence ? kmer : ".", kmer_id, positions.size()
+				) ;
+				progress_context.notify_progress( count+1, kmerMap.size() ) ;
 			}
-			progress_context.notify_progress( count+1, kmerMap.size() ) ;
 		}
 
+		{	
+			appcontext::UIContext::ProgressContext progress_context
+				= get_ui_context().get_progress_context( "Storing overlaps" ) ;
+			KmerMap::const_iterator kmer_i = kmerMap.begin() ;
+			KmerMap::const_iterator end_i = kmerMap.end() ;
+			std::size_t count = 0 ;
+			for( ; kmer_i != end_i; ++kmer_i, ++count ) {
+				std::string const& kmer = kmer_i->first ;
+				KmerCountAndPositions const& count_and_positions = kmer_i->second ;
+				KmerPositions const& positions = count_and_positions.second ;
+				Storage::KmerId const kmer_id = count_and_positions.first ;
+
+				for( std::size_t j = 0; j < positions.size(); ++j ) {
+					genfile::GenomePosition const& position1 = positions[j].first ;
+					char const orientation1 = positions[j].second ;
+					for( std::size_t k = ( j + ( include_diagonal ? 0 : 1 ) ); k < positions.size(); ++k ) {
+						genfile::GenomePosition const& position2 = positions[k].first ;
+						char const orientation2 = positions[k].second ;
+						storage->store_overlap(
+							kmer_id,
+							kmer.size(),
+							position1,
+							orientation1,
+							position2,
+							orientation2
+						) ;
+					}
+				}
+				progress_context.notify_progress( count+1, kmerMap.size() ) ;
+			}
+		}
 		storage->finalise() ;
 	}
 } ;

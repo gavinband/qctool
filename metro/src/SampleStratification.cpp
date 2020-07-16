@@ -8,6 +8,8 @@
 #include <vector>
 #include <map>
 #include <cassert>
+#include <iostream>
+#include <iomanip>
 #include "metro/SampleRange.hpp"
 #include "metro/SampleStratification.hpp"
 #include "metro/union_ranges.hpp"
@@ -68,5 +70,14 @@ namespace metro {
 			throw genfile::BadArgumentError( "core::SampleStratification::stratum()", "strata_name=\"" + strata_name + "\"", "no such strata" ) ;
 		}
 		return m_sample_ranges[ where->second ] ;
+	}
+
+
+	std::ostream& operator<<( std::ostream& o, SampleStratification const& stratification ) {
+		for( std::size_t i = 0; i < stratification.size(); ++i ) {
+			o << std::setw(12) << stratification.stratum_name( i ) << ": "
+				<< stratification.stratum(i) << "\n" ;
+		}
+		return o ;
 	}
 }
