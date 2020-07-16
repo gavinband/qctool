@@ -637,7 +637,7 @@ private:
 
 	metro::concurrency::threadpool::UniquePtr m_pool ;
 	metro::SampleStratification m_stratification ;
-	
+	Eigen::MatrixXd m_regression_predictor_probs ;
 private:
 	void process() {
 		try {
@@ -872,7 +872,7 @@ private:
 		// We do this via the a value mapping in order to ensure that values are taken in sorted order.
 		genfile::CrossCohortCovariateValueMapping::UniquePtr mapping
 			= genfile::CrossCohortCovariateValueMapping::create( column_spec[ column ] ) ;
-
+		mapping->add_source( samples ) ;
 		int const highest_level = int( mapping->get_number_of_distinct_mapped_values() ) ;
 		for( int level = 0; level < highest_level; ++level ) {
 			genfile::VariantEntry const unmapped_value = mapping->get_unmapped_value( level ) ;
@@ -1077,35 +1077,36 @@ private:
 		}
 		predictor_source->get( ":genotypes:", genfile::to_GP_unphased( predictor_setter )) ;
 
-		if( m_stratification.size() > 0 ) {
-			stratify_predictors(
-				predictor_probabilities,
-				m_stratification
-			) ;
-		}
+		Eigen::MatrixXd stratified_predictor_probs ;
 
+		stratify_predictors(
+			*predictor_probabilities,
+			m_stratification,
+			&m_regression_predictor_probs
+		) ;
+		
 		// designs[0] is null model, specify a 0-column matrix.
 		(*designs)[0].set_predictors(
 			Eigen::MatrixXd::Zero( 1, 0 ),
-			predictor_probabilities->rowwise().sum(),
+			m_regression_predictor_probs.rowwise().sum(),
 			*nonmissing_predictor
 		) ;
 		// designs[1..] are alternative models
 		for( std::size_t i = 1; i < designs->size(); ++i ) {
-			assert( predictorCodings[i].rows() == predictor_probabilities->cols() ) ;
+			assert( predictorCodings[i].rows() == m_regression_predictor_probs.cols() ) ;
 
 			// optimisation: ignore columns with zero probability
 			int lower = 0;
-			int upper = predictor_probabilities->cols() ;
+			int upper = m_regression_predictor_probs.cols() ;
 //			for( ; lower < upper && (*predictor_probabilities).col(lower).array().abs().maxCoeff() == 0; ++lower ) ;
 //			for( ; upper > lower && (*predictor_probabilities).col(upper).array().abs().maxCoeff() == 0; --upper ) ;
 //			assert( upper >= lower ) ;
 
 			(*designs)[i].set_predictors(
 				predictorCodings[i].block( lower, 0, upper - lower, predictorCodings[i].cols() ),
-				predictor_probabilities->block(
+				m_regression_predictor_probs.block(
 					0, lower,
-					predictor_probabilities->rows(), upper - lower
+					m_regression_predictor_probs.rows(), upper - lower
 				),
 				*nonmissing_predictor
 			) ;
@@ -1388,18 +1389,23 @@ private:
 	
 	// This must be implemented to match stratify_models() above.
 	void stratify_predictors(
-		Eigen::MatrixXd* predictor_probs,
-		metro::SampleStratification const& stratification
+		Eigen::MatrixXd const& predictor_probs,
+		metro::SampleStratification const& stratification,
+		Eigen::MatrixXd* result
 	) {
-		assert( stratification.size() > 0 ) ;
-		int const N = predictor_probs->rows() ;
-		int const L = predictor_probs->cols() ;
+		if( stratification.size() == 0 ) {
+			*result = predictor_probs ;
+			return ;
+		}
+		int const N = predictor_probs.rows() ;
+		int const L = predictor_probs.cols() ;
 
 		Eigen::MatrixXd stratified_predictor_probs( N, L * stratification.size() ) ;
+		stratified_predictor_probs.setZero() ;
 		for( std::size_t i = 0; i < stratification.size(); ++i ) {
 			for( std::size_t j = 0; j < stratification.stratum(i).size(); ++j ) {
 				metro::SampleRange const& range = stratification.stratum(i)[j] ;
-				Eigen::Block< Eigen::MatrixXd > const block = predictor_probs->block(
+				Eigen::Block< Eigen::MatrixXd const > const block = predictor_probs.block(
 					range.begin(), 0,
 					range.size(), L
 				) ;
@@ -1410,7 +1416,7 @@ private:
 			}
 		}
 		
-		*predictor_probs = stratified_predictor_probs ;
+		*result = stratified_predictor_probs ;
 	}
 	
 	std::vector< genfile::string_utils::slice > parse_model_spec( genfile::string_utils::slice const& spec ) {
