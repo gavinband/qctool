@@ -714,7 +714,11 @@ private:
 				"Wrong number of samples (" + to_string(para->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
 		}
-		
+	
+		if( !options().check( "-no-prior" )) {
+			m_prior_specs = expand_prior_specs( options().get_values< std::string >( "-prior" )) ;
+		}
+	
 		write_preamble( *host, *para, *samples ) ;
 		
 		{
@@ -1598,6 +1602,7 @@ private:
 		std::vector< std::string > const& specs
 	) const {
 		// Expand any specs by the stratification, if needed
+		std::string const& outcome_name = options().get< std::string >( "-outcome-name" ) ;
 		std::vector< std::string > result;
 		for( std::size_t i = 0; i < specs.size(); ++i ) {
 			std::string spec = specs[i] ;
@@ -1658,33 +1663,6 @@ private:
 			}
 		}
 	
-		// Expand any specs by the stratification, if needed
-		{
-			std::vector< std::string > expandedSpecs ;
-			for( std::size_t i = 0; i < specs.size(); ++i ) {
-				std::string const& spec = specs[i] ;
-				std::size_t where = spec.find( "/[stratum]" ) ;
-				if( where == std::string::npos ) {
-					expandedSpecs.push_back( specs[i] ) ;
-				} else if( m_stratification.size() == 0 ) {
-					// no stratification, remove /[stratum] part of spec
-					expandedSpecs.push_back( 
-						spec.substr( 0, where )
-						+ spec.substr( where + 10, spec.size() )
-					) ;
-				} else {
-					for( std::size_t j = 0; j < m_stratification.size(); ++j ) {
-						expandedSpecs.push_back( 
-							spec.substr( 0, where )
-							+ "/" + m_stratification.stratum_name(j)
-							+ spec.substr( where + 10, spec.size() )
-						) ;
-					}
-				}
-			}
-			specs = expandedSpecs ;
-		}
-		
 		// Gather and parse all the data
 		for( std::size_t i = 0; i < specs.size(); ++i ) {
 			//std::cerr << "SPEC: \"" << specs[i] << "\".\n" ;
