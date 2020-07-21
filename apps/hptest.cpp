@@ -279,11 +279,11 @@ public:
 				"Currently, logF and gaussian priors are supported."
 			)
 			.set_takes_values_until_next_option()
-			.set_default_value( "add/[outcome]=1~logf(2,2)" )
-			.set_default_value( "overdominance/[outcome]=1~logf(4,4)" )
-			.set_default_value( "het/[outcome]=1~logf(2,2)" )
-			.set_default_value( "dom/[outcome]=1~logf(2,2)" )
-			.set_default_value( "rec/[outcome]=1~logf(2,2)" )
+			.set_default_value( "add/[stratum]/[outcome]=1~logf(2,2)" )
+			.set_default_value( "overdominance/[stratum]/[outcome]=1~logf(4,4)" )
+			.set_default_value( "het/[stratum]/[outcome]=1~logf(2,2)" )
+			.set_default_value( "dom/[stratum]/[outcome]=1~logf(2,2)" )
+			.set_default_value( "rec/[stratum]/[outcome]=1~logf(2,2)" )
 		;
 		options[ "-no-prior" ]
 			.set_description( "Specify that no prior should be used.  Only frequentist summaries will be output." ) ;
@@ -637,6 +637,7 @@ private:
 
 	metro::concurrency::threadpool::UniquePtr m_pool ;
 	metro::SampleStratification m_stratification ;
+	std::vector< std::string > m_prior_specs ;
 	Eigen::MatrixXd m_regression_predictor_probs ;
 private:
 	void process() {
@@ -676,6 +677,8 @@ private:
 
 		if( options().check( "-stratify" )) {
 			m_stratification = compute_stratification( *samples, options().get< std::string >( "-stratify" )) ;
+			std::cerr << "Stratification:\n"
+				<< m_stratification << ".\n" ;
 		}
 
 		genfile::SNPDataSource::UniquePtr host = open_genotype_data_sources(
@@ -1586,15 +1589,54 @@ private:
 			) ;
 		}
 		if( !options().check_if_option_has_value( "-no-prior" )) {
-			ll = apply_priors( ll, options().get_values< std::string>( "-prior" )) ;
+			ll = apply_priors( ll, m_prior_specs ) ;
 		}
 		return ll ;
 	}
 
+	std::vector< std::string > expand_prior_specs(
+		std::vector< std::string > const& specs
+	) const {
+		// Expand any specs by the stratification, if needed
+		std::vector< std::string > result;
+		for( std::size_t i = 0; i < specs.size(); ++i ) {
+			std::string spec = specs[i] ;
+
+			// replace [outcome] with outcome name
+			{
+				std::size_t where = spec.find( "[outcome]" ) ;
+				if( where != std::string::npos ) {
+					spec = spec.substr( 0, where )
+						+ outcome_name
+						+ spec.substr( where + 9, spec.size() ) ;
+				}
+			}
+
+			std::size_t where = spec.find( "/[stratum]" ) ;
+			if( where == std::string::npos ) {
+				result.push_back( specs[i] ) ;
+			} else if( m_stratification.size() == 0 ) {
+				// no stratification, remove /[stratum] part of spec
+				result.push_back( 
+					spec.substr( 0, where )
+					+ spec.substr( where + 10, spec.size() )
+				) ;
+			} else {
+				for( std::size_t j = 0; j < m_stratification.size(); ++j ) {
+					result.push_back( 
+					spec.substr( 0, where )
+						+ "/" + m_stratification.stratum_name(j)
+						+ spec.substr( where + 10, spec.size() )
+					) ;
+				}
+			}
+		}
+		return result ;	
+	}
 
 	metro::regression::LogLikelihood::UniquePtr apply_priors(
 		metro::regression::LogLikelihood::UniquePtr ll,
-		std::vector< std::string > const& specs
+		std::vector< std::string > specs
 	) const {
 		std::vector< int > gaussian_parameter_indices ;
 		std::vector< double > gaussian_variances ;
@@ -1615,9 +1657,37 @@ private:
 				parameter_index_by_name[ ll->get_parameter_name(i) ] = i ;
 			}
 		}
+	
+		// Expand any specs by the stratification, if needed
+		{
+			std::vector< std::string > expandedSpecs ;
+			for( std::size_t i = 0; i < specs.size(); ++i ) {
+				std::string const& spec = specs[i] ;
+				std::size_t where = spec.find( "/[stratum]" ) ;
+				if( where == std::string::npos ) {
+					expandedSpecs.push_back( specs[i] ) ;
+				} else if( m_stratification.size() == 0 ) {
+					// no stratification, remove /[stratum] part of spec
+					expandedSpecs.push_back( 
+						spec.substr( 0, where )
+						+ spec.substr( where + 10, spec.size() )
+					) ;
+				} else {
+					for( std::size_t j = 0; j < m_stratification.size(); ++j ) {
+						expandedSpecs.push_back( 
+							spec.substr( 0, where )
+							+ "/" + m_stratification.stratum_name(j)
+							+ spec.substr( where + 10, spec.size() )
+						) ;
+					}
+				}
+			}
+			specs = expandedSpecs ;
+		}
 		
-		// First gather and parse all the data
+		// Gather and parse all the data
 		for( std::size_t i = 0; i < specs.size(); ++i ) {
+			//std::cerr << "SPEC: \"" << specs[i] << "\".\n" ;
 			std::string parameter_name ;
 			std::string distribution ;
 			std::vector< std::string > parameters ;
