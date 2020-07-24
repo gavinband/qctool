@@ -35,6 +35,7 @@
 #include "genfile/SampleFilter.hpp"
 #include "genfile/SampleFilteringSNPDataSource.hpp"
 #include "genfile/SampleFilteringCohortIndividualSource.hpp"
+#include "genfile/DataLinkingCohortIndividualSource.hpp"
 #include "genfile/CompoundSampleFilter.hpp"
 #include "genfile/SampleFilterNegation.hpp"
 #include "genfile/VariableInSetSampleFilter.hpp"
@@ -211,6 +212,16 @@ public:
 			.set_minimum_multiplicity( 1 )
 			.set_maximum_multiplicity( 1 ) ;
 
+		options[ "-sample-data" ]
+			.set_description( "Path of additional sample file(s) (in the same format(s) as accepted by -s) to read. "
+				"These files are used to look up additional sample information, using a sample ID in the first column as key. "
+				"For each sample and column, the relevant entry will be taken from the superset of all sample files supplied. "
+				"(It is an error to supply two different, non-missing values for columns with the same name for the same sample.)"
+			)
+			.set_takes_values_until_next_option()
+			.set_minimum_multiplicity( 0 )
+			.set_maximum_multiplicity( 100 ) ;
+
 		options.declare_group( "Output file options" ) ;
 		options[ "-o" ]
 			.set_description( "Output file" )
@@ -306,6 +317,8 @@ public:
 			.set_description( "Maximum fitting iterations" )
 			.set_takes_values(1)
 			.set_default_value( 100 ) ;
+
+		options.option_excludes_option( "-prior", "-no-prior" ) ;
 
 		options.declare_group( "Miscellaneous options" ) ;
 		options[ "-analysis-name" ]
@@ -668,6 +681,10 @@ private:
 		genfile::CohortIndividualSource::UniquePtr
 			samples = genfile::CohortIndividualSource::create( options().get< std::string >( "-s" ) ) ;
 
+		if( options().check( "-sample-data" )) {
+			samples = open_sample_data( samples, options().get_values< std::string > ( "-sample-data" )) ;
+		}
+
 		std::set< std::size_t > const excluded_samples = compute_excluded_samples( *sample_filter, *samples ) ;
 		if( excluded_samples.size() > 0 ) {
 			samples.reset(
@@ -714,7 +731,7 @@ private:
 				"Wrong number of samples (" + to_string(para->number_of_samples()) + ", expected " + to_string(N) + ")"
 			) ;
 		}
-	
+		
 		if( !options().check( "-no-prior" )) {
 			m_prior_specs = expand_prior_specs( options().get_values< std::string >( "-prior" )) ;
 		}
@@ -744,6 +761,14 @@ private:
 			test( visitor, *samples, *storage ) ;
 			storage->finalise() ;
 		}
+	}
+	
+	genfile::CohortIndividualSource::UniquePtr open_sample_data( genfile::CohortIndividualSource::UniquePtr samples, std::vector< std::string > sample_files ) const {
+		genfile::DataLinkingCohortIndividualSource::UniquePtr result( new genfile::DataLinkingCohortIndividualSource( samples )) ;
+		for( std::size_t i = 0; i < sample_files.size(); ++i ) {
+			result->add_source( genfile::CohortIndividualSource::create( sample_files[i] )) ;
+		}
+		return genfile::CohortIndividualSource::UniquePtr( result.release() ) ;
 	}
 	
 	genfile::CommonSNPFilter::UniquePtr get_variant_filter(
@@ -1687,7 +1712,7 @@ private:
 			++used_parameters[parameter_name] ;
 			if( used_parameters[parameter_name] > 1 ) {
 				throw genfile::BadArgumentError(
-					"PerVariantComputationManager::parse_prior_spec()",
+					"PerVariantComputationManager::apply_priors()",
 					"spec=\"" + specs[i] + "\"",
 					(boost::format(
 						"More than one prior specified for parameter \"%s\"" ) % parameter_name ).str()
@@ -1699,7 +1724,7 @@ private:
 				if( to_lower( distribution ) == "gaussian" ) {
 					if( parameters.size() != 2 ) {
 						throw genfile::BadArgumentError(
-							"PerVariantComputationManager::parse_prior_spec()",
+							"PerVariantComputationManager::apply_priors()",
 							"spec=\"" + specs[i] + "\"",
 							(boost::format(
 								"Wrong number of parameters found for gaussian distribution (\"%d\", expected 2) - please specify mean and variance."
@@ -1713,7 +1738,7 @@ private:
 				} else if( to_lower( distribution ) == "logf" ) {
 					if( parameters.size() != 2 ) {
 						throw genfile::BadArgumentError(
-							"PerVariantComputationManager::parse_prior_spec()",
+							"PerVariantComputationManager::apply_priors()",
 							"spec=\"" + specs[i] + "\"",
 							(boost::format(
 								"Wrong number of parameters found for log F distribution (\"%d\", expected 2) - please specify nu1 and nu2"
@@ -1725,7 +1750,7 @@ private:
 					logF_parameter_indices.push_back( where->second ) ;
 				} else {
 					throw genfile::BadArgumentError(
-						"PerVariantComputationManager::parse_prior_spec()",
+						"PerVariantComputationManager::apply_priors()",
 						"spec=\"" + specs[i] + "\"",
 						(boost::format( "Unrecognised distribution specified (\"%s\"), should be \"gaussian\" or \"logF\"" ) % distribution).str()
 					) ;
@@ -1820,6 +1845,19 @@ private:
 				parameterSpec = parameterSpec.substr( 0, where )
 					+ outcome_name
 					+ parameterSpec.substr( where + 9, parameterSpec.size() ) ;
+			}
+			*parameter_name = parameterSpec ;
+		}
+
+		{
+			std::string parameterSpec = elts[0] ;
+			std::size_t where = parameterSpec.find( "/[stratum]" ) ;
+			if( where != std::string::npos ) {
+				if( m_stratification.size() == 0 ) {
+					parameterSpec = parameterSpec.substr( 0, where )
+						+ ""
+						+ parameterSpec.substr( where + 9, parameterSpec.size() ) ;
+				}
 			}
 			*parameter_name = parameterSpec ;
 		}
@@ -1950,20 +1988,21 @@ private:
 			std::vector< int > const parametersToOutput = get_parameters_to_output( ll ) ;
 			output_parameter_estimates( ll, variants, model_name, covariance, output, parametersToOutput ) ;
 		
-			if( options().check( "-no-prior" )) {	
+			metro::regression::LogPosteriorDensity const* posterior = dynamic_cast< metro::regression::LogPosteriorDensity const* >( &ll ) ;
+			if( posterior ) {	
+				compute_bayesian_summary(
+					null_ll, null_solver.logAbsDeterminant(),
+					*posterior, solver.logAbsDeterminant(), covariance,
+					model_name,
+					variants, output,
+					parametersToOutput,
+					comments
+				) ;
+			} else {
 				compute_frequentist_summary(
 					null_ll, ll,
 					model_name,
 					variants, output,
-					comments
-				) ;
-			} else {
-				compute_bayesian_summary(
-					null_ll, null_solver.logAbsDeterminant(),
-					ll, solver.logAbsDeterminant(), covariance,
-					model_name,
-					variants, output,
-					parametersToOutput,
 					comments
 				) ;
 			}
@@ -2056,7 +2095,7 @@ private:
 	void compute_bayesian_summary(
 		metro::regression::LogLikelihood const& null_ll,
 		double const logAbsNullDeterminant,
-		metro::regression::LogLikelihood const& ll,
+		metro::regression::LogPosteriorDensity const& ll,
 		double const logAbsFullDeterminant,
 		Eigen::MatrixXd const& posterior_covariance,
 		std::string const& model_name,
@@ -2097,7 +2136,7 @@ private:
 			log10_bf
 		) ;
 		
-		metro::regression::LogPosteriorDensity const* posterior = dynamic_cast< metro::regression::LogPosteriorDensity const* >( &ll ) ;
+		metro::regression::LogPosteriorDensity const* posterior = &ll ;
 		assert( posterior ) ;
 		if( posterior ) {
 			Eigen::VectorXd const prior_mode = posterior->get_prior_mode() ;
