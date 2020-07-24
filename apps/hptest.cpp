@@ -1456,7 +1456,14 @@ private:
 			genfile::CrossCohortCovariateValueMapping::UniquePtr mapping
 				= genfile::CrossCohortCovariateValueMapping::create( columnSpec, true ) ;
 			mapping->add_source( samples ) ;
-			
+		
+			if( mapping->get_number_of_distinct_mapped_values() == 0 ) {
+				throw genfile::BadArgumentError(
+					"add_covariates()",
+					"-covarariates"
+					"Covariate \"" + covariates[i] + "\" has no non-missing levels in this set of samples."
+				) ;
+			}
 			for( std::size_t model_i = 0; model_i < designs->size(); ++model_i ) {
 				metro::regression::Design& design = designs->at(model_i) ;
 				
