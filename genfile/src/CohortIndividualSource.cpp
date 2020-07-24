@@ -221,7 +221,7 @@ namespace genfile {
 	}
 	
 	bool CohortIndividualSource::ColumnSpec::check_for_column( std::string const& column_name ) const {
-		return std::find( m_column_names.begin(), m_column_names.end(), column_name ) != m_column_names.end() ;
+		return column_name == "ID_1" || std::find( m_column_names.begin(), m_column_names.end(), column_name ) != m_column_names.end() ;
 	}
 
 	std::size_t CohortIndividualSource::ColumnSpec::find_column( std::string const& column_name ) const {

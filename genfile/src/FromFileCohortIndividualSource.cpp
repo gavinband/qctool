@@ -82,6 +82,9 @@ namespace genfile {
 	}
 
 	bool FromFileCohortIndividualSource::check_for_column( std::string const& column_name ) const {
+		if( column_name == "ID_1" ) {
+			return true ;
+		}
 		std::map< std::string, std::size_t >::const_iterator where = m_column_indices.find( string_utils::to_lower( column_name ) ) ;
 		return ( where != m_column_indices.end() ) ;
 	}
