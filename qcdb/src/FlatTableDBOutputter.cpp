@@ -167,15 +167,15 @@ namespace qcdb {
 		schema_sql << "CREATE TABLE IF NOT EXISTS "
 			<< table_name
 			<< " ( "
-			"analysis_id INT NOT NULL REFERENCES Entity( id ), "
-			"variant_id INT NOT NULL REFERENCES Variant( id ), "
-			"chromosome TEXT, "
-			"position INTEGER"
+			"`analysis_id` INT NOT NULL REFERENCES Entity( id ), "
+			"`variant_id` INT NOT NULL REFERENCES Variant( id ), "
+			"`chromosome` TEXT, "
+			"`position` INTEGER"
 		;
 		
 		insert_data_sql << "INSERT INTO "
 			<< table_name ;
-		insert_data_sql_columns << "( analysis_id, variant_id, chromosome, position" ;
+		insert_data_sql_columns << "( `analysis_id`, `variant_id`, `chromosome`, `position`" ;
 		insert_data_sql_values << "VALUES( ?1, ?2, ?3, ?4" ;
 		
 		VariableMap::right_const_iterator
@@ -187,12 +187,12 @@ namespace qcdb {
 			insert_data_sql_columns << ", " ;
 			insert_data_sql_values << ", " ;
 			schema_sql
-				<< '"'
+				<< '`'
 				<< var_i->second
-				<< '"'
+				<< '`'
 				<< " NULL" ;
 				
-			insert_data_sql_columns << '"' << var_i->second << '"' ;
+			insert_data_sql_columns << '`' << var_i->second << '`' ;
 			insert_data_sql_values << "?" << to_string( bind_i ) ;
 		}
 
@@ -232,6 +232,9 @@ namespace qcdb {
 		m_insert_data_sql = m_outputter.connection().get_statement(
 			insert_data_sql.str()
 		) ;
+#if DEBUG_FLATTABLEDBOUTPUTTER
+		std::cerr << "Schema created.\n" ;
+#endif
 	}
 
 	void FlatTableDBOutputter::create_variables() {
