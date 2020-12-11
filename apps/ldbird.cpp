@@ -508,6 +508,9 @@ private:
 				"position,alleles",
 				analysis_id
 			) ;
+
+			frequencyStorage->add_variable( "number_of_haplotypes" ) ;
+			frequencyStorage->add_variable( "frequency" ) ;
 			//frequencyStorage->set_variant_names( std::vector< std::string >({ "g1", "g2" })) ;
 
 			qcdb::MultiVariantStorage::UniquePtr correlationStorage = qcdb::MultiVariantStorage::create(
@@ -524,6 +527,15 @@ private:
 			correlationStorage->add_variable( "N" ) ;
 			correlationStorage->add_variable( "encoded_r" ) ;
 
+			if( options().check( "-details" )) {
+				for( int i = 0; i < 2; ++i ) {
+					for( int j = 0; j < 2; ++j ) {
+						correlationStorage->add_variable( "n_" + to_string(i) + to_string(j) ) ;
+					}
+				}
+				
+				correlationStorage->add_variable( "fet_pvalue" ) ;
+			}
 			// This mechanism chooses a full cartesian product or a lower triangle implementation
 			// TODO: make this more obvious / cleaner.
 			genfile::CartesianProductVisitor visitor( !options().check( "-g2" ) ) ;
