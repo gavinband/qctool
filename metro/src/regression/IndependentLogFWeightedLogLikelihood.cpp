@@ -137,7 +137,7 @@ namespace metro {
 			for( std::size_t i = 0; i < m_parameter_indices.size(); ++i ) {
 				// mode is logit() of mode of beta distribution with shape1=1+alpha, shape2=1+beta
 				// this is given by:
-				double mode result(i) = m_alpha[i] / ( m_alpha[i] + m_beta[i] ) ;
+				double mode = m_alpha[i] / ( m_alpha[i] + m_beta[i] ) ;
 				result[i] = std::log( mode / (1.0 - mode)) ;
 			}
 			return result ;

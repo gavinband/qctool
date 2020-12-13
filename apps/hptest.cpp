@@ -1774,7 +1774,7 @@ private:
 				if( identity(i,1) > ll->design().number_of_predictors() && used_parameters[parameter_name] == 0 ) {
 					logF_parameter_indices.push_back(i) ;
 					// Choose a logF distribution with 95% coverage interval
-					// equivalent to a gaussian(0,25^2) distribution.
+					// equivalent to a gaussian(0,40^2) distribution.
 					logF_nu1.push_back( 0.07704070 ) ;
 					logF_nu2.push_back( 0.07704070 ) ;
 				}
