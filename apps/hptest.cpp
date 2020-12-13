@@ -320,7 +320,7 @@ public:
 
 		options.option_excludes_option( "-prior", "-no-prior" ) ;
 
-		options.declare_group( "Miscellaneous options" ) ;
+		options.declare_group( "Output options" ) ;
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
@@ -336,7 +336,16 @@ public:
 			.set_description( "The threshold to apply to outcome genotype probabilities, if necessary, to make calls." )
 			.set_takes_single_value()
 			.set_default_value( 0.9 ) ;
-		options.declare_group( "Miscellaneous options" ) ;
+		options[ "-compare-variants-by" ]
+			.set_description( "A comma-separated list of fields to compare variants by."
+				" This affects how results for variants"
+				" (position, rsid, snpid, and alleles.)"
+				" Use this option to specify a comma-separated subset of those fields to use instead."
+				" The first entry must be \"position\"."
+				" This option can be used, for example, when cohorts are typed on different platforms so have different SNPID fields." )
+			.set_takes_single_value()
+			.set_default_value( "position,alleles,ids" ) ;
+
 		options[ "-debug" ]
 			.set_description( "Output debugging information." ) ;
 		options[ "-threads" ]
@@ -749,7 +758,7 @@ private:
 				options().get< std::string > ( "-analysis-name" ),
 				options().get< std::string > ( "-analysis-chunk" ),
 				get_application_metadata(),
-				"position,alleles",
+				options().get< std::string > ( "-compare-variants-by" ),
 				analysis_id
 			) ;
 			storage->set_variant_names( std::vector< std::string >({ "predictor", "outcome" })) ;
