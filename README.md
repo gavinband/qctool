@@ -1,5 +1,5 @@
 # qctool - README
-Copyright 2009-2020 Gavin Band, University of Oxford
+Copyright 2009-2021 Gavin Band, University of Oxford
 
 This package comprises the QCTOOL program for quality control of a set of SNP marker data,
 together with some other utility programs.
