@@ -19,14 +19,9 @@ dependencies = {
 	"qctool": external + components + base,
 	"hptest": external + components + base,
 	"ldbird": external + components + base,
-	"multifinemap": external + components + base,
+	#"multifinemap": external + components + base,
 	"selfmap": external + components + base,
-	"inthinnerator": external + components + base,
-	#'overrep': external + components + base,
-	#'gen-grep:', external + components + base,
-	#'inflation': external + components + base,
-	#'checkvcf': external + components + base,
-	#'binit': external + components + base
+	"inthinnerator": external + components + base
 }
 
 def build( bld ):
