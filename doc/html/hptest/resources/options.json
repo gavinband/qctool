@@ -1,0 +1,376 @@
+{
+  "-analysis-chunk": {
+    "group": "",
+    "description": "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "NA" ]
+  },
+  "-analysis-id": {
+    "group": "",
+    "description": "Specify an integer ID for the current analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-analysis-name": {
+    "group": "",
+    "description": "Specify a name to label results from this analysis with.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "hptest analysis" ]
+  },
+  "-covariates": {
+    "group": "",
+    "description": "Specify the name of one or more covariates to include in the model. These must be columns named in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-debug": {
+    "group": "",
+    "description": "Output debugging information.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-details": {
+    "group": "",
+    "description": "Specify that hptest should produce detailed output for each test.",
+    "is_required": 14,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-excl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID lies in the given file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-samples-where": {
+    "group": "",
+    "description": "Exclude samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-outcome-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-outcome-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-predictor-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-predictor-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID does not lie in the given file(s).",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-samples-where": {
+    "group": "",
+    "description": "Include samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-max-iterations": {
+    "group": "",
+    "description": "Maximum fitting iterations",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "100" ]
+  },
+  "-minimum-outcome-count": {
+    "group": "",
+    "description": "Skip outcomes that have less than this count",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "10" ]
+  },
+  "-minimum-predictor-count": {
+    "group": "",
+    "description": "Skip predictors that have less than this minor allele count",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "10" ]
+  },
+  "-model": {
+    "group": "",
+    "description": "Specify models to fit.  Syntax is <name>:<model>",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": [ "gen:add+het" ]
+  },
+  "-no-covariate-priors": {
+    "group": "",
+    "description": "Specify that no default prior should be placed on covariates. (By default a N(0,1000) prior is used).",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-no-prior": {
+    "group": "",
+    "description": "Specify that no prior should be used.  Only frequentist summaries will be output.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-o": {
+    "group": "",
+    "description": "Output file",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-outcome": {
+    "group": "",
+    "description": "Path to parasite genotype files.The given filename may contain the wildcard character '#', which expands to match aone- or two-character chromosome identifier.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-outcome-genotype-call-threshold": {
+    "group": "",
+    "description": "The threshold to apply to outcome genotype probabilities, if necessary, to make calls.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0.9" ]
+  },
+  "-outcome-name": {
+    "group": "",
+    "description": "Specify a name for the outcome variable",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "outcome" ]
+  },
+  "-output-all-variants": {
+    "group": "",
+    "description": "Specify that hptest should output all variant combinations, even those where tests are skipped.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-output-counts": {
+    "group": "",
+    "description": "Specify that hptest should output predictor and outcome genotype counts",
+    "is_required": 72,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-output-models": {
+    "group": "",
+    "description": "Specify which models to output estimates, standard errors, and Wald P-values for. This can be either \"alternative\", in which case only non-null models are output, or \"all\" in which case all models are output. ",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "alternative" ]
+  },
+  "-output-parameters": {
+    "group": "",
+    "description": "Specify which parameters to output estimates, standard errors, and Wald P-values for.By default only data on the genetic parameters are output; specify \"all\" to output all parameters.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "genetic" ]
+  },
+  "-predictor": {
+    "group": "",
+    "description": "Path to host genotype files.The given filename may contain the wildcard character '#', which expands to match aone- or two-character chromosome identifier.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-prior": {
+    "group": "",
+    "description": "Specify a prior for bayesian computation.Prior spec should be in the form <parameter name>~<distribution family>(parameters).(It is recommended to put single quotes round the whole argument to protect from shell expansion.)Currently, logF and gaussian priors are supported.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": [ "add/[outcome]=1~logf(2,2)", "overdominance/[outcome]=1~logf(4,4)", "het/[outcome]=1~logf(2,2)", "dom/[outcome]=1~logf(2,2)", "rec/[outcome]=1~logf(2,2)" ]
+  },
+  "-s": {
+    "group": "",
+    "description": "Path of sample file",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-threads": {
+    "group": "",
+    "description": "Number of additional threads to use in likelihood computations. The value 0 indicates that all work will take place in the main thread.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-tolerance": {
+    "group": "",
+    "description": "Tolerance",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0.001" ]
+  },
+  "-treat-outcome-as-haploid": {
+    "group": "",
+    "description": "Turn outcome homozygous genotype calls into haploid calls. Heterozygous calls will be treated as missing",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  }
+}

@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+ 		<script>
+			$(document).ready(
+				function() {
+					$.getJSON( "../resources/options.json", function( data ) {
+						console.log( 'gotit' ) ;
+						var options = [] ;
+						$.each( data, function( key, value ) {
+							options.push( key ) ;
+							console.log( key ) ;
+						} ) ;
+						
+						options.sort( function(a,b) {
+							return a.toLowerCase().localeCompare( b.toLowerCase() ) ;
+						}) ;
+						
+						for( var i = 0; i < options.length; ++i ) {
+							$(".option_table > tbody").append(
+								'<tr><td>' + options[i] + '</td><td>' + data[options[i]]['description'] + '</tr>'
+							)
+						}
+						
+						$( ".option_table" ).DataTable(
+							{
+								"paging": false,
+							  "language": {
+							    "search": "Search command-line options:"
+							  }
+							}
+						) ;
+						
+						$('.dataTables_filter').css('float', 'left') ;
+					}) ;
+				}
+			) ;
+		</script>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<link rel="stylesheet" type="text/css" href="../../style/css/datatables.min.css"/>
+		<title>HPTEST</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+		
+		<section class="main_text">
+			
+		</section>
+
+		<nav class="button_bar"><div>
+			<div class="nav_button" name="overview">
+				<a href="../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../documentation/download.html">download</a>
+			</div>
+		</div>
+</nav>
+
+	</body>
+</html>

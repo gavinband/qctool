@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="js/local.js"></script>
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>HPTEST</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<div id="overview">
+				<p>
+
+					HPTEST is a command-line utility program that implements association tests
+					between all pairs of variants in two sets of genotypes on the same samples. The motivating use
+					case is to test for association between genetic variants in a host and pathogen.
+
+				</p>
+				<p>
+					
+					HPTEST currently implements a logistic regression method in which the host (or pathogen)
+					genotypes are included as predictors and the pathogen (or host) genotypes are included
+					as the outcome.  Named covariates can also be included.  Imputed data is also supported
+					for the predictor variable; the SNPTEST model is used to sum over the imputed genotype
+					probability distribution.
+					
+				</p>
+				<p>
+					<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
+				</p>
+				<p>
+					<strong>Contact.</strong> For more information or questions, please contact me at
+				</p>
+				<pre class="monospace">
+						gavin [dot] band (at) well.ox.ac.uk
+				</pre>
+			</div>
+		</section>
+
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="documentation/basic_usage.html">Basic usage</a></li>
+						<li><a href="documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="tutorial">
+					examples
+				</div>
+				<div class="nav_button" name="download">
+					<a href="documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../js/jquery.ba-hashchange.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+ 		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title></title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+
+		<section class="main_text">
+			<h2>Obtaining HPTEST</h2>
+				<p>
+
+					HPTEST is available either as binaries or as source code. The recommended
+					approach is to download and compile the HPTEST source code on the machine(s) you will be
+					working on. However, for convenience a small number of precompiled binary packages are
+					provided below. These provided as-is and will not work on all platforms; if a suitable version
+					is not available please download the HPTEST source code and compile instead.
+
+				</p>
+				<table class="file_formats">
+					<tr><th>Version</th><th>Platform</th><th>file</th>
+				</table>
+
+				<small><sup>*</sup> This is the recommended version; older versions are unsupported
+				but may still appear here for posterity.</small>
+
+				<h3>
+					Downloading source
+				</h3>
+				<p>
+
+					The source code to HPTEST is available as part of the QCTOOL package, which can
+					be obtained at <a href="https://code.enkre.net/qctool">https://code.enkre.net/qctool</a>.
+					QCTOOL is currenly maintained as a <a href="https://fossil-scm.org">fossil</a> repository. To
+					obtain source code, use the fossil command-line client, or alternatively download a tarball
+					from this table. (Note that this currently generates a tarball on the fly, which may take a
+					while).
+
+				</p>
+				<table class="file_formats">
+					<tr><th>Version</th><th>file</th>
+					<tr><td>v2.1.9</th><th><a href="https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz">https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz</a></th>
+				</table>
+				<h3>
+					Versioning scheme
+				</h3>
+				<p>
+					As of version 2.1, QCTOOL will follow a versioning scheme whereby odd minor numbers (2.1.x etc.) represent
+					development work while even numbers (2.0.x) represent release versions.
+					The current latest release versions are 2.0 version.
+				</p>
+				<h3>
+					Compiling
+				</h3>
+				<p>
+					Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
+				</p>
+<pre>
+$ cd qctool
+$ ./waf-1.5.18 configure
+$ ./waf-1.5.18
+</pre>
+				<p>
+					If all is successful, this produces an executable
+					<code>./build/release/qctool_v2.0-&lt;version&gt;</code>
+				</p>
+				</div>
+			<p>
+				You can check qctool is working by running it:
+			</p>
+			<pre>
+$ ./build/release/qctool_v2.0-&lt;version&gt; -help
+</pre>
+			<p>which should print out a list of options.</p>
+			<h3>Further information</h3>
+			<p>
+				The <a href="https://code.enkre.net/qctool/wiki?name=Home">QCTOOL wiki</a> contains further information
+				which may be useful if you are unable to compile QCTOOL or need to tweak compilation for specific platforms.
+			</p>
+		</section>
+
+		<nav class="button_bar"><div>
+			<div class="nav_button" name="overview">
+				<a href="../index.html">overview</a>
+			</div>
+			<div class="nav_button" name="documentation">
+				documentation
+				<ul class="menu">
+					<li><a href="../documentation/basic_usage.html">Basic usage</a></li>
+					<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+				</ul>
+			</div>
+			<div class="nav_button" name="download">
+				<a href="../documentation/download.html">download</a>
+			</div>
+		</nav>
+	</body>
+</html>
