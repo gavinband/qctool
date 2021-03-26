@@ -1,15 +1,13 @@
 # qctool - README
-Copyright 2009-2021 Gavin Band, University of Oxford
+Copyright 2009-2021 Gavin Band
 
-This package comprises the QCTOOL program for quality control of a set of SNP marker data,
-together with some other utility programs.
-
-The programs included are
+This repository contains the source code for QCTOOL and a number of other command-line programs
+that manipulate gwas datasets and other genomic data. The repository is hosted [at code.enkre.net](https://code.enkre.net/qctool) and is also mirrored [on github](https://github.com/gavinband/qctool).  The programs included are:
 
 * [QCTOOL](http://www.well.ox.ac.uk/~gav/qctool), a program for manipulation and quality control of gwas datasets and other genome-wide data.  Read [the QCTOOL documentation](http://www.well.ox.ac.uk/~gav/qctool).
 * [Inthinnerator](http://www.well.ox.ac.uk/~gav/inthinnerator), a program for thinning genetic variants using a recombination map.  Read [the inthinnerator documentation](http://www.well.ox.ac.uk/~gav/inthinnerator).
-* [HPTEST](http://www.well.ox.ac.uk/~gav/Hptest), a program for testing for association between host and parasite genotypes. See [the wiki page](/wiki/HPTEST) for more details.
-* [LDBird](http://www.well.ox.ac.uk/~gav/LDBird), a program for computing LD metrics between all pairs of variants in a genomic region or across whole genomes.  See [the wiki page](/wiki/LDBIRD) for more details.
+* [HPTEST](http://www.well.ox.ac.uk/~gav/hptest), a program for testing for association between host and parasite genotypes. See [the wiki page](/wiki/HPTEST) for more details.
+* [LDBIRD](http://www.well.ox.ac.uk/~gav/ldbird), a program for computing LD metrics between all pairs of variants in a genomic region or across whole genomes.  See [the wiki page](/wiki/LDBIRD) for more details.
 
 ## Obtaining QCTOOL ##
 
