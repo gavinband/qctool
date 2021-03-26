@@ -1,0 +1,35 @@
+<section class="main_text" markdown="1">
+<div id="overview" markdown="1">
+
+# Introduction #
+
+HPTEST is a command-line utility program that implements association tests between all pairs of variants in two sets of
+genotypes on the same samples. The motivating use case is to test for association between genetic variants in a host
+and pathogen, but HPTEST also has other possible use-cases, such as estimating LD between variants while controlling
+for confounding variables.
+
+HPTEST currently implements a logistic regression method in one set of genotypes (e.g. host genotypes) are included as
+predictors and a second set (e.g. pathogen genotypes) are included as the outcome. Named covariates can also be
+included. For the predictor variable, imputed genotypes are supported for the predictor variable; in this case the <a
+href="https://www.well.ox.ac.uk/~gav/snptest">SNPTEST</a> model is used to sum over the imputed genotype probability
+distribution.
+
+For an introduction to running HPTEST, please see the <a href="[ROOT]/documentation/basic_usage.html">Basic usage</a>
+page.
+
+# References #
+
+HPTEST was developed to test for association between human and malaria genotypes in samples from the <a
+href="https://www.google.com/search?client=safari&rls=en&q=malariagen+CP1&ie=UTF-8&oe=UTF-8">MalariaGEN CP1</a> study.
+If you use HPTEST in published work, I'd be grateful if you would cite the following paper:
+
+[details tbc]
+
+# Contact #
+
+For more information or questions, please contact me at:
+
+    gavin [dot] band (at) well.ox.ac.uk
+	
+</div>
+</section>

@@ -1,0 +1,52 @@
+<section class="main_text">
+	<h2>Obtaining HPTEST</h2>
+		<p>
+
+			HPTEST is currently available as source code. The source code to HPTEST is available as part of the QCTOOL
+			package, which can be obtained at <a href="https://code.enkre.net/qctool">https://code.enkre.net/qctool</a>. QCTOOL
+			is currently maintained as a <a href="https://fossil-scm.org">fossil</a> repository. To obtain source code, use the
+			fossil command-line client, or alternatively download a tarball from this table. (Note that this currently generates
+			a tarball on the fly, which may take a while).
+
+		</p>
+		<table class="file_formats">
+			<tr><th>Version</th><th>file</th>
+			<tr><td>v2.1.9</th><th><a href="https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz">https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz</a></th>
+		</table>
+		<h3>
+			Versioning scheme
+		</h3>
+		<p>
+			As of version 2.1, QCTOOL will follow a versioning scheme whereby odd minor numbers (2.1.x etc.) represent
+			development work while even numbers (2.0.x) represent release versions.
+			The current latest release versions are 2.0 version.
+		</p>
+		<h3>
+			Compiling
+		</h3>
+		<p>
+			Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
+		</p>
+<pre>
+$ cd qctool
+$ ./waf-1.5.18 configure
+$ ./waf-1.5.18
+</pre>
+		<p>
+			If all is successful, this produces an executable
+			<code>./build/release/qctool_v2.0-&lt;version&gt;</code>
+		</p>
+		</div>
+	<p>
+		You can check qctool is working by running it:
+	</p>
+	<pre>
+$ ./build/release/qctool_v2.0-&lt;version&gt; -help
+</pre>
+	<p>which should print out a list of options.</p>
+	<h3>Further information</h3>
+	<p>
+		The <a href="https://code.enkre.net/qctool/wiki?name=Home">QCTOOL wiki</a> contains further information
+		which may be useful if you are unable to compile QCTOOL or need to tweak compilation for specific platforms.
+	</p>
+</section>

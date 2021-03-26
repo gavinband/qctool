@@ -2,47 +2,14 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-
-		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML">
+</script>		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
 		<script type="text/javascript" src="../js/datatables.min.js"></script>
 		<script type="text/javascript" src="../js/local.js"></script>
-		<script>
-			$(document).ready(
-				function() {
-					$.getJSON( "../resources/options.json", function( data ) {
-						console.log( 'gotit' ) ;
-						var options = [] ;
-						$.each( data, function( key, value ) {
-							options.push( key ) ;
-							console.log( key ) ;
-						} ) ;
-						
-						options.sort( function(a,b) {
-							return a.toLowerCase().localeCompare( b.toLowerCase() ) ;
-						}) ;
-						
-						for( var i = 0; i < options.length; ++i ) {
-							$(".option_table > tbody").append(
-								'<tr><td>' + options[i] + '</td><td>' + data[options[i]]['description'] + '</tr>'
-							)
-						}
-						
-						$( ".option_table" ).DataTable(
-							{
-								"paging": false,
-							  "language": {
-							    "search": "Search command-line options:"
-							  }
-							}
-						) ;
-						
-						$('.dataTables_filter').css('float', 'left') ;
-					}) ;
-				}
-			) ;
-		</script>
-		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
-		<link rel="stylesheet" type="text/css" href="../../style/css/datatables.min.css"/>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
 		<title>HPTEST</title>
 	</head>
 	<body>
@@ -55,51 +22,82 @@
 				Software to test for genetic association between hosts and pathogens.
 			</div>
 		</div>
-		
-		<section class="main_text">
-			<h2>Table of options</h2>
-			<p>Below is a list of all options supported by HPTEST.</p>
-			<table class="option_table">
-				<colgroup>
-					<col class="option"></col>
-					<col class="description"></col>
-				</colgroup>
-				<thead>
-					<tr>
-						<th>
-							Option
-						</th>
-						<th>
-							Description
-						</th>
-					</tr>
-				</thead>
-				<tbody>
-				</tbody>
-			</table>
-		</section>
 
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
-				<a href="../index.html">overview</a>
+<section class="main_text">
+    <h2>Table of options</h2>
+    <p>Below is a list of all options supported by HPTEST.</p>
+    <table class="option_table">
+        <colgroup>
+            <col class="option"></col>
+            <col class="description"></col>
+        </colgroup>
+        <thead>
+            <tr>
+                <th>
+                    Option
+                </th>
+                <th>
+                    Description
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</section>
+
+<script>
+    $(document).ready(
+        function() {
+            $.getJSON( "../resources/options.json", function( data ) {
+                console.log( 'gotit' ) ;
+                var options = [] ;
+                $.each( data, function( key, value ) {
+                    options.push( key ) ;
+                    console.log( key ) ;
+                } ) ;
+
+                options.sort( function(a,b) {
+                    return a.toLowerCase().localeCompare( b.toLowerCase() ) ;
+                }) ;
+
+                for( var i = 0; i < options.length; ++i ) {
+                    $(".option_table > tbody").append(
+                        '<tr><td>' + options[i] + '</td><td>' + data[options[i]]['description'] + '</tr>'
+                    )
+                }
+
+                $( ".option_table" ).DataTable(
+                    {
+                        "paging": false,
+                      "language": {
+                        "search": "Search command-line options:"
+                      }
+                    }
+                ) ;
+
+                $('.dataTables_filter').css('float', 'left') ;
+            }) ;
+        }
+    ) ;
+</script>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/basic_usage.html">Basic usage</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
 			</div>
-			<div class="nav_button" name="documentation">
-				documentation
-				<ul class="menu">
-					<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
-				</ul>
-			</div>
-			<div class="nav_button" name="tutorial">
-				examples
-				<ul class="menu">
-					<li><a href="../documentation/examples/basic.html">Basic usage</a></li>
-				</ul>
-			</div>
-			<div class="nav_button" name="download">
-				<a href="../documentation/download.html">download</a>
-			</div>
-		</div>
-</nav>
+		</nav>
 
 	</body>
 </html>
