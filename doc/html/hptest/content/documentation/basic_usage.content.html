@@ -1,2 +1,81 @@
-<section class="main_text">
+<section class="main_text" markdown="1" >
+	
+## Overview ##
+
+HPTEST is a program for testing correlations between two sets of genotypes - for example, between genotypes of a host
+and of parasites infecting those hosts. To do this, it implements a binomial logistic regression model:
+
+$$\text{log-odds}( G_{\text{outcome}} ) = X^t \cdot \beta$$
+
+where
+$$X = \left( \begin{matrix} 1 \\ G_{\text{predictor}} \\ Z \end{matrix} \right)$$
+
+and
+$$Z = \text{a vector of covariates}$$
+
+Here $G_{\text{outcome}}$ and $G_{\text{predictor}}$ are genotypes to be treated as the outcome and predictor respectively.
+
+
+
+HPTEST implements this model for all pairs of predictor and outcome genetic variants in the input data. Genotypes are
+read from two files in one of the <a
+href="https://www.well.ox.ac.uk/~gav/qctool/documentation/genotype_file_formats.html">formats understood by QCTOOL</a>,
+and sample identifiers and covariates are read from an accompanying sample file. For each pair of variants, it fits the
+model and outputs information about genotype counts, parameter estimates, statistical evidence and significance.
+
+### Basic usage ###
+
+For example, the following code runs a test between example host and parasite variants, using example files provided in the ``example/hptest`` folder:
+
+    $ hptest \
+    -predictor predictor.diploid.vcf \
+    -outcome outcome.vcf \
+    -s example.sample \
+    -covariates cov1 \
+    -o results.tsv
+
+(Here the dollar sign is the command-line prompt, and the backslashes are line separators - neither is part of the actual command.)
+
+When running this command, HPTEST will do the following:
+
+1. Load sample information including the value of covariates from the sample file ``example.sample``
+
+2. Load predictor genotypes from ``predictor.diploid.vcf``, one variant at a time
+
+3. For each predictor variant, load outcome genotypes from ``outcome.vcf``, one variant at a time
+
+4. For each predictor and outcome variant, if relevant filtering criteria are met, fit the above logistic regression
+model (and the null model, which is the same but without the predictor genotype term) and output results.
+
+### Interpreting output ###
+
+The output from the above command looks <a href="[ROOT]/resources/example_results.tsv">something like this</a> and illustrates a
+few features of HPTEST:
+
+* By default HPTEST only outputs results for variants that are sufficiently frequent. The above files currenly only
+  have a small number of samples so there is no output! To fix this, you can try adding ``-minimum-predictor-count 0
+  -minimum-outcome-count 0`` to the command line.
+
+* By default HPTEST fits both an additive model (each copy of the predictor allele contributes the same amount to the
+  log-odds of the outcome allele) as well as a general model in which teh different predictor genotypes are given their
+  own parameters.  You can control which mode of inheritance models are fit using the ``-model`` option.
+  
+* By default HPTEST only outputs parameter estimates and standard errors for the effects corresponding to the predictor
+  (not any covariates).  You can adjust this using the ``-output-parameters all``.
+
+IN To make this work in practice requires a few things:
+
+* HPTEST must be able to process data from host and parasite genotypes. Currently it does so by iterating through the
+  file of predictor genotypes once, and the file of outcome genotypes multiple times (once for each predictor variant
+  tested).
+
+* Some use cases of HPTEST will use a haploid outcome genotype (meaning that standard logistic regression will work).
+  But some pathogens are diploid, while some haploid genotypes are encoded as diploid genotypes anyway due to
+  underlying bioinformatic pipelines. HPTEST handles this by fitting a binomial logistic regression model (in which the
+  alleles for each samples are assumed to be independently drawn from the distribution in the expression above).
+  Alternatively, the ``-treat-outcome-as-haploid`` option causes HPTEST to collapse polyploid
+  genotypes to haploid ones by excluding samples with heterozygous genotypes from each pairwise test.
+
+* HPTEST handles imputed genotype data for the predictor genotype by summing over the imputed genotype distribution.
+
 </section>

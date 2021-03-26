@@ -2,9 +2,10 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-<script type="text/javascript" async
-  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_CHTML">
-</script>		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" async
+		  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
 		<script type="text/javascript" src="../js/datatables.min.js"></script>
 		<script type="text/javascript" src="../js/local.js"></script>
 
@@ -24,6 +25,88 @@
 		</div>
 
 <section class="main_text">
+<h2>Overview</h2>
+<p>HPTEST is a program for testing correlations between two sets of genotypes - for example, between genotypes of a host
+and of parasites infecting those hosts. To do this, it implements a binomial logistic regression model:</p>
+<p>
+<script type="math/tex; mode=display">\text{log-odds}( G_{\text{outcome}} ) = X^t \cdot \beta</script>
+</p>
+<p>where
+<script type="math/tex; mode=display">X = \left( \begin{matrix} 1 \\ G_{\text{predictor}} \\ Z \end{matrix} \right)</script>
+</p>
+<p>and
+<script type="math/tex; mode=display">Z = \text{a vector of covariates}</script>
+</p>
+<p>Here <script type="math/tex">G_{\text{outcome}}</script> and <script type="math/tex">G_{\text{predictor}}</script> are genotypes to be treated as the outcome and predictor respectively.</p>
+<p>HPTEST implements this model for all pairs of predictor and outcome genetic variants in the input data. Genotypes are
+read from two files in one of the <a
+href="https://www.well.ox.ac.uk/~gav/qctool/documentation/genotype_file_formats.html">formats understood by QCTOOL</a>,
+and sample identifiers and covariates are read from an accompanying sample file. For each pair of variants, it fits the
+model and outputs information about genotype counts, parameter estimates, statistical evidence and significance.</p>
+<h3>Basic usage</h3>
+<p>For example, the following code runs a test between example host and parasite variants, using example files provided in the <code>example/hptest</code> folder:</p>
+<pre><code>$ hptest \
+-predictor predictor.diploid.vcf \
+-outcome outcome.vcf \
+-s example.sample \
+-covariates cov1 \
+-o results.tsv
+</code></pre>
+<p>(Here the dollar sign is the command-line prompt, and the backslashes are line separators - neither is part of the actual command.)</p>
+<p>When running this command, HPTEST will do the following:</p>
+<ol>
+<li>
+<p>Load sample information including the value of covariates from the sample file <code>example.sample</code></p>
+</li>
+<li>
+<p>Load predictor genotypes from <code>predictor.diploid.vcf</code>, one variant at a time</p>
+</li>
+<li>
+<p>For each predictor variant, load outcome genotypes from <code>outcome.vcf</code>, one variant at a time</p>
+</li>
+<li>
+<p>For each predictor and outcome variant, if relevant filtering criteria are met, fit the above logistic regression
+model (and the null model, which is the same but without the predictor genotype term) and output results.</p>
+</li>
+</ol>
+<h3>Interpreting output</h3>
+<p>The output from the above command looks <a href="../resources/example_results.tsv">something like this</a> and illustrates a
+few features of HPTEST:</p>
+<ul>
+<li>
+<p>By default HPTEST only outputs results for variants that are sufficiently frequent. The above files currenly only
+  have a small number of samples so there is no output! To fix this, you can try adding <code>-minimum-predictor-count 0
+  -minimum-outcome-count 0</code> to the command line.</p>
+</li>
+<li>
+<p>By default HPTEST fits both an additive model (each copy of the predictor allele contributes the same amount to the
+  log-odds of the outcome allele) as well as a general model in which teh different predictor genotypes are given their
+  own parameters.  You can control which mode of inheritance models are fit using the <code>-model</code> option.</p>
+</li>
+<li>
+<p>By default HPTEST only outputs parameter estimates and standard errors for the effects corresponding to the predictor
+  (not any covariates).  You can adjust this using the <code>-output-parameters all</code>.</p>
+</li>
+</ul>
+<p>IN To make this work in practice requires a few things:</p>
+<ul>
+<li>
+<p>HPTEST must be able to process data from host and parasite genotypes. Currently it does so by iterating through the
+  file of predictor genotypes once, and the file of outcome genotypes multiple times (once for each predictor variant
+  tested).</p>
+</li>
+<li>
+<p>Some use cases of HPTEST will use a haploid outcome genotype (meaning that standard logistic regression will work).
+  But some pathogens are diploid, while some haploid genotypes are encoded as diploid genotypes anyway due to
+  underlying bioinformatic pipelines. HPTEST handles this by fitting a binomial logistic regression model (in which the
+  alleles for each samples are assumed to be independently drawn from the distribution in the expression above).
+  Alternatively, the <code>-treat-outcome-as-haploid</code> option causes HPTEST to collapse polyploid
+  genotypes to haploid ones by excluding samples with heterozygous genotypes from each pairwise test.</p>
+</li>
+<li>
+<p>HPTEST handles imputed genotype data for the predictor genotype by summing over the imputed genotype distribution.</p>
+</li>
+</ul>
 </section>
 		<nav class="button_bar">
 			<div>
