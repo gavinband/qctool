@@ -31,6 +31,7 @@
         <colgroup>
             <col class="option"></col>
             <col class="description"></col>
+            <col class="default"></col>
         </colgroup>
         <thead>
             <tr>
@@ -39,6 +40,9 @@
                 </th>
                 <th>
                     Description
+                </th>
+                <th>
+                    Default value?
                 </th>
             </tr>
         </thead>
@@ -64,16 +68,20 @@
 
                 for( var i = 0; i < options.length; ++i ) {
                     $(".option_table > tbody").append(
-                        '<tr><td>' + options[i] + '</td><td>' + data[options[i]]['description'] + '</tr>'
+                        '<tr>'
+                        + '<td>' + options[i] + '</td>'
+                        + '<td>' + data[options[i]]['description'] + '</td>'
+                        + '<td>' + ( data[options[i]].length == 0 ? "N/A" : data[options[i]].default.join( ", " )) + '</td>'
+                        + '/tr>'
                     )
                 }
 
                 $( ".option_table" ).DataTable(
                     {
                         "paging": false,
-                      "language": {
-                        "search": "Search command-line options:"
-                      }
+                        "language": {
+                            "search": "Search command-line options:"
+                        }
                     }
                 ) ;
 

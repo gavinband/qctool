@@ -51,7 +51,7 @@ for directory, dnames, filenames in os.walk( contentPath ):
 				header.replace( "[ROOT]/", "../" * directoryLevel ) + "\n"
 				+ markdown.markdown(
 					content.replace( "[ROOT]/", "../" * directoryLevel ),
-					extensions=['markdown.extensions.md_in_html', 'mdx_math'],
+					extensions=['markdown.extensions.md_in_html', 'mdx_math', 'markdown.extensions.fenced_code' ],
 					extension_configs = {
 						"mdx_math": { "enable_dollar_delimiter": True }
 					}

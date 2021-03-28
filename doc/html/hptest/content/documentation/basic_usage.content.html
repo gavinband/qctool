@@ -1,81 +1,197 @@
 <section class="main_text" markdown="1" >
+
+### Getting started with HPTEST ###
 	
-## Overview ##
+HPTEST tests for association between two sets of genotypes - for example between genotypes of a
+host and of a pathogen infecting those hosts. To do this, it implements the binomial logistic
+regression model:
 
-HPTEST is a program for testing correlations between two sets of genotypes - for example, between genotypes of a host
-and of parasites infecting those hosts. To do this, it implements a binomial logistic regression model:
+(1) $$\text{log-odds}( \text{outcome genotype} ) = \left( \text{predictor genotypes}, \text{covariates}... \right) \times \beta$$
 
-$$\text{log-odds}( G_{\text{outcome}} ) = X^t \cdot \beta$$
+in which $\beta$ is a vector of parameters (the regression coefficients). For each predictor and
+outcome genetic variant, HPTEST finds the value of $\beta$ that maximises the corresponding
+likelihood, estimates its standard error (by inspecting the curvature of the likelihood near the
+maximum) and outputs these along with other summaries to the output file. 
 
-where
-$$X = \left( \begin{matrix} 1 \\ G_{\text{predictor}} \\ Z \end{matrix} \right)$$
+By default, HPTEST computes estimates under a weakly informative prior that helps to regularise the
+estimates (this can be turned off with the ``-no-prior`` option.)
 
-and
-$$Z = \text{a vector of covariates}$$
+For example, the following command:
+```
+$ hptest \
+-outcome parasite.vcf \
+-predictor host.vcf \
+-s samples.sample \
+-o output.csv
+```
 
-Here $G_{\text{outcome}}$ and $G_{\text{predictor}}$ are genotypes to be treated as the outcome and predictor respectively.
+regresses each parasite variant (from ``parasite.vcf``) on each host variant (from ``host.vcf``).
+The genotype counts, maximum posterior estimates and other quantities are output to the output file
+(``output.csv``). Additional options allow you to add covariates (``-covariates``), to adjust the
+prior being used (``-prior``) or remove it entirely (``-no-prior``), or to filter the list of
+samples or variants included (e.g. ``-incl-samples``, ``-excl-samples-where``, or
+``-incl-outcome-range``) - see the <a href="[ROOT]/documentation/alphabetical_options.html">list of
+options</a> for more.
 
+### Obtaining HPTEST ###
 
+HPTEST is currently included as part of the <a href="https://code.enkre.net/qctool">QCTOOL
+package</a>, which is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. To
+obtain it you will need to download and compile the source code (you need QCTOOL version >= 2.1.9
+for this). See the <a href="[ROOT]/documentation/download.html">download page</a> for more details
+on obtaining and installing HPTEST.
 
-HPTEST implements this model for all pairs of predictor and outcome genetic variants in the input data. Genotypes are
-read from two files in one of the <a
-href="https://www.well.ox.ac.uk/~gav/qctool/documentation/genotype_file_formats.html">formats understood by QCTOOL</a>,
-and sample identifiers and covariates are read from an accompanying sample file. For each pair of variants, it fits the
-model and outputs information about genotype counts, parameter estimates, statistical evidence and significance.
+### Running HPTEST ###
 
-### Basic usage ###
+In the most basic form HPTEST is run like this:
+```
+hptest -outcome outcome.vcf -predictor predictor.vcf -s samples.sample -o test.csv
+```
 
-For example, the following code runs a test between example host and parasite variants, using example files provided in the ``example/hptest`` folder:
+where ``outcome.vcf`` and ``predictor.vcf`` contain genotype calls, and ``samples.sample`` contains
+information on the included samples. All three files must represent the same set of individuals and
+they must be in the same order in each file. (The <a
+href="http://www.well.ox.ac.uk/~gav/qctool_v2/documentation/examples/sorting.html">``-reorder``
+option to QCTOOL</a> can help to set this up).
 
-    $ hptest \
-    -predictor predictor.diploid.vcf \
-    -outcome outcome.vcf \
-    -s example.sample \
-    -covariates cov1 \
-    -o results.tsv
+For each predictor and outcome variant, HPTEST will do the following:
 
-(Here the dollar sign is the command-line prompt, and the backslashes are line separators - neither is part of the actual command.)
+1. Both sets of genotypes are loaded. HPTEST can interpret both hard-called genotypes (e.g. GT
+field in a <a href="http://samtools.github.io/hts-specs/">vcf file</a>), and imputed genotype
+probabilities (e.g. GP field in a vcf file, or a <a href="https://www.bgenformat.org">BGEN
+format</a> file). For outcome genotypes, imputed genotypes are thresholded to produce hard calls -
+by default any genotypes with probability < 0.9 are treated as missing. For the predictor genotype,
+HPTEST will sum over the imputed probability distribution as described in <a
+href="[ROOT]/documentation/technical_details.html">technical details</a>.
 
-When running this command, HPTEST will do the following:
+2. Genotypes are internally tabulated.  Since rare variants are likely not very useful, by default the rest of 
+the analysis is skipped if the count of the minor allele is < 10 in either predictor or outcome genotypes.
 
-1. Load sample information including the value of covariates from the sample file ``example.sample``
+3. Assuming the variants are common enough, HPTEST fits the above binomial logistic regression
+model to the two genotypes and any specified covariates. When the outcome is haploid, this is the
+same as a regular logistic regression. If the outcome is diploid or has higher ploidy, this is the
+same except that the outcome genotypes are treated as arising from multiple independent draws of a
+alleles with the modelled probability distribution (1). 
 
-2. Load predictor genotypes from ``predictor.diploid.vcf``, one variant at a time
+4. HPTEST currently assumes predictor genotypes are diploid, and uses a 'general' model for the
+predictor by default, including both an additive and an overdominance term. Alternative models can
+be specified using the ``-model`` option. Multiple models can also be specified in the same run.
 
-3. For each predictor variant, load outcome genotypes from ``outcome.vcf``, one variant at a time
+5. Parameters are estimated under a weak regularising prior by default. Specifically, a
+$\text{log-F}(2,2)$ prior is applied to the additive effect; this is a lot like a normal
+distribution with mean 0 and standard deviation around 1.87, but has somewhat fatter tails. The
+prior can be altered using the ``-prior`` option, or turned off entirely using the ``-no-prior``
+option. By default, both a Bayes factor and an approximate P-value (both computed under assumptions
+about the asymptotic normality of the likelihood) are output. 
 
-4. For each predictor and outcome variant, if relevant filtering criteria are met, fit the above logistic regression
-model (and the null model, which is the same but without the predictor genotype term) and output results.
+6. If desired, covariates can be included in the analysis using the -covariates option. They are
+loaded from the sample file. They can be continuous (e.g. a principal component, with type `C` in the
+sample file) or discrete (e.g. a population label, with type `D` in the sample file.) 
 
-### Interpreting output ###
+### Interpreting HPTEST output ###
 
-The output from the above command looks <a href="[ROOT]/resources/example_results.tsv">something like this</a> and illustrates a
-few features of HPTEST:
+HPTEST prints a wealth of information to the output file (and/or to a log file specified with the
+-log option). A basic run looks like this: 
+```
+$ hptest_v2.1.9 -predictor host.vcf -outcome parasite.vcf -s samples.sample -o test.tsv -covariates discrete1
 
-* By default HPTEST only outputs results for variants that are sufficiently frequent. The above files currenly only
-  have a small number of samples so there is no output! To fix this, you can try adding ``-minimum-predictor-count 0
-  -minimum-outcome-count 0`` to the command line.
+Welcome to hptest
+(version: 2.1.9, revision: 7b2ccee)
 
-* By default HPTEST fits both an additive model (each copy of the predictor allele contributes the same amount to the
-  log-odds of the outcome allele) as well as a general model in which teh different predictor genotypes are given their
-  own parameters.  You can control which mode of inheritance models are fit using the ``-model`` option.
-  
-* By default HPTEST only outputs parameter estimates and standard errors for the effects corresponding to the predictor
-  (not any covariates).  You can adjust this using the ``-output-parameters all``.
+(C) 2009-2020 University of Oxford
 
-IN To make this work in practice requires a few things:
+Loaded data for 2000 samples.
+  Predictor data:
+                     (not computed)  "host.vcf"
+                     (total 1 sources, number of snps not computed).
+  Number of samples: 2000
 
-* HPTEST must be able to process data from host and parasite genotypes. Currently it does so by iterating through the
-  file of predictor genotypes once, and the file of outcome genotypes multiple times (once for each predictor variant
-  tested).
+    Outcome data:
+                     (not computed)  "parasite.vcf"
+                     (total 1 sources, number of snps not computed).
+  Number of samples: 2000
 
-* Some use cases of HPTEST will use a haploid outcome genotype (meaning that standard logistic regression will work).
-  But some pathogens are diploid, while some haploid genotypes are encoded as diploid genotypes anyway due to
-  underlying bioinformatic pipelines. HPTEST handles this by fitting a binomial logistic regression model (in which the
-  alleles for each samples are assumed to be independently drawn from the distribution in the expression above).
-  Alternatively, the ``-treat-outcome-as-haploid`` option causes HPTEST to collapse polyploid
-  genotypes to haploid ones by excluding samples with heterozygous genotypes from each pairwise test.
+Adding covariates...
+++ Added covariate: "discrete1":
+     missing  levels
+     0        0(995) 1(1005)
 
-* HPTEST handles imputed genotype data for the predictor genotype by summing over the imputed genotype distribution.
+Models are:
+- Model 1 ("null"): BinomialLogistic( 2000 of 2000 samples ): (outcome=1) ~ baseline/outcome=1 + discrete1=1/outcome=1
+  with priors:
+  discrete1=1/outcome=1 ~ logF( 0.0770407, 0.0770407 ).
+
+- Model 2 ("gen"): BinomialLogistic( 2000 of 2000 samples ): (outcome=1) ~ baseline/outcome=1 + add/outcome=1 + overdominance/outcome=1 + discrete1=1/outcome=1
+  with priors:
+            add/outcome=1 ~ logF( 2, 2 ).
+  overdominance/outcome=1 ~ logF( 4, 4 ).
+    discrete1=1/outcome=1 ~ logF( 0.0770407, 0.0770407 ).
+
+Model design for first test:
+           outcome   baseline     add overdominance discrete1=1
+      0      2   0          1       1             1           1
+      1      2   0          1       1             1           1
+      2      1   1          1       0             0           1
+      3      2   0          1       0             0           1
+      4      2   0          1       0             0           1
+      5      2   0          1       0             0           1
+      6      1   1          1       0             0           0
+      7      0   0          1       0             0           1
+      8      2   0 ~        1       0             0           1
+               .         .       .             .           .
+               .         .       .             .           .
+               .         .       .             .           .
+   1994      2   0          1       0             0           1
+   1995      2   0          1       1             1           1
+   1996      2   0          1       1             1           1
+   1997      2   0          1       0             0           1
+   1998      0   0          1       0             0           0
+   1999      2   0          1       2             0           1
+.
+
+Testing                                                     :  (10000/?,44.9s,222.7/s)
+
+Thank you for using hptest.
+```
+
+In general it is always worth inspecting this output carefully to check that HPTEST has interpreted
+your data correctly. In particular, the above output shows that HPTEST has loaded data on 2,000
+samples, has included a discrete covariate with no missing data, and is planning to fit a null
+model and a genotypic model alternative at each pair of variants. As a further diagnostic it also
+outputs the first and last few rows of the model design (the outcome and predictor levels) for the
+first test.
+
+The output file looks like this:
+```bash
+$ cat test.tsv 
+# Analysis: "hptest analysis"
+#  started: 2021-03-28 12:48:00
+# 
+# Analysis properties:
+#   $ hptest(version: 2.1.9, revision: 7b2ccee) (user-supplied)
+#   -covariates discrete1 (user-supplied)
+#   -o test.tsv (user-supplied)
+#   -outcome parasite.vcf (user-supplied)
+#   -predictor host.vcf (user-supplied)
+#   -s samples.sample (user-supplied)
+# 
+predictor:alternate_ids	predictor:rsid	predictor:chromosome	predictor:position	predictor:alleleA	predictor:alleleB	outcome:alternate_ids	outcome:rsid	outcome:chromosome	outcome:position	outcome:alleleA	outcome:alleleB	N	missing	outcome=0	outcome=1	outcome=2	predictor=0	predictor=1	predictor=2	minimum_outcome_count	minimum_predictor_count	minimum_expected_predictor_allele_count	minimum_expected_predictor_allele_count_genotype	predictor_info	null:converged	null:iterations	null:fit_time	null:ll	null:degrees_of_freedom	gen:converged	gen:iterations	gen:fit_time	gen:ll	gen:degrees_of_freedom	gen:beta_1:add/outcome=1	gen:beta_2:overdominance/outcome=1	gen:sd_1	gen:sd_2	gen:cov_1,2	gen:log10_bf	gen:prior_mode_1	gen:se_1	gen:pvalue_1	gen:prior_mode_2	gen:se_2	gen:pvalue_2	comment
+NA	H1	H1	1	A	G	NA	P1	P1	1	C	T	1998	2	1805	188	5	1351	570	77	198	724	20	outcome=1/predictor=1	1	1	5	0.0000	-787.892	0	1	7	0.0000	-757.823	2	-1.60157	0.219057	0.581235	0.59473	-0.318002	12.9939	0	0.453919	0.00041819	0	0.449276	0.625848	NA
+NA	H1	H1	1	A	G	NA	P2	P1	2	C	T	2000	0	1501	464	35	1353	570	77	534	0	175	outcome=1/predictor=1	1	1	4	0.0100	-1571.85	0	1	4	0.0000	-1570.6	2	-0.163177	0.0487432	0.133177	0.159307	-0.0160542	-0.51645	0	0.131615	0.215046	0	0.156866	0.756005	NA
+NA	H1	H1	1	A	G	NA	P3	P1	3	C	T	1999	1	1347	595	57	1352	570	77	709	0	271	outcome=1/predictor=1	1	1	4	0.0000	-1868.36	0	1	4	0.0000	-1867.71	2	0.108302	-0.0544743	0.101935	0.127023	-0.00904929	-0.955588	0	0.101268	0.284863	0	0.125833	0.66508	NA
+...
+NA	H100	H1	100	A	G	NA	P99	P1	99	C	T	2000	0	1959	40	1	1991	9	0	42	0	0	outcome=1/predictor=1	1	1	7	0.0000	-233.146	0	1	7	0.0000	-233.11	2	-0.258997	-0.128958	1.28596	0.954733	-0.187642	0.897732	0	0.523405	0.620719	0	0.258434	0.617781	NA
+NA	H100	H1	100	A	G	NA	P100	P1	100	C	T	2000	0	1523	451	26	1991	9	0	503	0	2	outcome=1/predictor=1	1	1	4	0.0000	-1512.89	0	1	4	0.0000	-1512.87	2	-0.0798289	-0.0398986	0.935746	0.848044	-0.56311	0.552519	0	0.419414	0.849047	0	0.209456	0.848928	NA
+# Completed successfully at 2021-03-28 12:48:38
+```
+
+In the output file, HPTEST first outputs metadata sufficient to figure out what command generated
+this file, a (long!) row of column names, and then the results for each pair of predictor and
+outcome variants. See the page on <a
+href="[ROOT/documentation/interpreting_hptest_output.html">interpreting HPTEST output</a> for more
+information on interpreting the output.
+
+### Additional features ###
+
 
 </section>
