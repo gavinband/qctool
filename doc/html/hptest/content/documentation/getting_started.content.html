@@ -187,11 +187,31 @@ NA	H100	H1	100	A	G	NA	P100	P1	100	C	T	2000	0	1523	451	26	1991	9	0	503	0	2	outcom
 
 In the output file, HPTEST first outputs metadata sufficient to figure out what command generated
 this file, a (long!) row of column names, and then the results for each pair of predictor and
-outcome variants. See the page on <a
-href="[ROOT/documentation/interpreting_hptest_output.html">interpreting HPTEST output</a> for more
-information on interpreting the output.
+outcome variants. The last line shows that HPTEST successfully completed the job.
+
+See the page on <a href="[ROOT/documentation/interpreting_hptest_output.html">interpreting HPTEST
+output</a> for more information on interpreting the output.
 
 ### Additional features ###
 
+HPTEST includes a number of features to make it easy to run:
+
+* HPTEST has several filtering options that can be used to adjust the set of samples (e.g.
+  ``-incl-samples`` or ``-excl-samples-where`` ) or variants (e.g. ``-incl-predictor-range``,
+  ``-excl-outcome-rsids``) included in the analysis. See the <a
+  href="[ROOT]/documentation/filtering.html">page on filtering</a> for details.
+
+* Options to adjust or remove the priors (``-prior``, ``-no-prior``, ``-no-covariate-priors`` ).
+  See <a href="[ROOT]/documentation/specifying_priors.html">the page on specifying priors</a> for
+  details.
+
+* As illustrated above HPTEST can output to a variety of flat file output formats. It currently
+  decides upon the format based on the file extension (``.csv`` => comma-separated; ``.txt`` ->
+  space separated; ``.tsv`` -> tab-separated). Additionally if the output file ends with ``.gz``
+  then it will be compressed with gzip.
+
+* HPTEST can also output to the <a href="https://www.sqlite.org">sqlite3</a> database format. This
+  is the way I usually run HPTEST and is useful in several ways - see the <a
+  href="[ROOT]/documentation/sqlite_output.html">page on sqlite output</a> for details.
 
 </section>

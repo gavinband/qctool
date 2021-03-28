@@ -200,10 +200,35 @@ NA  H100    H1  100 A   G   NA  P100    P1  100 C   T   2000    0   1523    451 
 </code></pre>
 <p>In the output file, HPTEST first outputs metadata sufficient to figure out what command generated
 this file, a (long!) row of column names, and then the results for each pair of predictor and
-outcome variants. See the page on <a
-href="[ROOT/documentation/interpreting_hptest_output.html">interpreting HPTEST output</a> for more
-information on interpreting the output.</p>
+outcome variants. The last line shows that HPTEST successfully completed the job.</p>
+<p>See the page on <a href="[ROOT/documentation/interpreting_hptest_output.html">interpreting HPTEST
+output</a> for more information on interpreting the output.</p>
 <h3>Additional features</h3>
+<p>HPTEST includes a number of features to make it easy to run:</p>
+<ul>
+<li>
+<p>HPTEST has several filtering options that can be used to adjust the set of samples (e.g.
+  <code>-incl-samples</code> or <code>-excl-samples-where</code> ) or variants (e.g. <code>-incl-predictor-range</code>,
+  <code>-excl-outcome-rsids</code>) included in the analysis. See the <a
+  href="../documentation/filtering.html">page on filtering</a> for details.</p>
+</li>
+<li>
+<p>Options to adjust or remove the priors (<code>-prior</code>, <code>-no-prior</code>, <code>-no-covariate-priors</code> ).
+  See <a href="../documentation/specifying_priors.html">the page on specifying priors</a> for
+  details.</p>
+</li>
+<li>
+<p>As illustrated above HPTEST can output to a variety of flat file output formats. It currently
+  decides upon the format based on the file extension (<code>.csv</code> =&gt; comma-separated; <code>.txt</code> -&gt;
+  space separated; <code>.tsv</code> -&gt; tab-separated). Additionally if the output file ends with <code>.gz</code>
+  then it will be compressed with gzip.</p>
+</li>
+<li>
+<p>HPTEST can also output to the <a href="https://www.sqlite.org">sqlite3</a> database format. This
+  is the way I usually run HPTEST and is useful in several ways - see the <a
+  href="../documentation/sqlite_output.html">page on sqlite output</a> for details.</p>
+</li>
+</ul>
 </section>
 		<nav class="button_bar">
 			<div>
@@ -213,8 +238,12 @@ information on interpreting the output.</p>
 				<div class="nav_button" name="documentation">
 					documentation
 					<ul class="menu">
-						<li><a href="../documentation/basic_usage.html">Basic usage</a></li>
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
 						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
+						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
+						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
+						<li><a href="../documentation/technical_details.html">Technical details</a></li>
 					</ul>
 				</div>
 				<div class="nav_button" name="download">
