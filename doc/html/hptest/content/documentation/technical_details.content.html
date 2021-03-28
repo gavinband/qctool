@@ -2,9 +2,9 @@
 	
 HPTEST fits the following model:
 
-$$\text{log-odds}( Y = 1 ) = X^t \cdot \beta$$
+$$\text{log-odds}( \text{outcome genotype} = 1 ) = X^t \cdot \beta$$
 
-where $Y$ is the outcome genotype, $X$ is a function of the predictor genotype and covariates,
+where $X$ is a function of the predictor genotype and covariates,
 
 $$X = \left( \begin{matrix} 1 \\ F(\text{predictor genotype}) \\ Z \end{matrix} \right)$$
 
@@ -12,17 +12,17 @@ and $\beta$ is a vector of regression coefficients to be maximised over. The ful
 obtained as the product of the above over all samples in the data.
 
 HPTEST currently assumes that both outcome and predictor variants are biallelic (or at least that
-they have been split into biallelic records before running through HPTEST). Thus $Y=1$ denotes a
-call of the second allele. 
+they have been split into biallelic records before running through HPTEST). The outcome and
+predictor genotypes are measured with respect to those alleles, i.e. the effect is always
+interpreted as effect of predictor allele 2 on outcome allele 2. If the outcome has ploidy larger
+than 1, then its alleles are regarded as forming independent draws from the Bernoulli distribution
+modelled above.
 
-*Handling ploidy*. If the outcome has ploidy larger than 1, then its alleles are regarded as
-forming independent draws from the Bernoulli distribution modelled above. 
+The predictor genotype is currently assumed to be diploid. To handle different possible modes of
+inheritance, HPTEST uses a variety of function $F$ above as follows. If $g \in \{0,1,2\}$ denotes
+the predictor genotype then the following functions $F$ are used:
 
-*Handling mode of inheritance*. The predictor genotype is currently assumed to be diploid. To
-handle different possible modes of inheritance, let $g \in \{0,1,2\}$ denote the count of the second allele in
-the predictor genotype; then the function $F$ is defined as follows:
-
-Mode of inheritance  | value of F                                      | Specified by
+Mode of inheritance  | F                                               | Specified by
 -------------------  | ----------                                      | --------------------
 additive             | $F(g) = g$                                      | ``-model add``      
 dominant             | $F(g) = 1$ if $g > 0$, or $0$ otherwise         | ``-model dom``      

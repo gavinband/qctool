@@ -245,8 +245,6 @@ public:
 			.set_check( boost::bind( &in_set, _1, _2, std::set< std::string >({"all", "genetic"}) ) ) ;
 		options[ "-output-counts" ]
 			.set_description( "Specify that hptest should output predictor and outcome genotype counts" ) ;
-		options[ "-details" ]
-			.set_description( "Specify that hptest should produce detailed output for each test." ) ;
 		options[ "-output-all-variants" ]
 			.set_description( "Specify that hptest should output all variant combinations, even those where tests are skipped." ) ;
 		
