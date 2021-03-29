@@ -1,3 +1,14 @@
 <section class="main_text" markdown="1" >
-Under construction.
+
+By default HPTEST fits the model under a regularising prior. Priors are seperately specified for
+each parameter (i.e. each parameter is a priori assumed independent).  By default the priors are as follows.
+
+For the genetic predictor: a $\text{log-F}(2,2)$ prior is placed on the main effect, and a
+$\text{log-F}(4,4)$ prior on the overdominance effect in the general model.
+
+For covariates: a diffuse $\text{log-F}$ distribution with 95% of its mass similar to that of a
+$N(0,40^2)$ prior is currently specified (this is $\text{log-F}(0.077,0.077)$).
+
+The $\text{log-F}$ prior is discussed in Greendland 
+
 </section>
