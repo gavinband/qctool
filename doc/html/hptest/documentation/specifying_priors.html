@@ -38,12 +38,12 @@ each parameter (i.e. each parameter is a priori assumed independent).  By defaul
 </svg>
 </center></p>
 <p>You have the following options for specifying priors.</p>
-<ol>
+<ul>
 <li>Use the <code>-prior</code> option to specify a prior for each parameter. The syntax is: <code>-prior
 &lt;model name&gt;/[outcome]=1~logf(2,2)</code> or <code>-prior &lt;model name&gt;/&lt;outcome
 name&gt;=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)</code>. The model name and parameter names are shown
 in the log output.</li>
-</ol>
+</ul>
 <p><em>Warning:</em> when using <code>-prior</code> you should check the output log file carefully to ensure that
 HPTEST has applied your priors properly. You should see something along the following lines in the
 output:</p>
@@ -55,7 +55,7 @@ output:</p>
 <p>If there is no 'with priors' line, or if priors for one of the parameters is missing, then it means
 HPTEST has not correctly interpreted your prior specification. (This is usually because the
 parameter names are not specified correctly - check the log output for the correct parameter names.)</p>
-<ol>
+<ul>
 <li>
 <p>Use the <code>-no-covariate-priors</code> option to turn off the priors on covariates.</p>
 </li>
@@ -63,7 +63,7 @@ parameter names are not specified correctly - check the log output for the corre
 <p>Use the <code>-no-prior</code> to turn off all priors - on the main genetic effect and on the covariates.
 (This therefore implements an unpenalised regression.)</p>
 </li>
-</ol>
+</ul>
 </section>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.6.2/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>

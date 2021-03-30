@@ -18,7 +18,7 @@ $N(0,40^2)$ prior is currently specified (this is $\text{log-F}(0.077,0.077)$).
 
 You have the following options for specifying priors.
 
-1. Use the ``-prior`` option to specify a prior for each parameter. The syntax is: ``-prior
+* Use the ``-prior`` option to specify a prior for each parameter. The syntax is: ``-prior
 &lt;model name&gt;/[outcome]=1~logf(2,2)`` or ``-prior &lt;model name&gt;/&lt;outcome
 name&gt;=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)``. The model name and parameter names are shown
 in the log output.
@@ -38,9 +38,9 @@ If there is no 'with priors' line, or if priors for one of the parameters is mis
 HPTEST has not correctly interpreted your prior specification. (This is usually because the
 parameter names are not specified correctly - check the log output for the correct parameter names.)
 
-2. Use the ``-no-covariate-priors`` option to turn off the priors on covariates.
+* Use the ``-no-covariate-priors`` option to turn off the priors on covariates.
 
-3. Use the ``-no-prior`` to turn off all priors - on the main genetic effect and on the covariates.
+* Use the ``-no-prior`` to turn off all priors - on the main genetic effect and on the covariates.
 (This therefore implements an unpenalised regression.)
 
 </section>
