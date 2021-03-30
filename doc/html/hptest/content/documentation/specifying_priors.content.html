@@ -18,10 +18,20 @@ $N(0,40^2)$ prior is currently specified (this is $\text{log-F}(0.077,0.077)$).
 
 You have the following options for specifying priors.
 
-* Use the ``-prior`` option to specify a prior for each parameter. The syntax is: ``-prior
-&lt;model name&gt;/[outcome]=1~logf(2,2)`` or ``-prior &lt;model name&gt;/&lt;outcome
-name&gt;=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)``. The model name and parameter names are shown
-in the log output.
+* Use the ``-prior`` option to specify a different prior for each parameter. The syntax is:
+```
+-prior '[parameter name]/[outcome]=1~logf(<a>,<b>)'
+```
+
+which specifies a log-F prior with the given parameters, or
+
+```
+-prior '[parameter name]/[outcome]=1~gaussian(<mean>,<variance>)'
+```
+
+which specifies a Gaussian prior with the
+given mean and variance. See the <a href="[ROOT]/documentation/alphabetical_options.html">help for
+``-prior``</a> for examples.
 
 *Warning:* when using ``-prior`` you should check the output log file carefully to ensure that
 HPTEST has applied your priors properly. You should see something along the following lines in the

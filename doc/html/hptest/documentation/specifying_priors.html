@@ -39,11 +39,16 @@ each parameter (i.e. each parameter is a priori assumed independent).  By defaul
 </center></p>
 <p>You have the following options for specifying priors.</p>
 <ul>
-<li>Use the <code>-prior</code> option to specify a prior for each parameter. The syntax is: <code>-prior
-&lt;model name&gt;/[outcome]=1~logf(2,2)</code> or <code>-prior &lt;model name&gt;/&lt;outcome
-name&gt;=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)</code>. The model name and parameter names are shown
-in the log output.</li>
+<li>Use the <code>-prior</code> option to specify a different prior for each parameter. The syntax is:</li>
 </ul>
+<pre><code>-prior '[parameter name]/[outcome]=1~logf(&lt;a&gt;,&lt;b&gt;)'
+</code></pre>
+<p>which specifies a log-F prior with the given parameters, or</p>
+<pre><code>-prior '[parameter name]/[outcome]=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)'
+</code></pre>
+<p>which specifies a Gaussian prior with the
+given mean and variance. See the <a href="../documentation/alphabetical_options.html">help for
+<code>-prior</code></a> for examples.</p>
 <p><em>Warning:</em> when using <code>-prior</code> you should check the output log file carefully to ensure that
 HPTEST has applied your priors properly. You should see something along the following lines in the
 output:</p>
