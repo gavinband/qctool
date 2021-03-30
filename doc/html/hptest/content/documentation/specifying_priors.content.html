@@ -9,6 +9,12 @@ $\text{log-F}(4,4)$ prior on the overdominance effect in the general model.
 For covariates: a diffuse $\text{log-F}$ distribution with 95% of its mass similar to that of a
 $N(0,40^2)$ prior is currently specified (this is $\text{log-F}(0.077,0.077)$).
 
-The $\text{log-F}$ prior is discussed in Greendland 
+The $\text{log-F}$ prior naturally arises in logistic regression as a posterior distribution and thus can naturally
+thought of in terms of data augmentation. For example, the $\text{log-F}(2,2)$ distribution is the posterior of a
+logistic regression problem applied to two samples with predictor equal to 1 and having outcome 0 and 1 respectively.
+Thus, applying this prior can be considered a minimal way to state 'the effect is not infinite'. In practice it
+resembles a Gaussian prior with similar 95% coverage, but is slightly more concentrated near zero and with fatter tails:
+
+<img src="[ROOT]/style/images/logF density.png" style="max-width:500px">
 
 </section>
