@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>HPTEST</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+
+<section class="main_text">
+<p>By default HPTEST fits the model under a regularising prior. Priors are seperately specified for
+each parameter (i.e. each parameter is a priori assumed independent).  By default the priors are as follows.</p>
+<p>For the genetic predictor: a <script type="math/tex">\text{log-F}(2,2)</script> prior is placed on the main effect, and a
+<script type="math/tex">\text{log-F}(4,4)</script> prior on the overdominance effect in the general model.</p>
+<p>For covariates: a diffuse <script type="math/tex">\text{log-F}</script> distribution with 95% of its mass similar to that of a
+<script type="math/tex">N(0,40^2)</script> prior is currently specified (this is <script type="math/tex">\text{log-F}(0.077,0.077)</script>).</p>
+<p><center>
+<svg class="plot1">
+</svg>
+<svg class="plot2">
+</svg>
+</center></p>
+<p>You have the following options for specifying priors.</p>
+<ol>
+<li>Use the <code>-prior</code> option to specify a prior for each parameter. The syntax is: <code>-prior
+&lt;model name&gt;/[outcome]=1~logf(2,2)</code> or <code>-prior &lt;model name&gt;/&lt;outcome
+name&gt;=1~gaussian(&lt;mean&gt;,&lt;variance&gt;)</code>. The model name and parameter names are shown
+in the log output.</li>
+</ol>
+<p><em>Warning:</em> when using <code>-prior</code> you should check the output log file carefully to ensure that
+HPTEST has applied your priors properly. You should see something along the following lines in the
+output:</p>
+<pre><code>- Model 2 (&quot;gen&quot;): BinomialLogistic( 2000 of 2000 samples ): (outcome=1) ~ baseline/outcome=1 + add/outcome=1 + overdominance/outcome=1
+  with priors:
+            add/outcome=1 ~ logF( 2, 2 ).
+  overdominance/outcome=1 ~ logF( 4, 4 ).
+</code></pre>
+<p>If there is no 'with priors' line, or if priors for one of the parameters is missing, then it means
+HPTEST has not correctly interpreted your prior specification. (This is usually because the
+parameter names are not specified correctly - check the log output for the correct parameter names.)</p>
+<ol>
+<li>
+<p>Use the <code>-no-covariate-priors</code> option to turn off the priors on covariates.</p>
+</li>
+<li>
+<p>Use the <code>-no-prior</code> to turn off all priors - on the main genetic effect and on the covariates.
+(This therefore implements an unpenalised regression.)</p>
+</li>
+</ol>
+</section>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.6.2/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+<script>
+    let geom = {
+        width: 380,
+        height: 200,
+        margin: {
+            top: 10,
+            left: 60,
+            bottom: 40,
+            right: 10
+        }
+    } ;
+    function dlogf( x, nu1, nu2 ) {
+        if( x > 0 ) {
+            return dlogf( -x, nu2, nu1 ) ;
+        }
+        let a = nu1/2 ;
+        let b = nu2/2 ;
+        let l = 1/(1 + Math.exp(-x)) ;
+        let constant = -(jStat.betaln(a, b)) ;
+        let result = a * Math.log(l) + b * Math.log(1 - l) + constant ;
+        return Math.exp( result ) ;
+    } ;
+    let dnorm = jStat.normal.pdf ;
+
+    function plotDistributions( svg, params, range, geom ) {
+        let data = [
+            {
+                type: "logF",
+                data: (
+                    d3.range( range[0], range[1], 0.1 )
+                        .map( elt => ({
+                            x: elt,
+                            y: dlogf( elt, params.nu1, params.nu2 )
+                        }))
+                )
+            },
+            {
+                type: "gaussian",
+                data: (
+                    d3.range( range[0], range[1], 0.1 )
+                        .map( elt => ({
+                            x: elt,
+                            y: dnorm( elt, params.mean, params.sd )
+                        }))
+                )
+            }
+        ] ;
+        console.log("DATA", data) ;
+
+        let scales = {
+            x: d3.scaleLinear()
+                .domain( range )
+                .range( [ geom.margin.left, geom.width - geom.margin.right ]),
+            y: d3.scaleLinear()
+                .domain( [0, d3.max( data[0].data, elt => elt.y )])
+                .range( [ geom.height - geom.margin.bottom, geom.margin.top ])
+        } ;
+
+        svg
+            .attr( 'width', geom.width )
+            .attr( 'height', geom.height ) ;
+
+        svg.selectAll( 'g.yAxis' )
+            .data( [1] )
+            .enter()
+            .append( 'g' )
+            .attr( 'class', 'yAxis' )
+            .attr( 'transform', 'translate( ' + (scales.x.range()[0] - 10) + ", 0)" )
+            .call( d3.axisLeft( scales.y ).ticks(5) ) ;
+
+        svg.selectAll( 'g.xAxis' )
+            .data( [1] )
+            .enter()
+            .append( 'g' )
+            .attr( 'class', 'xAxis' )
+            .attr( 'transform', 'translate( 0,' + (scales.y.range()[0] + 10) + ")" )
+            .call( d3.axisBottom( scales.x ).ticks(5) ) ;
+
+        let styles = {
+            "logF": {
+                "dasharray": "1 0"
+            },
+            "gaussian": {
+                "dasharray": "4 4"
+            }
+        }
+
+        let line = svg.selectAll( 'path.pt' )
+            .data( data )
+            .enter()
+            .append( 'path' )
+            .attr( 'class', 'pt' )
+            .attr( 'stroke', 'black' )
+            .attr( 'stroke-width', 1.5 )
+            .attr( 'stroke-dasharray', elt => styles[elt.type].dasharray )
+            .attr( 'fill', 'none' ) ;
+
+        line
+            .merge(line)
+            .attr(
+                'd',
+                function( d ) {
+                    return d3.line()
+                        .x( elt => scales.x(elt.x) )
+                        .y( elt => scales.y(elt.y) )
+                    ( d.data ) ;
+                }
+            ) ;
+
+        let legend = svg.selectAll( 'g.legend' )
+            .data( [
+                { type: "logF", display: "log-F(" + params.nu1 + ", " + params.nu2 + ")" },
+                { type: "gaussian", display: "N(" + params.mean + ", " + params.sd + "²)" }
+            ])
+            .enter()
+            .append( 'g' )
+            .attr( 'transform', ( elt, index ) => 'translate(' + ( geom.width - geom.margin.right - 100 ) + "," + (geom.margin.top+10+20*index) + ")" )
+        ;
+        legend
+            .append( 'line' )
+            .attr( 'x1', -10 )
+            .attr( 'x2', 0 )
+            .attr( 'y1', 0 )
+            .attr( 'y2', 0 )
+            .attr( 'stroke-width', 1.5 )
+            .attr( 'stroke', 'black' )
+            .attr( 'stroke-dasharray', elt => styles[elt.type].dasharray ) ;
+        legend.append( 'text' )
+            .attr( 'x', 5 )
+            .attr( 'y', 0 )
+            .attr( 'alignment-baseline', 'middle' )
+            .attr( 'font-size', '10pt' )
+            .text( elt => elt.display ) ;
+    } ;
+
+    plotDistributions(
+        d3.select( 'svg.plot1' ),
+        params = {
+            nu1: 2,
+            nu2: 2,
+            mean: 0,
+            sd: 1.87
+        },
+        range = [ -10, 10 ],
+        geom
+    ) ;
+
+    plotDistributions(
+        d3.select( 'svg.plot2' ),
+        params = {
+            nu1: 0.077,
+            nu2: 0.077,
+            mean: 0,
+            sd: 40
+        },
+        range = [ -100, 100 ],
+        geom
+    ) ;
+
+</script>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+						<li><a href="../documentation/naming_things.html">Naming things</a></li>
+						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
+						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
+						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
+						<li><a href="../documentation/technical_details.html">Technical details</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

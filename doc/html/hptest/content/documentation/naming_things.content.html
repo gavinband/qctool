@@ -1,0 +1,20 @@
+<section class="main_text" markdown="1">
+
+To make analysis files nice to use, HPTEST lets you name a few things:
+
+1. You can use ``-analysis-name`` to specify a name for your analysis. This is recorded in the
+metadata in the output file. In sqlite output format, this becomes a bit more useful: it gets
+recorded in the ``Analysis`` table, its start/end times in the ``AnalysisStatus`` table, and its
+command-line options in the ``AnalysisProperty`` table. This lets you keep track of multiple HPTEST
+runs output into the same sqlite output file.
+
+2. Use ``-outcome-name`` to specify a name for the outcome variable. By default this is "outcome",
+but it's often nicer to get HPTEST to put its real name into the output file. For example, in our
+malaria study I used ``-outcome-name Pf``; the output columns were named e.g.
+``add:beta_1:add/Pf=1`` instead of ``add:beta_1:add/outcome=1``.
+
+3. Models can be given names - e.g. instead of ``-model add`` you can write ``-model
+my_favourite:add``. (This is admittedly mostly useful for the ``add+het`` model, which is set up as
+``-model gen:add+het`` by default so that the output columns are called "gen".)
+
+</section>	
