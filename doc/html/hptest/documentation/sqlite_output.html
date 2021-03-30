@@ -59,7 +59,8 @@
 </li>
 </ul>
 <h3>Using the sqlite output file programmatically</h3>
-<p>Data from the sqlite output files can be read directly into programs, for example in R:</p>
+<p>Data from the sqlite output files can be read directly into analysis programs.
+For example, suppose you have named the output table <code>Result</code>.  Then in R:</p>
 <pre><code class="language-R">library( RSQLite )
 db = DBI::dbConnect(RSQLite::SQLite(), &quot;myfile.sqlite&quot; )
 data = dbGetQuery( db, &quot;SELECT * FROM ResultView LIMIT 100&quot; )
@@ -67,14 +68,14 @@ data = dbGetQuery( db, &quot;SELECT * FROM ResultView LIMIT 100&quot; )
 <p>...or if you are using the <a href="https://dbplyr.tidyverse.org">tidyverse</a>:</p>
 <pre><code class="language-R">library( dplyr )
 db = DBI::dbConnect(RSQLite::SQLite(), &quot;myfile.sqlite&quot;)
-results = tbl( db, &quot;&amp;lt;name&amp;gt;View&quot; )
+results = tbl( db, &quot;ResultView&quot; )
 results
 </code></pre>
 <p>Or it can be loaded in python using <a href="https://pandas.pydata.org">pandas</a>:</p>
 <pre><code class="language-python">import pandas
 db = sqlite3.connect( &quot;myfile.sqlite&quot; )
 pandas.read_sql(
-    &quot;SELECT * FROM &amp;lt;Name&amp;gt;View LIMIT 100&quot; ),
+    &quot;SELECT * FROM ResultView LIMIT 100&quot; ),
     db
 )
 </code></pre>

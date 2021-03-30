@@ -28,7 +28,9 @@ then HPTEST will output results to a sqlite file instead of a flat file.  This h
   that output different column names have to be stored in different results tables.
 
 ### Using the sqlite output file programmatically ###
-Data from the sqlite output files can be read directly into programs, for example in R:
+
+Data from the sqlite output files can be read directly into analysis programs.
+For example, suppose you have named the output table ``Result``.  Then in R:
 ```R
 library( RSQLite )
 db = DBI::dbConnect(RSQLite::SQLite(), "myfile.sqlite" )
@@ -39,7 +41,7 @@ data = dbGetQuery( db, "SELECT * FROM ResultView LIMIT 100" )
 ```R
 library( dplyr )
 db = DBI::dbConnect(RSQLite::SQLite(), "myfile.sqlite")
-results = tbl( db, "&lt;name&gt;View" )
+results = tbl( db, "ResultView" )
 results
 ```
 
@@ -48,7 +50,7 @@ Or it can be loaded in python using <a href="https://pandas.pydata.org">pandas</
 import pandas
 db = sqlite3.connect( "myfile.sqlite" )
 pandas.read_sql(
-	"SELECT * FROM &lt;Name&gt;View LIMIT 100" ),
+	"SELECT * FROM ResultView LIMIT 100" ),
 	db
 )
 ```
