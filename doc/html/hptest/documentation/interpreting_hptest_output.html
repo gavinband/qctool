@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" async
+		  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>HPTEST</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+
+<section class="main_text">
+    <h2>Column names</h2>
+    <p>The table below describes the columns found in HPTEST output.</p>
+    <table class="option_table">
+        <colgroup>
+            <col class="option"></col>
+            <col class="description"></col>
+        </colgroup>
+        <thead>
+            <tr>
+                <th>
+                    Column name
+                </th>
+                <th>
+                    Description
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</section>
+
+<script>
+    $(document).ready(
+        function() {
+            $.getJSON( "../resources/columns.json", function( data ) {
+                var options = data ;
+                //options.sort( function(a,b) {
+                //  return a.name.toLowerCase().localeCompare( b.name.toLowerCase() ) ;
+                //}) ;
+
+                for( var i = 0; i < options.length; ++i ) {
+                    $(".option_table > tbody").append(
+                        '<tr>'
+                        + '<td>' + options[i].name + '</td>'
+                        + '<td>' + options[i].description + '</td>'
+                        + '/tr>'
+                    )
+                }
+
+                $( ".option_table" ).DataTable(
+                    {
+                        "paging": false,
+                        "language": {
+                            "search": "Search command-line options:"
+                        }
+                    }
+                ) ;
+
+                $('.dataTables_filter').css('float', 'left') ;
+            }) ;
+        }
+    ) ;
+</script>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
+						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
+						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
+						<li><a href="../documentation/technical_details.html">Technical details</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<script type="text/javascript" async
+		  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>HPTEST</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				HPTEST
+			</div>
+			<div class="header_subtext">
+				Software to test for genetic association between hosts and pathogens.
+			</div>
+		</div>
+
+<section class="main_text">
+<p>By default HPTEST fits the model under a regularising prior. Priors are seperately specified for
+each parameter (i.e. each parameter is a priori assumed independent).  By default the priors are as follows.</p>
+<p>For the genetic predictor: a <script type="math/tex">\text{log-F}(2,2)</script> prior is placed on the main effect, and a
+<script type="math/tex">\text{log-F}(4,4)</script> prior on the overdominance effect in the general model.</p>
+<p>For covariates: a diffuse <script type="math/tex">\text{log-F}</script> distribution with 95% of its mass similar to that of a
+<script type="math/tex">N(0,40^2)</script> prior is currently specified (this is <script type="math/tex">\text{log-F}(0.077,0.077)</script>).</p>
+<p>The <script type="math/tex">\text{log-F}</script> prior naturally arises in logistic regression as a posterior distribution and thus can naturally
+thought of in terms of data augmentation. For example, the <script type="math/tex">\text{log-F}(2,2)</script> distribution is the posterior of a
+logistic regression problem applied to two samples with predictor equal to 1 and having outcome 0 and 1 respectively.
+Thus, applying this prior can be considered a minimal way to state 'the effect is not infinite'. In practice it
+resembles a Gaussian prior with similar 95% coverage, but is slightly more concentrated near zero and with fatter tails:</p>
+<p><img src="../style/images/logF density.png" style="max-width:500px"></p>
+</section>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
+						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
+						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
+						<li><a href="../documentation/technical_details.html">Technical details</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>
