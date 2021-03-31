@@ -11,9 +11,9 @@ If you use an output file of one of the following forms:
 then HPTEST will output results to a sqlite file instead of a flat file.  This has the following behaviour:
 
 * The analysis, its start/stop times and command-line arguments are recorded in the ``Analysis``,
-  ``AnalysisStatus``, and ``AnalysisProoerty`` tables.
+  ``AnalysisStatus``, and ``AnalysisProperty`` tables.
 
-* The main results are placed in a table called ``name``; if no name is supplied then the table is
+* The main results are placed in a table called ``<name>``; if no name is supplied then the table is
   called ``analysis&lt;n&gt;`` where n is one more than the number of analyses currently recorded
   in the `Analysis` table, if any.
   
@@ -54,4 +54,12 @@ pandas.read_sql(
 	db
 )
 ```
+
+Another thing you can do with the sqlite output format is to turn it into a web service. <a
+href="https://datasette.readthedocs.io">Datasette</a> is an extremely useful tool which turns a sqlite file into a RESTful web service like this:
+```
+$ datasette myfile.sqlite
+```
+Now you can access the database at ``http://localhost:8001``.  This can be used to create web-based visualisations of the results.
+
 </section>
