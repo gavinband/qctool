@@ -1,3 +1,29 @@
 <section class="main_text" markdown="1" >
-Under construction.
+
+### Filtering variants ###
+
+The following options can be used to filter variants from the analysis. Each of these options comes in an inclusiong
+variant (``-incl-...``), which tells HPTEST to only focus on the specified variants, and an exclusion variant
+(``-excl-...``) which tells HPTEST to ignore the specified variants, and each applies either to the predictor or outcome genotypes:
+
+* ``-[in|ex]cl-outcome-range``: specify a genomic range or list of ranges to include or exclude outcome variants from.
+
+* ``-[in|ex]cl-outcome-rsids``: specify a set of variant IDs to include or exclude outcome variants from.
+
+* ``-[in|ex]cl-predictor-range``: specify a genomic range or list of ranges to include or exclude predictor variants from.
+
+* ``-[in|ex]cl-predictor-rsids``: specify a set of variant IDs to include or exclude predictor variants from.
+
+### Filtering samples ###
+
+The following options can be used to filter samples from the analysis:
+
+* ``-[in|ex]cl-samples``: specify a list of samples to include or exclude from the analysis. For this purpose, samples are identified
+by their identifier in the first column of the sample file.
+
+* ``-[in|ex]cl-samples-where``: specify a condition to apply to rows of the sample file to determine if the sample
+  should be included or excluded. The general syntax is ``-[in|ex]cl-samples-where '<column>[=|==|!=]<value>'``, which
+  will cause HPTEST to compare the values in the column named <column> of the sample file to the given value, and
+  include/exclude samples based on whether the values match (= or ==) or mismatch (!=).
+
 </section>
