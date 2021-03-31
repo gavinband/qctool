@@ -2,8 +2,8 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<meta charset="utf-8">
-		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		<script type="text/javascript" async
+		  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
 		</script>
 		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
 		<script type="text/javascript" src="../js/datatables.min.js"></script>
@@ -25,7 +25,14 @@
 		</div>
 
 <section class="main_text">
-<p>Under construction.</p>
+<p>HPTEST fits the following model:</p>
+<p>
+<script type="math/tex; mode=display">\text{log-odds}( Y = 1 } ) = X^t \cdot \beta</script>
+</p>
+<p>where <script type="math/tex">Y</script> is the outcome genotype, and <script type="math/tex">X</script> is a function of the predictor genotype and covariates,</p>
+<p>
+<script type="math/tex; mode=display">X = \left( \begin{matrix} 1 \\ F(\text{predictor}) \\ Z \end{matrix} \right)</script>
+</p>
 </section>
 		<nav class="button_bar">
 			<div>
@@ -37,10 +44,8 @@
 					<ul class="menu">
 						<li><a href="../documentation/getting_started.html">Getting started</a></li>
 						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
-						<li><a href="../documentation/naming_things.html">Naming things</a></li>
 						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
 						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
-						<li><a href="../documentation/sqlite_output.html">The sqlite output format</a></li>
 						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
 						<li><a href="../documentation/technical_details.html">Technical details</a></li>
 					</ul>

@@ -2,8 +2,8 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<script type="text/javascript" async
-		  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
 		</script>
 		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
 		<script type="text/javascript" src="../js/datatables.min.js"></script>
@@ -25,7 +25,59 @@
 		</div>
 
 <section class="main_text">
-<pre><code>Under construction
+<h3>The sqlite output format</h3>
+<p>If you use an output file of one of the following forms:</p>
+<ul>
+<li><code>myfile.sqlite</code></li>
+<li><code>myfile.sqlite:&lt;name&gt;</code></li>
+<li><code>sqlite://myfile.sqlite</code></li>
+<li><code>sqlite://myfile.sqlite:&lt;name&gt;</code></li>
+</ul>
+<p>then HPTEST will output results to a sqlite file instead of a flat file.  This has the following behaviour:</p>
+<ul>
+<li>
+<p>The analysis, its start/stop times and command-line arguments are recorded in the <code>Analysis</code>,
+  <code>AnalysisStatus</code>, and <code>AnalysisProoerty</code> tables.</p>
+</li>
+<li>
+<p>The main results are placed in a table called <code>name</code>; if no name is supplied then the table is
+  called <code>analysis&lt;n&gt;</code> where n is one more than the number of analyses currently recorded
+  in the <code>Analysis</code> table, if any.</p>
+</li>
+<li>
+<p>The main results table does not contain full variant information; instead, genetic variants are
+  placed into a seperate <code>Variant</code> table. A view called <code>nameView</code> is also created which links
+  the main result, <code>Analysis</code>, and <code>Variant</code> tables through the <code>analysis_id</code>,
+  <code>predictor_id</code> and <code>outcome_id</code> fields.</p>
+</li>
+<li>
+<p>The main results table is indexed by default by the <code>predictor_id</code> and <code>outcome_id</code> fields.</p>
+</li>
+<li>
+<p>You can record more than one analysis in the same sqlite file. The only caveat is that analyses
+  that output different column names have to be stored in different results tables.</p>
+</li>
+</ul>
+<h3>Using the sqlite output file programmatically</h3>
+<p>Data from the sqlite output files can be read directly into analysis programs.
+For example, suppose you have named the output table <code>Result</code>.  Then in R:</p>
+<pre><code class="language-R">library( RSQLite )
+db = DBI::dbConnect(RSQLite::SQLite(), &quot;myfile.sqlite&quot; )
+data = dbGetQuery( db, &quot;SELECT * FROM ResultView LIMIT 100&quot; )
+</code></pre>
+<p>...or if you are using the <a href="https://dbplyr.tidyverse.org">tidyverse</a>:</p>
+<pre><code class="language-R">library( dplyr )
+db = DBI::dbConnect(RSQLite::SQLite(), &quot;myfile.sqlite&quot;)
+results = tbl( db, &quot;ResultView&quot; )
+results
+</code></pre>
+<p>Or it can be loaded in python using <a href="https://pandas.pydata.org">pandas</a>:</p>
+<pre><code class="language-python">import pandas
+db = sqlite3.connect( &quot;myfile.sqlite&quot; )
+pandas.read_sql(
+    &quot;SELECT * FROM ResultView LIMIT 100&quot; ),
+    db
+)
 </code></pre>
 </section>
 		<nav class="button_bar">
@@ -38,8 +90,10 @@
 					<ul class="menu">
 						<li><a href="../documentation/getting_started.html">Getting started</a></li>
 						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+						<li><a href="../documentation/naming_things.html">Naming things</a></li>
 						<li><a href="../documentation/specifying_priors.html">Specifying priors</a></li>
 						<li><a href="../documentation/interpreting_hptest_output.html">Interpreting HPTEST output</a></li>
+						<li><a href="../documentation/sqlite_output.html">The sqlite output format</a></li>
 						<li><a href="../documentation/filtering.html">Filtering variants and samples</a></li>
 						<li><a href="../documentation/technical_details.html">Technical details</a></li>
 					</ul>

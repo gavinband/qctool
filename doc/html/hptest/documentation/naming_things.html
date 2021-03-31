@@ -25,60 +25,28 @@
 		</div>
 
 <section class="main_text">
-    <h2>Column names</h2>
-    <p>The table below describes the columns found in HPTEST output.</p>
-    <table class="option_table">
-        <colgroup>
-            <col class="option"></col>
-            <col class="description"></col>
-        </colgroup>
-        <thead>
-            <tr>
-                <th>
-                    Column name
-                </th>
-                <th>
-                    Description
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+<p>To make analysis files nice to use, HPTEST lets you name a few things:</p>
+<ol>
+<li>
+<p>You can use <code>-analysis-name</code> to specify a name for your analysis. This is recorded in the
+metadata in the output file. In sqlite output format, this becomes a bit more useful: it gets
+recorded in the <code>Analysis</code> table, its start/end times in the <code>AnalysisStatus</code> table, and its
+command-line options in the <code>AnalysisProperty</code> table. This lets you keep track of multiple HPTEST
+runs output into the same sqlite output file.</p>
+</li>
+<li>
+<p>Use <code>-outcome-name</code> to specify a name for the outcome variable. By default this is "outcome",
+but it's often nicer to get HPTEST to put its real name into the output file. For example, in our
+malaria study I used <code>-outcome-name Pf</code>; the output columns were named e.g.
+<code>add:beta_1:add/Pf=1</code> instead of <code>add:beta_1:add/outcome=1</code>.</p>
+</li>
+<li>
+<p>Models can be given names - e.g. instead of <code>-model add</code> you can write <code>-model
+my_favourite:add</code>. (This is admittedly mostly useful for the <code>add+het</code> model, which is set up as
+<code>-model gen:add+het</code> by default so that the output columns are called "gen".)</p>
+</li>
+</ol>
 </section>
-
-<script>
-    $(document).ready(
-        function() {
-            $.getJSON( "../resources/columns.json", function( data ) {
-                var options = data ;
-                //options.sort( function(a,b) {
-                //  return a.name.toLowerCase().localeCompare( b.name.toLowerCase() ) ;
-                //}) ;
-
-                for( var i = 0; i < options.length; ++i ) {
-                    $(".option_table > tbody").append(
-                        '<tr>'
-                        + '<td>' + options[i].name + '</td>'
-                        + '<td>' + options[i].description + '</td>'
-                        + '/tr>'
-                    )
-                }
-
-                $( ".option_table" ).DataTable(
-                    {
-                        "paging": false,
-                        "language": {
-                            "search": "Search command-line options:"
-                        }
-                    }
-                ) ;
-
-                $('.dataTables_filter').css('float', 'left') ;
-            }) ;
-        }
-    ) ;
-</script>
 		<nav class="button_bar">
 			<div>
 				<div class="nav_button" name="overview">

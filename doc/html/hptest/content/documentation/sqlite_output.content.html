@@ -1,3 +1,57 @@
 <section class="main_text" markdown="1" >
-	Under construction
+### The sqlite output format ###
+
+If you use an output file of one of the following forms:
+	
+* ``myfile.sqlite``
+* ``myfile.sqlite:&lt;name&gt;``
+* ``sqlite://myfile.sqlite``
+* ``sqlite://myfile.sqlite:&lt;name&gt;``
+
+then HPTEST will output results to a sqlite file instead of a flat file.  This has the following behaviour:
+
+* The analysis, its start/stop times and command-line arguments are recorded in the ``Analysis``,
+  ``AnalysisStatus``, and ``AnalysisProoerty`` tables.
+
+* The main results are placed in a table called ``name``; if no name is supplied then the table is
+  called ``analysis&lt;n&gt;`` where n is one more than the number of analyses currently recorded
+  in the `Analysis` table, if any.
+  
+* The main results table does not contain full variant information; instead, genetic variants are
+  placed into a seperate ``Variant`` table. A view called ``nameView`` is also created which links
+  the main result, ``Analysis``, and ``Variant`` tables through the ``analysis_id``,
+  ``predictor_id`` and ``outcome_id`` fields.
+
+* The main results table is indexed by default by the ``predictor_id`` and ``outcome_id`` fields.
+
+* You can record more than one analysis in the same sqlite file. The only caveat is that analyses
+  that output different column names have to be stored in different results tables.
+
+### Using the sqlite output file programmatically ###
+
+Data from the sqlite output files can be read directly into analysis programs.
+For example, suppose you have named the output table ``Result``.  Then in R:
+```R
+library( RSQLite )
+db = DBI::dbConnect(RSQLite::SQLite(), "myfile.sqlite" )
+data = dbGetQuery( db, "SELECT * FROM ResultView LIMIT 100" )
+```
+
+...or if you are using the <a href="https://dbplyr.tidyverse.org">tidyverse</a>:
+```R
+library( dplyr )
+db = DBI::dbConnect(RSQLite::SQLite(), "myfile.sqlite")
+results = tbl( db, "ResultView" )
+results
+```
+
+Or it can be loaded in python using <a href="https://pandas.pydata.org">pandas</a>:
+```python
+import pandas
+db = sqlite3.connect( "myfile.sqlite" )
+pandas.read_sql(
+	"SELECT * FROM ResultView LIMIT 100" ),
+	db
+)
+```
 </section>
