@@ -229,7 +229,7 @@ public:
 		options[ "-analysis-name" ]
 			.set_description( "Specify a name to label results from this analysis with." )
 			.set_takes_single_value()
-			.set_default_value( "qctool analysis" ) ;
+			.set_default_value( "ldbird analysis" ) ;
 		options[ "-analysis-chunk" ]
 			.set_description( "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments." )
 			.set_takes_single_value()
@@ -508,6 +508,7 @@ private:
 				"position,alleles",
 				analysis_id
 			) ;
+			analysis_id = frequencyStorage->analysis_id() ;
 
 			frequencyStorage->add_variable( "number_of_haplotypes" ) ;
 			frequencyStorage->add_variable( "frequency" ) ;
