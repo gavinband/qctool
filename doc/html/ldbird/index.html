@@ -22,20 +22,32 @@
 			<div class="header_subtext">
 				Software to compute and histogram pairwise LD metrics
 			</div>
+			<img class="bird" src="style/images/ldbird.png">
 		</div>
 
 <section class="main_text">
 <div id="overview">
 <h3>Introduction</h3>
-<p>LDBIRD is a command-line program for rapidly computing LD metrics between all pairs of variants in its input files.</p>
-<h4>How fast is LDBIRD?</h4>
-<p>LDBIRD is very likely not the fastest way to compute LD - it was written to meet my immediate need of assessing the
-distribution of LD in <em>P.falciparum</em> populations. It limits itself to loading variants one (or rather two) at a time,
-and this its algorithm is quadratic algorithm in the number of variants. If LDBIRD doesn't meet your needs, other
-possibly faster ways to compute LD are to use <a href="https://www.cog-genomics.org/plink/2.0/">plink</a> or <a
-href="http://www.christianbenner.com/">LDStore</a> or <a href="https://tskit.dev/tskit/docs/stable/">tskit</a>.</p>
+<p>LDBIRD is a command-line program for computing LD metrics between all pairs of variants in its input files.</p>
+<p>In working on the paper described below, I needed a way to quickly assess the distribution of between-chromosome LD in
+<em>P.falciparum</em> populations - as well as finding individual pairs of variants with outlying LD. Thus LDBIRD was born.
+The key features LDBIRD has are:</p>
+<ul>
+<li>It computes a histogram of LD values across pairs of variants as well as identifying individual pairs with strong LD.</li>
+<li>It handles haploid genotypes (as well as diploid genotypes, and haploid genotypes encoded as if they were diploid).</li>
+<li>It accepts a variety of different genotype file formats (a subset of those accepted by <a
+  href="https://www.well.ox.ac.uk/~gav/qctool">QCTOOL</a>) and has helpful options for filtering samples and variants.</li>
+<li>Its output format (in a <a href="https://www.sqlite.org">sqlite</a> db) is reasonably compact and readibly post-processable.</li>
+<li>It's reasonably fast (given what it does).</li>
+</ul>
 <p>For an introduction to running LDBIRD, please see the <a href="documentation/getting_started.html">getting
 started</a> page.</p>
+<h4>How fast is LDBIRD?</h4>
+<p>LDBIRD is likely not the fastest way you can compute LD. It limits itself to loading variants one (or rather two) at a
+time, and thus its algorithm is quadratic in the number of variants. If LDBIRD doesn't meet your needs, other ways to
+compute LD are to use <a href="https://www.cog-genomics.org/plink/2.0/">plink</a> or <a
+href="http://www.christianbenner.com/">LDStore</a> - or possibly <a
+href="https://tskit.dev/tskit/docs/stable/">tskit</a>.</p>
 <h3>Obtaining LDBIRD</h3>
 <p>LDBIRD is currently included as part of the <a href="https://code.enkre.net/qctool">QCTOOL
 package</a>, which is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. See
