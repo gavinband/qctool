@@ -1,0 +1,288 @@
+{
+  "-analysis-chunk": {
+    "group": "",
+    "description": "Specify a name denoting the current genomic region or chunk on which this is run.  This is intended for use in parallel environments.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "NA" ]
+  },
+  "-analysis-id": {
+    "group": "",
+    "description": "Specify an integer ID for the current analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-analysis-name": {
+    "group": "",
+    "description": "Specify a name to label results from this analysis with.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "qctool analysis" ]
+  },
+  "-assume-haploid": {
+    "group": "",
+    "description": "Convert all data to haploid calls.  This converts homozygous calls to haploid calls, and treats any heterozygous calls as missing.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-debug": {
+    "group": "",
+    "description": "Output debugging information.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-details": {
+    "group": "",
+    "description": "Output counts and a Fisher's exact test P-value. Currently only supported if genotypes are haploid.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 0,
+    "default": []
+  },
+  "-excl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID lies in the given file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-excl-samples-where": {
+    "group": "",
+    "description": "Exclude samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-g1": {
+    "group": "",
+    "description": "Path to first genotype file.The given filename may contain the wildcard character '#', which expands to match aone- or two-character chromosome identifier.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-g1-incl-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-g1-incl-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-g2": {
+    "group": "",
+    "description": "Path to second genotype file.  If not given the first genotype file will be used.The given filename may contain the wildcard character '#', which expands to match aone- or two-character chromosome identifier.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-g2-incl-range": {
+    "group": "",
+    "description": "Specify a range of SNPs (or comma-separated list of ranges of SNPs) to operate on. Each range should be in the format CC:xxxx-yyyy where CC is the chromosome and xxxx and yyyy are the start and end coordinates, or just xxxx-yyyy which matches that range from all chromosomes. You can also omit either of xxxx or yyyy to get all SNPs from the start or to the end of a chromosome.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-g2-incl-rsids": {
+    "group": "",
+    "description": "Exclude all SNPs whose RSID is not in the given file(s) from the analysis.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": "untilNextOption",
+    "default": []
+  },
+  "-incl-samples": {
+    "group": "",
+    "description": "Filter out samples whose sample ID does not lie in the given file(s).",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-incl-samples-where": {
+    "group": "",
+    "description": "Include samples by specifying conditions on the values of columns in the sample file.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 100
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-min-N": {
+    "group": "",
+    "description": "Do not compute results where the total number of pairwise non-missing genotypes is below this threshold.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-min-N-propn": {
+    "group": "",
+    "description": "Ignore (do not compute or output) results where the propn of pairwise non-missing genotypes is below this threshold.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-min-distance": {
+    "group": "",
+    "description": "Ignore (do not compute or output) results where the variants are on the same chromosome and closer than this physical distance.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-min-maf": {
+    "group": "",
+    "description": "Do not compute correlation results where the maf of either variant is lower than this threshold.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-min-r2": {
+    "group": "",
+    "description": "Do not output results where r^2 is lower than this threshold.  (These values are still computed and contribute to the histogram.)",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0.05" ]
+  },
+  "-o": {
+    "group": "",
+    "description": "Output file",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-prior-weight": {
+    "group": "",
+    "description": "Specify a prior weight for samples.   This augments data with one of each of the four possible haploid genotype combinations  for each pairwise comparison, with the total weight given. For example, a value of 1 indicates each haplotype is given 1/4 weight.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0" ]
+  },
+  "-s": {
+    "group": "",
+    "description": "Path of sample file",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 1,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": []
+  },
+  "-table-prefix": {
+    "group": "",
+    "description": "Specify a prefix to add to tables.  They will be called <prefix>Frequency and <prefix>R.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "" ]
+  },
+  "-threshold": {
+    "group": "",
+    "description": "The threshold to apply to genotype probabilities, if necessary, to make calls.",
+    "is_required": 0,
+    "multiplicity": {
+      "min": 0,
+      "max": 1
+    },
+    "values_per_use": 1,
+    "default": [ "0.9" ]
+  }
+}

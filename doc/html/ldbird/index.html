@@ -1,0 +1,85 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="js/datatables.min.js"></script>
+		<script type="text/javascript" src="js/local.js"></script>
+
+		<link href="style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="style/css/default.css" rel="stylesheet" type="text/css">
+		<title>LDBIRD</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				LDBIRD
+			</div>
+			<div class="header_subtext">
+				Software to compute and histogram pairwise LD metrics
+			</div>
+		</div>
+
+<section class="main_text">
+<div id="overview">
+<h3>Introduction</h3>
+<p>LDBIRD is a command-line program for rapidly computing LD metrics between all pairs of variants in its input files.</p>
+<h4>How fast is LDBIRD?</h4>
+<p>LDBIRD is very likely not the fastest way to compute LD - it was written to meet my immediate need of assessing the
+distribution of LD in <em>P.falciparum</em> populations. It limits itself to loading variants one (or rather two) at a time,
+and this its algorithm is quadratic algorithm in the number of variants. If LDBIRD doesn't meet your needs, other
+possibly faster ways to compute LD are to use <a href="https://www.cog-genomics.org/plink/2.0/">plink</a> or <a
+href="http://www.christianbenner.com/">LDStore</a> or <a href="https://tskit.dev/tskit/docs/stable/">tskit</a>.</p>
+<p>For an introduction to running LDBIRD, please see the <a href="documentation/getting_started.html">getting
+started</a> page.</p>
+<h3>Obtaining LDBIRD</h3>
+<p>LDBIRD is currently included as part of the <a href="https://code.enkre.net/qctool">QCTOOL
+package</a>, which is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. See
+the <a href="documentation/download.html">download page</a> for full details on obtaining
+and installing LDBIRD.</p>
+<h3>References</h3>
+<p>LDBIRD was originally developed for a study of human and malaria parasite variation in samples collected for <a
+href="https://www.malariagen.net/projects/consortial-project-1">MalariaGEN Consortial Project 1</a>. If you use LDBIRD
+in published work, please cite the following preprint (or its published equivalent):</p>
+<p>HPTEST was originally developed for a study of human and malaria parasite variation in samples
+collected for <a href="https://www.malariagen.net/projects/consortial-project-1">MalariaGEN
+Consortial Project 1</a>. If you use HPTEST in published work, please cite the following preprint (or
+its published equivalent):</p>
+<div class="citation" style="padding-left: 20px; padding-right: 20px; font-family:Palatino">
+<p>"<strong>The protective effect of sickle cell haemoglobin against severe malaria depends on parasite genotype</strong>",
+bioRxiv <a href="https://doi.org/10.1101/2021.03.30.437659">https://doi.org/10.1101/2021.03.30.437659</a> <br>
+<small>Gavin Band, Ellen M. Leffler, Muminatou Jallow, Fatoumatta Sisay-Joof, Carolyne M. Ndila, Alexander W. Macharia,
+    Christina Hubbart, Anna E. Jeffreys, Kate Rowlands, Thuy Nguyen, Sonia M. Goncalves, Cristina V. Ariani,
+    Jim Stalker, Richard D. Pearson, Roberto Amato, Eleanor Drury, Giorgio Sirugo, Umberto d'Alessandro,
+    Kalifa A. Bojang, Kevin Marsh, Norbert N.P. Peshu, David J. Conway,
+    Thomas N. Williams, Kirk A. Rockett, Dominic P. Kwiatkowski
+</small></p>
+</div>
+<h3>Contact</h3>
+<p>For more information or questions, please contact me at <code>gavin [dot] band (at) well.ox.ac.uk</code>.</p>
+</div>
+</section>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="documentation/getting_started.html">Getting started</a></li>
+						<li><a href="documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

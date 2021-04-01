@@ -1,0 +1,74 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>LDBIRD</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				LDBIRD
+			</div>
+			<div class="header_subtext">
+				Software to compute and histogram pairwise LD metrics
+			</div>
+		</div>
+
+<section class="main_text">
+<h3>Obtaining LDBIRD</h3>
+<p>The source code to LDBIRD is available as part of the QCTOOL package, which is currently hosted at
+<a href="https://code.enkre.net/qctool">code.enkre.net</a>. To obtain LDBIRD you need to download
+version 2.1.9 or above of QCTOOL. The source code can be downloaded from the following link:</p>
+<p><a href="https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz">https://code.enkre.net/qctool/zip/v2.1.9/qctool.tgz</a></p>
+<p>Please be aware this tarball is generated on the fly and may take a few minutes to download.</p>
+<h3>Compiling LDBIRD</h3>
+<p>QCTOOL uses the <a href="https://waf.io">Waf build system</a> to manage the compilation process.
+For this to work you need python to be installed. (Waf itself is bundled with QCTOOL). A basic
+compilation process goes as follows:</p>
+<pre><code>$ ./waf configure
+$ ./waf
+</code></pre>
+<p>The first command configures the project (i.e. makes sure various prerequisites are in place). The
+second part compiles the QCTOOL package.  </p>
+<p>If successful you should now be able to try hptest:</p>
+<pre><code>$ ./build/release/apps/ldbird_v2.1.9
+!! Error (OptionProcessingException): Option &quot;-g1&quot; must be supplied..
+!! Run hptest -help for usage information.
+</code></pre>
+<p>The following is a more advanced example that specifies a path to a relevant C and C++ compiler and
+an installation directory.</p>
+<pre><code>$ CXX=/path/to/g++ CC=/path/to/gcc ./waf configure --prefix=/path/to/installation/dir
+$ ./waf install
+</code></pre>
+<p>If successful hptest (along with qctool and other tools) will be installed in <code>/path/to/installation/dir/usr/bin</code></p>
+</section>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

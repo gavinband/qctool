@@ -1,0 +1,30 @@
+<section class="main_text" markdown="1" >
+
+### Filtering variants ###
+
+The following options can be used to filter variants from the analysis. Each of these options comes in an inclusiong
+variant (``-incl-...``), which tells LDBIRD to only focus on the specified variants, and an exclusion variant
+(``-excl-...``) which tells LDBIRD to ignore the specified variants, and each applies either to the predictor or
+outcome genotypes:
+
+* ``-g1-[in|ex]cl-range``: specify a genomic range or list of ranges to include or exclude outcome variants from, applied to the file specified by ``-g1``.
+
+* ``-g1-[in|ex]cl-rsids``: specify a set of variant IDs to include or exclude outcome variants from, applied to the file specified by ``-g1``.
+
+* ``-g2-[in|ex]cl-range``: as above but for the file specified by ``-g2``.
+
+* ``-g2-[in|ex]cl-rsids``: as above but for the file specified by ``-g2``.
+
+### Filtering samples ###
+
+The following options can be used to filter samples from the analysis:
+
+* ``-[in|ex]cl-samples``: specify a list of samples to include or exclude from the analysis. For this purpose, samples are identified
+by their identifier in the first column of the sample file.
+
+* ``-[in|ex]cl-samples-where``: specify a condition to apply to rows of the sample file to determine if the sample
+  should be included or excluded. The general syntax is ``-[in|ex]cl-samples-where '<column>[=|==|!=]<value>'``, which
+  will cause HPTEST to compare the values in the column named <column> of the sample file to the given value, and
+  include/exclude samples based on whether the values match (= or ==) or mismatch (!=).
+
+</section>

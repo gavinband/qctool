@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>LDBIRD</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				LDBIRD
+			</div>
+			<div class="header_subtext">
+				Software to compute and histogram pairwise LD metrics
+			</div>
+		</div>
+
+<section class="main_text">
+<h3>Getting started</h3>
+<p>LDBIRD computes LD metrics (i.e. the genotype correlation <script type="math/tex">R</script>) between all pairs of variants in two sets of genotypes
+specified on the command line, or between all pairs in one set of genotypes. It records a histogram of the LD values it
+sees and outputs specific pairs meeting specific thresholds.  The two ways to run it are:</p>
+<p><strong>Run with one genotypes file</strong>:</p>
+<pre><code>ldbird -g1 &lt;file.bgen&gt; -s samples.sample -o ldbird.sqlite
+</code></pre>
+<p>This computes genotype counts and correlation (<script type="math/tex">r</script>) between every pair of variants in <code>file.bgen</code>. By default only
+those with <script type="math/tex">r^2 > 0.05</script> will be output, but if you specify <code>-min-r2 0</code> then the number of output rows will be <script type="math/tex">L \times (L+1) / 2</script>.</p>
+<p><strong>Run with two genotypes files</strong>:</p>
+<pre><code>ldbird -g1 &lt;file1.bgen&gt; -g2 &lt;file2.bgen&gt; -s samples.sample -o ldbird.sqlite
+</code></pre>
+<p>This computes genotype counts and correlation between every variant in <code>file1.bgen</code> and in <code>file2.bgen</code>. By default
+only those with <script type="math/tex">r^2 > 0.05</script> will be output, but if you specify <code>-min-r2 0</code> then the number of output rows will be <script type="math/tex">L_1
+\times L_2</script>, where <script type="math/tex">L_i</script> is the number of variants in <code>file&lt;i&gt;.bgen</code>.</p>
+<h3>Supported file formats</h3>
+<p>You don't necessarily need to use <a href="https://www.bgenformat.org">BGEN files</a> - LDBIRD also supports VCF
+format and a subset of other formats supported by <a href="https://www.well.ox.ac.uk/~gav/qctool">QCTOOL</a>.</p>
+<p>Samples must be supplied in a sample file of the type understood by QCTOOL - see the <a
+href="https://www.well.ox.ac.uk/~gav/qctool/documentation/sample_file_formats.html">QCTOOL file formats page</a> for
+details.</p>
+<h3>What you can put in</h3>
+<p>At the time of writing there are three types of genotype you can put in. First, the input files can contain haploid
+genotypes. If so then the <code>R</code> table will contain a table of counts at both loci as well as the computed R value.
+Second, diploid genotypes can be put in - in this case the table of counts is currently not output. </p>
+<p>A third option is to input haploid genotypes that are encoded as if they were diploid. The <code>-assume-haploid</code> option
+tells LDBIRD to convert these internally to haploid genotypes - it does this by treating heterozygous calls as missing
+and converting each homozygous call to the corresponding haploid genotype.</p>
+<h3>Understanding the output</h3>
+<p>LDBIRD always outputs results to a <a href="https://www.sqlite.org">sqlite</a> database. The output file has the
+following features:</p>
+<ul>
+<li>
+<p>The analysis name, its start and stop times, and the command-line arguments are recorded in the <code>Analysis</code>,
+  <code>AnalysisStatus</code>, and <code>AnalysisProperty</code> tables.</p>
+</li>
+<li>
+<p>LDBIRD computes the frequency of each variant it sees. The variants are stored in the <code>Variant</code> table and the
+  frequencies are stored in the <code>Frequency</code> table. A convenient view, <code>FrequencyView</code> is also created to link these
+  tables together.</p>
+</li>
+<li>
+<p>The main results are stored in the <code>R</code> table. A more convenient view, <code>RView</code> is also created which links the
+  <code>R</code>, <code>Analysis</code>, and <code>Variant</code> tables.</p>
+</li>
+<li>
+<p>A histogram of <script type="math/tex">r</script> values is also stored in the <code>Histogram</code> table - again there is a more convenient
+  <code>HistogramView</code> view which joins this to the <code>Analysis</code> table.</p>
+</li>
+</ul>
+<h3>Using the <code>R</code> table</h3>
+<p>To save space in the output file, LDBIRD currently encodes correlations by the following formula:
+<script type="math/tex; mode=display">
+\text{encoded r} = \text{round}\left(r+1.0) * 1024\right)
+</script>
+</p>
+<p>This is stored in the <code>encoded_r</code> column of the <code>R</code> table. Because sqlite uses a variable-length integer encoding,
+this value only takes up one or two bytes of space in the output file.</p>
+<p>To convert <code>encoded_r</code> back to correlation, you can use the formula:
+<script type="math/tex; mode=display">
+r = (\text{encoded r} - 1024)/1024.0
+</script>
+E.g. in sqlite:</p>
+<pre><code>$ sqlite3 ldbird.sqlite
+&gt; SELECT *, (encoded_r-1024.0)/1024.0 AS r FROM R
+</code></pre>
+<p>(NB. the form <code>1024.0</code> is needed here to force sqlite to treat the result as a floating-point number.)</p>
+<p>The above means that LDBIRD stores a quantized version of the correlation - it is always encoded as an integer between
+0 and 2048 (inclusive). Correlation is expressed with respect to the second allele of each variant - this values in the range 0-1023
+represent -ve correlation between the second allele, and values in the range 1025-2048 represent positive correlation.</p>
+<h3>Controlling what comparisons are made</h3>
+<p>There are three additional options which control what variants LDBIRD computes LD for:</p>
+<ul>
+<li>
+<p>The <code>-min-distance</code> option tells LDBIRD not to compute LD for any variants that are too close together on the same chromosome.</p>
+</li>
+<li>
+<p>The <code>-min-maf</code> option tells LDBIRD not to compute LD for any variants that have too low minor allele frequency</p>
+</li>
+<li>
+<p>The <code>-min-N</code> option tells LDBIRD to not compute LD for any pair of variants with fewer than this number of
+  samples having non-missing genotypes (taken pairwise across the two variants).</p>
+</li>
+<li>
+<p>The <code>-min-N-propn</code> option tells LDBIRD to not compute LD for any pair of variants with fewer than this <em>proportion</em>
+  of samples having of non-missing genotypes (taken pairwise across the two variants).</p>
+</li>
+<li>
+<p>Finally, the <code>-min-r2</code> option tells LDBIRD not to output results in the <code>R</code> table for any variants where the
+  computed <script type="math/tex">r^2</script> is less than the given threshold. (This is slightly different to the above options because LD is still
+  computed and contributes to the <code>Histogram</code> table).</p>
+</li>
+</ul>
+<p>Additionally a number of options are provided to filter the set of samples included in the analysis, or to filter the genomic ranges or IDs of variants that are included.
+See the <a href="../documentation/filtering_samples.html">page on filtering samples</a> for more information.</p>
+<h3>Using the <code>Histogram</code> table</h3>
+<p>At the end of the run, LDBIRD stores a histogram of LD in the <code>Histogram</code> table. This is set up as follows: for each
+value of <code>encoded_r</code>, the corresponding row of <code>Histogram</code> stores the number of variant pairs that were observed to
+have that <code>encoded_r</code> value. The column <code>encoded_r</code> can be converted back to <script type="math/tex">r</script> as shown above. The <code>Histogram</code>
+table always has 2049 rows (or 2049 per analysis, if you run multiple analyses into the same output file) corresponding
+to the 2049 possible values of <code>encoded_r</code>.</p>
+<p>The <code>Histogram</code> table ignores any minimum <script type="math/tex">r^2</script> value specified using <code>-min-r2</code> - in cases of testing long-range LD
+it will therefore likely contain a peak of LD values near <script type="math/tex">r=0</script> (i.e. around <script type="math/tex">\text{encoded r} = 1024</script>), while if you
+test nearby variants you will get a spike near <script type="math/tex">r=1</script> ($\text{encoded r}=2048). However, it respects the other filtering
+options outlined above, i.e. only variants with sufficient frequency and levels of non-missingness will be represented.</p>
+<h3>Setting up convenience views</h3>
+<p>It is generally most useful to wrap all the above into a combined view of the frequencies and LD. We recommend setting
+this up by running the following SQL in the output file:</p>
+<pre><code>CREATE VIEW MyRView AS
+SELECT A.name AS `analysis`,
+V1.id AS g1_id, V1.rsid AS `g1_rsid`, V1.chromosome AS `g1_chromosome`, V1.position AS `g1_position`,
+V2.id AS g2_id, V2.rsid AS `g2_rsid`, V2.chromosome AS `g2_chromosome`, V2.position AS `g2_position`,
+R.*, (R.encoded_r-1024.0)/1024 AS r,
+F1.frequency AS g1_frequency, F2.frequency AS g2_frequency
+FROM R
+INNER JOIN Variant V1 ON V1.id = g1_id
+INNER JOIN Variant V2 ON V2.id = g2_id
+CROSS JOIN Analysis A ON A.id = R.analysis_id
+CROSS JOIN Frequency F1 ON F1.analysis_id == R.analysis_id AND F1.variant_id == R.g1_id
+CROSS JOIN Frequency F2 ON F2.analysis_id == R.analysis_id AND F2.variant_id == R.g2_id;
+</code></pre>
+<p>Which can be used to produce output like this (here run on test data):</p>
+<pre><code>$ sqlite3 -column -header ldbird.sqlite &quot;SELECT * FROM MyRView LIMIT 10&quot;
+analysis         g1_id       g1_rsid     g1_chromosome  g1_position  g2_id       g2_rsid     g2_chromosome  g2_position  analysis_id  g1_id:1     g2_id:1     N           encoded_r   r           g1_frequency  g2_frequency
+---------------  ----------  ----------  -------------  -----------  ----------  ----------  -------------  -----------  -----------  ----------  ----------  ----------  ----------  ----------  ------------  ------------
+ldbird analysis  1           H1          H1             1            1           H1          H1             1            1            1           1           4000        2048        1.0         0.181         0.181       
+ldbird analysis  1           H1          H1             1            2           H2          H1             2            1            1           2           4000        1041        0.01660156  0.181         0.14225     
+ldbird analysis  1           H1          H1             1            3           H3          H1             3            1            1           3           4000        1017        -0.0068359  0.181         0.19        
+ldbird analysis  1           H1          H1             1            4           H4          H1             4            1            1           4           4000        1051        0.02636718  0.181         0.01025     
+ldbird analysis  1           H1          H1             1            5           H5          H1             5            1            1           5           4000        1022        -0.0019531  0.181         0.31725     
+ldbird analysis  1           H1          H1             1            6           H6          H1             6            1            1           6           4000        982         -0.0410156  0.181         0.00525     
+ldbird analysis  1           H1          H1             1            7           H7          H1             7            1            1           7           4000        992         -0.03125    0.181         0.14725     
+ldbird analysis  1           H1          H1             1            8           H8          H1             8            1            1           8           4000        1022        -0.0019531  0.181         0.1465      
+ldbird analysis  1           H1          H1             1            9           H9          H1             9            1            1           9           4000        1026        0.00195312  0.181         0.039       
+ldbird analysis  1           H1          H1             1            10          H10         H1             10           1            1           10          4000        1002        -0.0214843  0.181         0.405       
+</code></pre>
+<p>LDBIRD doesn't create this view by itself currently, but a future version might do so. A similar view of the Histogram
+table can also be made.</p>
+</section>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_CHTML">
+		</script>
+		<script type="text/javascript" src="../js/jquery-3.2.1.min.js"></script>
+		<script type="text/javascript" src="../js/datatables.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
+
+		<link href="../style/css/datatables.min.css" rel="stylesheet" type="text/css">
+		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>LDBIRD</title>
+	</head>
+	<body>
+		<div class="header" id="header1">
+			<!--<img src = "style/images/qctool.png" class = "header_img" ></img>-->
+			<div class="header_text">
+				LDBIRD
+			</div>
+			<div class="header_subtext">
+				Software to compute and histogram pairwise LD metrics
+			</div>
+		</div>
+
+<section class="main_text">
+<h3>Filtering variants</h3>
+<p>The following options can be used to filter variants from the analysis. Each of these options comes in an inclusiong
+variant (<code>-incl-...</code>), which tells LDBIRD to only focus on the specified variants, and an exclusion variant
+(<code>-excl-...</code>) which tells LDBIRD to ignore the specified variants, and each applies either to the predictor or
+outcome genotypes:</p>
+<ul>
+<li>
+<p><code>-g1-[in|ex]cl-range</code>: specify a genomic range or list of ranges to include or exclude outcome variants from, applied to the file specified by <code>-g1</code>.</p>
+</li>
+<li>
+<p><code>-g1-[in|ex]cl-rsids</code>: specify a set of variant IDs to include or exclude outcome variants from, applied to the file specified by <code>-g1</code>.</p>
+</li>
+<li>
+<p><code>-g2-[in|ex]cl-range</code>: as above but for the file specified by <code>-g2</code>.</p>
+</li>
+<li>
+<p><code>-g2-[in|ex]cl-rsids</code>: as above but for the file specified by <code>-g2</code>.</p>
+</li>
+</ul>
+<h3>Filtering samples</h3>
+<p>The following options can be used to filter samples from the analysis:</p>
+<ul>
+<li>
+<p><code>-[in|ex]cl-samples</code>: specify a list of samples to include or exclude from the analysis. For this purpose, samples are identified
+by their identifier in the first column of the sample file.</p>
+</li>
+<li>
+<p><code>-[in|ex]cl-samples-where</code>: specify a condition to apply to rows of the sample file to determine if the sample
+  should be included or excluded. The general syntax is <code>-[in|ex]cl-samples-where '&lt;column&gt;[=|==|!=]&lt;value&gt;'</code>, which
+  will cause HPTEST to compare the values in the column named <column> of the sample file to the given value, and
+  include/exclude samples based on whether the values match (= or ==) or mismatch (!=).</p>
+</li>
+</ul>
+</section>
+		<nav class="button_bar">
+			<div>
+				<div class="nav_button" name="overview">
+					<a href="../index.html">overview</a>
+				</div>
+				<div class="nav_button" name="documentation">
+					documentation
+					<ul class="menu">
+						<li><a href="../documentation/getting_started.html">Getting started</a></li>
+						<li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+					</ul>
+				</div>
+				<div class="nav_button" name="download">
+					<a href="../documentation/download.html">download</a>
+				</div>
+			</div>
+		</nav>
+
+	</body>
+</html>

@@ -1,0 +1,92 @@
+nav {
+	width: 1000px ;
+	position: absolute ;
+	top: 2em;
+	height: 1.5em;
+//	left: 20px ;
+	margin-left: auto ;
+	margin-right: auto ;
+	font-family: helvetica, sans-serif ;
+	font-size: 16pt ;
+	color: #000000;
+	padding-top: 0px ;
+	padding-bottom: 10px ;
+	padding-left: 0px ;
+	margin-top:0px ;
+	margin-bottom:0px ;
+	border-radius: 2px ;
+	/*border: 1px solid black ;*/
+}
+
+nav > div {
+	width: 500px ;
+	margin-left: auto ;
+	margin-right: auto ;
+	//background-color: rgba( 220, 220, 220, 0.95 ) ;
+}
+
+.nav_button {
+	display: inline-block;
+	position: relative;
+	box-sizing: border-box ;
+	//margin-top: 10px ;
+	padding-left: 25px ;
+	padding-right: 25px ;
+	padding-top: 3px ;
+	padding-bottom: 0px ;
+	text-align: left ;
+}
+
+.nav_button.open {
+	background-color: rgba( 51, 176, 254, 0.9 ) ;
+}
+
+.nav_button ul a:hover {
+	background-color: rgba( 51, 176, 254, 0.9 ) ;
+}
+
+.nav_button a {
+	padding-left: 5px ;
+	padding-right: 5px ;
+	display: inline-block ;
+}
+
+.nav_button ul {
+	display:none ;
+	float: left ;
+	clear: both ;
+	box-sizing: border-box;
+	position: absolute ;
+	box-sizing: content-box ;
+	list-style: none;
+	text-align: left ;
+	left: 0px ;
+	min-width: 300px ;
+	background-color: white ;
+	padding: 3px ;
+	margin: 0px ;
+	font-size: 14px ;
+	/*width: 180px ;*/
+	padding-left: 3px ;
+	padding-right: 3px ;
+	background-color: rgba( 220, 220, 220, 0.95 ) ;
+	border-radius: 0px 0px 4px 4px;
+	box-shadow: 4px 4px 4px 0px rgba(0,0,0,0.2);
+}
+
+.nav_button ul a {
+	display: block;
+	width: auto;
+	padding-top: 2px ;
+	padding-bottom: 2px ;
+	padding-left: 15px ;
+}
+
+nav a, nav a:hover, nav a:visited {
+	color: black;
+	text-decoration: none ;
+}
+
+.nav_button.open ul {
+	display:block ;
+}

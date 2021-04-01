@@ -1,0 +1,79 @@
+#download table {
+	text-align: left ;
+	width: 600px ;
+	border: 1px solid black ;
+	background-color: #CCCCCC ;
+	padding: 10px ;
+}
+
+.file_formats, .option_table {
+	table-layout: fixed ;
+	width: 800px ;
+	margin-left: auto ;
+	margin-right: auto ;
+	font-family: helvetica, sans-serif ;
+	border-collapse: collapse ;
+}
+
+.file_formats thead, .option_table thead {
+	font-size: 14px ;
+	text-align: left ;
+	margin-bottom: 2px ;
+	vertical-align: bottom ;
+}
+
+.file_formats tbody, .option_table tbody {
+	font-size: 12px ;
+}
+
+.file_formats tr, .option_table tr {
+	margin-top: 10px ;
+	margin-bottom: 10px ;
+}
+
+tr:nth-child(even) {
+	background: "grey" ;
+}
+
+tr:nth-child(odd) {
+	background: "red" ;
+}
+
+table.dataTable tr.odd { background-color: #eeeeee; }
+
+.file_formats th, .option_table th {
+	padding-top: 3px ;
+	padding-bottom: 3px ;
+	border-bottom: 1px solid black ;
+}
+
+.file_formats td, .option_table td {
+	height: 100% ;
+	vertical-align: top ;
+	padding-top: 20px ;
+	padding-bottom: 20px ;
+}
+
+.file_formats .acronym {
+	width: 150px ;
+}
+
+.file_formats .notes {
+	width: 400px ;
+}
+
+.file_formats .io {
+	width: 50px ;
+}
+
+.file_formats .filetype {
+	width: 150px ;
+}
+
+.option_table .option {
+	width: 200px ;
+}
+
+.option_table .description {
+	width: 500px ;
+}
