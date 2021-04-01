@@ -27,8 +27,9 @@ img.header_arrow {
 div.header_subtext {
 	position: absolute ;
 	padding-top: 20px ;
-	left: 100px ;
-	margin-left: 100px ;
+	left: 0px ;
+	width: 100% ;
+	text-align: center ;
 }
 
 div.header {
@@ -42,5 +43,5 @@ div.header {
 	position: absolute ;
 	height: 40px ;
 	top: 3px ;
-	left: 150px ;
+	right: 15px ;
 }
