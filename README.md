@@ -6,8 +6,8 @@ that manipulate gwas datasets and other genomic data. The repository is hosted [
 
 * [QCTOOL](http://www.well.ox.ac.uk/~gav/qctool), a program for manipulation and quality control of gwas datasets and other genome-wide data.  Read [the QCTOOL documentation](http://www.well.ox.ac.uk/~gav/qctool).
 * [Inthinnerator](http://www.well.ox.ac.uk/~gav/inthinnerator), a program for thinning genetic variants using a recombination map.  Read [the inthinnerator documentation](http://www.well.ox.ac.uk/~gav/inthinnerator).
-* [HPTEST](http://www.well.ox.ac.uk/~gav/hptest), a program for testing for association between host and parasite genotypes. See [the wiki page](/wiki/HPTEST) for more details.
-* [LDBIRD](http://www.well.ox.ac.uk/~gav/ldbird), a program for computing LD metrics between all pairs of variants in a genomic region or across whole genomes.  See [the wiki page](/wiki/LDBIRD) for more details.
+* [HPTEST](http://www.well.ox.ac.uk/~gav/hptest), a program for testing for association between host and parasite genotypes. Read the [HPTEST documentation](http://www.well.ox.ac.uk/~gav/hptest) for more details.
+* [LDBIRD](http://www.well.ox.ac.uk/~gav/ldbird), a program for computing LD metrics between all pairs of variants in a genomic region or across whole genomes.  Read the [LDBIRD documentation](http://www.well.ox.ac.uk/~gav/ldbird) for more details.
 
 ## Obtaining QCTOOL ##
 
