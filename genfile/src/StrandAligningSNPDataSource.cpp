@@ -73,6 +73,10 @@ namespace genfile {
 		return m_source->get_summary( prefix + "  " ) ;
 	}
 
+	bool StrandAligningSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
+
 	void StrandAligningSNPDataSource::get_sample_ids( GetSampleIds callback ) const {
 		return m_source->get_sample_ids( callback ) ;
 	}

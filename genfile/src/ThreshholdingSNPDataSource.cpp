@@ -47,6 +47,9 @@ namespace genfile {
 	unsigned int ThreshholdingSNPDataSource::number_of_samples() const {
 		return m_source->number_of_samples() ;
 	}
+	bool ThreshholdingSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
 	void ThreshholdingSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		return m_source->get_sample_ids( getter ) ;
 	}

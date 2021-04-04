@@ -109,6 +109,16 @@ namespace impl {
 	void set_vector_entry( std::vector< genfile::VariantEntry >* vector, std::size_t i, std::string const& value ) {
 		assert( i < vector->size() ) ;
 		(*vector)[i] = value ;
+	}		
+
+	void set_vector_entry_string( std::vector< std::string >* vector, std::size_t i, std::string const& value ) {
+		assert( i < vector->size() ) ;
+		(*vector)[i] = value ;
+	}
+
+	void set_vector_entry_variant( std::vector< std::string >* vector, std::size_t i, genfile::VariantEntry const& value ) {
+		assert( i < vector->size() ) ;
+		(*vector)[i] = value.as< std::string >() ;
 	}
 }
 
@@ -1135,6 +1145,14 @@ private:
 				}
 			}
 			if( boost::filesystem::exists( order_type ) ) {
+				if( !m_options.check( "-s" ) && !m_snp_data_source->has_sample_ids() ) {
+					throw genfile::BadArgumentError(
+						"QCToolCmdLineContext::setup()",
+						"-reorder " + order_type,
+						"Cannot reorder samples because the input files do not contain sample IDs.  (Do you need to specify -s?)"
+					) ;
+				}
+				
 				// order type is a file specifying the order.
 				std::auto_ptr< std::istream > file = genfile::open_text_file_for_input( order_type ) ;
 				std::vector< std::string > id_order ;
@@ -1384,8 +1402,13 @@ public:
 		}
 		snp_data_source = open_snp_data_sources( gen_filenames, m_options.check( "-flip-to-match-cohort1" ) ) ;
 
-		// Create a dummy sample file if none was provided
-		if( !samples.get() ) {
+		// From this point on we need a sample source.
+		// Either one was provided (in which case we check its IDs against the genotype file, if there are any)
+		// or none was provided (in which case we create an in-memory one.)
+		if( samples.get() && snp_data_source->has_sample_ids() ) {
+			check_sample_ids( *samples, *snp_data_source ) ;
+		} else if( !samples.get() ) {
+			// Create a dummy sample file if none was provided
 			samples = create_dummy_samples( *snp_data_source ) ;
 		}
 		
@@ -1452,6 +1475,42 @@ public:
 		// Put results in output variables
 		*result_samples = samples ;
 		*result_snp_data_source = snp_data_source ;
+	}
+
+private:
+	
+	void check_sample_ids(
+		genfile::CohortIndividualSource const& samples,
+		genfile::SNPDataSource const& snp_data_source
+	) const {
+		// check sample identifiers agree
+		// if not, abort unless -force is specified
+		std::vector< std::string > sample_file_ids( samples.size() ) ;
+		std::vector< std::string > genotype_file_ids( snp_data_source.number_of_samples() ) ;
+		samples.get_column_values( "ID_1", boost::bind( &impl::set_vector_entry_variant, &sample_file_ids, _1, _2 )) ;
+		snp_data_source.get_sample_ids( boost::bind( &impl::set_vector_entry_string, &genotype_file_ids, _1, _2 )) ;
+		assert( sample_file_ids.size() == genotype_file_ids.size() ) ;
+		if( sample_file_ids != genotype_file_ids ) {
+			// find first mismatch for a useful error message
+			std::size_t k = 0 ;
+			for( ; k < sample_file_ids.size(); ++k ) {
+				if( sample_file_ids[k] != genotype_file_ids[k] ) {
+					break ;
+				}
+			}
+			m_ui_context.logger() << "!! Error: sample file and genotype file sample IDs do not match!\n" ;
+			m_ui_context.logger() << "!! First mismatch is at sample " << (k+1) << ": IDs are \"" << sample_file_ids[k] << "\" and \"" << genotype_file_ids[k] << "\".\n" ;
+			if( m_options.check( "-force" ) ) {
+				m_ui_context.logger() << "!! ...continuing anyway as -force was specified.\n" ;
+			} else {
+				throw genfile::MismatchError(
+					"QCToolCmdLineContext::check_sample_ids()",
+					genfile::string_utils::join( m_options.get_values< std::string >( "-s" ), "," ),
+					sample_file_ids[k],
+					genotype_file_ids[k]
+				) ;
+			}
+		}
 	}
 
 private:
@@ -2107,7 +2166,10 @@ private:
 								bgen_sink->set_free_data( m_options.get< std::string >( "-bgen-free-data" ) ) ;
 							}
 							
-							bgen_sink->set_write_sample_identifier_block( m_options.check( "-s" ) && ! m_options.check( "-bgen-omit-sample-identifier-block" )) ;
+							bgen_sink->set_write_sample_identifier_block(
+								(m_snp_data_source->has_sample_ids() || m_options.check( "-s" ))
+								&& ! m_options.check( "-bgen-omit-sample-identifier-block" )
+							) ;
 						}
 					}
 					// gen-specific options

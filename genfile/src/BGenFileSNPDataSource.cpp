@@ -55,6 +55,10 @@ namespace genfile {
 		return result ;
 	}
 
+	bool BGenFileSNPDataSource::has_sample_ids() const {
+		return m_sample_ids ;
+	}
+
 	void BGenFileSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		if( m_sample_ids ) {
 			for( std::size_t i = 0; i < m_sample_ids->size(); ++i ) {

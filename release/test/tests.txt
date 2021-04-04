@@ -2,7 +2,7 @@
 *** Variables ***
 ${TMPDIR}	${CURDIR}/tmp
 ${HOME}	%{HOME}
-${QCTOOL}	../../build/release/qctool_v2.1-dev
+${QCTOOL}	../../build/release/apps/qctool_v2.2.0-rc1
 
 *** Settings ***
 Library	OperatingSystem
@@ -23,6 +23,12 @@ Runs basic commands
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>" }	ok
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "" }	fail
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "s": [ "data/test.sample" ], "sample-stats": "", "osample": "<tmp>" }	ok
+
+Rejects mismatching samples
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ] }	ok
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.sample" ] }	ok
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.wrongids.sample" ] }	fail
+	RunsCommandWithResult	{ "g": ["data/test.vcf" ], "s": [ "data/test.wrongids.sample" ], "force": 1 }	ok
 
 Accepts output formats
 	RunsCommandWithResult	{ "g": ["data/test.gen" ], "og": "<tmp>", "ofiletype": "gen" }	ok
@@ -54,22 +60,33 @@ Accepts input files
 	RunsCommandWithResult	{ "g": ["data/test.shapeit"], "s": [ "data/complex.sample" ], "filetype": "shapeit_haplotypes", "snp-stats": "", "osnp": "<tmp>" }	ok
 
 Filters samples
+	# test -incl-samples, with or without a sample file
 	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples": "data/good_sample_ids.txt", "ofiletype": "vcf" }	data/test.sample-filtered.vcf
+
+	# test -excl-samples, with or without a sample file
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
-	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples": "data/bad_sample_ids.txt", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+
+	# test -incl-samples-where
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
 	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "incl-samples-where": "multi1!=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
+
+	# test -excl-samples-where
+	RunsCommandWithOutputGen	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.v1.1.bgen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "s": [ "data/test.sample" ], "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.gen
+	RunsCommandWithOutputGen	{ "g": [ "data/test.vcf" ], "s": [ "data/test.sample" ], "vcf-genotype-field": "GT", "og": "<tmp>", "excl-samples-where": "multi1=case2", "ofiletype": "gen" }	data/test.sample-filtered.thresholded.gen
 
 Filters SNPs
 	RunsCommandWithOutputGen	{ "g": [ "data/test.gen" ], "og": "<tmp>", "incl-rsids": "data/good_snp_rsids.txt", "ofiletype": "gen" }	data/test.filtered.gen
@@ -96,6 +113,13 @@ Reorders Samples
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "bgen" }	data/complex.reordered.bgen
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "vcf" }	data/complex.backward.vcf
 	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "s": [ "data/complex.sample" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "bgen" }	data/complex.backward.bgen
+	# Without a sample file
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "vcf" }	data/complex.reordered.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "bgen" }	data/complex.reordered.bgen
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "vcf" }	data/complex.backward.vcf
+	RunsCommandWithExactOutput	{ "g": [ "data/complex.vcf" ], "og": "<tmp>", "reorder": "backwards", "ofiletype": "bgen" }	data/complex.backward.bgen
+	# Should fail if no sample IDs in input and a file is given
+	RunsCommandWIthResult	{ "g": [ "data/test.gen" ], "og": "<tmp>", "reorder": "data/order.txt", "ofiletype": "vcf" }	fail
 
 Computes LD
 	RunsCommandWithResult	{ "g": [ "data/test.bgen" ], "s": [ "data/test.sample" ], "compute-ld-with": [ "data/test.bgen", "data/test.sample" ], "old": "<tmp>" }	ok
@@ -105,9 +129,10 @@ Computes LD
 Produces well-formed snp stats output
 	@{commandSpecs}=	Create List	{ "snp-stats": "", "osnp": "<tmp>" }
 	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
-	:FOR	${commandSpec}	IN	@{commandSpecs}
-	\	${startChar}=	Get Substring	${commandSpec}	0	1
-	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSnpStatsOutput	${commandSpec}
+	FOR	${commandSpec}	IN	@{commandSpecs}
+		${startChar}=	Get Substring	${commandSpec}	0	1
+		Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSnpStatsOutput	${commandSpec}
+	END
 
 Computes correct snp stats
 	CheckRun	Rscript	--vanilla	stats_test.R	--qctool	${QCTOOL}
@@ -122,10 +147,10 @@ Correctly merges files
 Produces well-formed sample output
 	@{commandSpecs}=	Create List	{ "sample-stats": "", "osample": "<tmp>" }
 	Set data	{ "g": ["data/test.gen"], "s": ["data/test.sample"] }
-	:FOR	${commandSpec}	IN	@{commandSpecs}
-	\	${startChar}=	Get Substring	${commandSpec}	0	1
-	\	Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSampleStatsOutput	${commandSpec}
-
+	FOR	${commandSpec}	IN	@{commandSpecs}
+		${startChar}=	Get Substring	${commandSpec}	0	1
+		Run Keyword If	'${startChar}' != '\#'	ProducesWellFormedSampleStatsOutput	${commandSpec}
+	END
 Accepts Different VCF fields
 	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GT", "osnp": "<tmp>" }
 	ProducesWellFormedSnpStatsOutput	{ "g": ["data/test.v4.2.vcf"], "s": ["data/test.sample" ], "snp-stats":"", "vcf-genotype-field": "GP", "osnp": "<tmp>" }
@@ -152,18 +177,20 @@ Roundtrips allele probs formats
 	CheckRun	Rscript	--vanilla	test_allele_probs_format.R	--iterations	10	--qctool	${QCTOOL}
 
 Roundtrips gen files via bgen (v1.2, even bit counts)
-	:FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
+	FOR	${bits}	IN	2	4	6	8	10	12	14	16	18	20	22	24	26	28	30	32
+		CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
+	END
 
 Roundtrips gen files via bgen (v1.2, odd bit counts)
-	:FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
-	\	CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
+	FOR	${bits}	IN	1	3	5	7	9	11	13	15	17	19	21	23	25	27	29	31
+		CheckRun	Rscript	--vanilla	random_test_bgen.R	--bits	${bits}	--iterations	10	--max_samples	10	--variants	10	--bgen_version	v1.2	--qctool	${QCTOOL}
+	END
 
 *** Keywords ***
 
 CheckRun
 	[Arguments]	@{command}
-	${result} =	Run Process	@{command}
+	${result} =	Run Process	@{command}	stdout=DEVNULL	stderr=DEVNULL
 	ShouldBeEqualAsIntegers	${result.rc}	0
 
 RunsCommandWithResult
@@ -186,8 +213,9 @@ RunsCommandWithColumns
 	[Arguments]	${command}	@{columns}
 	${filenames}=	Run Qctool	${command}	ok
 	${filename}=	Get Variable Value	${filenames['osnp']}
-	:FOR	${elt}	IN	@{columns}
-	\	Has Exact Column	${filename}	${elt}
+	FOR	${elt}	IN	@{columns}
+		Has Exact Column	${filename}	${elt}
+	END
 
 ProducesWellFormedSampleStatsOutput
 	[Arguments]	${command}

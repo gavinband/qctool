@@ -15,7 +15,7 @@ class QctoolRunner:
 		self.qctool = qctool
 		self.command = 'snp-stats'
 		self.gdata = [ 'data/test.gen' ]
-		self.sdata = [ 'data/test.sample' ]
+		self.sdata = None
 		self.log = None
 		self.outputFilename = None
 
@@ -45,8 +45,9 @@ class QctoolRunner:
 		logger.debug( gdata, sdata )
 		for i in range( 0, len(gdata) ):
 			cmd += [ "-g", gdata[i] ]
-		for i in range( 0, len(sdata) ):
-			cmd += [ "-s", sdata[i] ]
+		if sdata is not None:
+			for i in range( 0, len(sdata) ):
+				cmd += [ "-s", sdata[i] ]
 		
 		for option in [
 			'vcf-genotype-field',
@@ -75,18 +76,24 @@ class QctoolRunner:
 		for option in [ 'snp-stats', 'sample-stats' ]:
 			if values.get( option, None ) is not None:
 				cmd.extend( [ '-%s' % option ] )
+
+		for option in [ 'force' ]:
+			if option in values:
+				cmd.extend( [ '-%s' % option ] )
 		
 		if ogdata is not None:
 			cmd.extend( [ '-og', ogdata ])
 		if osdata is not None:
 			cmd.extend( [ '-os', osdata ])
 		
-		print( cmd, file = temp )
+		print( ' '.join( cmd ), file = temp )
 		try:
-			subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			#subprocess.check_call( cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+			subprocess.check_call( cmd, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL )
 			if expected != 'ok':
 				raise Exception( "Expected failure: %s" % command )
 		except subprocess.CalledProcessError as e:
+			print( 'ok', file = temp )
 			if expected == 'ok':
 				raise Exception( "Expected success: %s" % command )
 		finally:

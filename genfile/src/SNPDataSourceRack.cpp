@@ -148,6 +148,16 @@ namespace genfile {
 			std::size_t m_offset ;
 		} ;
 	}
+
+	bool SNPDataSourceRack::has_sample_ids() const {
+		for( std::size_t i = 0; i < m_sources.size(); ++i ) {
+			if( m_sources[i]->has_sample_ids() ) {
+				return true ;
+			}
+		}
+		return false ;
+	}
+
 	void SNPDataSourceRack::get_sample_ids( GetSampleIds getter ) const {
 		std::size_t offset = 0 ;
 		for( std::size_t i = 0; i < m_sources.size(); ++i ) {

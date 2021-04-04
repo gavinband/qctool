@@ -26,6 +26,7 @@ namespace genfile {
 		Metadata get_metadata() const ;
 
 		unsigned int number_of_samples() const { return m_number_of_samples ; }
+		bool has_sample_ids() const { return false ; }
 		OptionalSnpCount total_number_of_snps() const { return m_snps.size() ; }
 		
 		operator bool() const { return m_good ; }

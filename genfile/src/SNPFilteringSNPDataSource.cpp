@@ -48,6 +48,10 @@ namespace genfile {
 		return m_source->number_of_samples() ;
 	}
 
+	bool SNPFilteringSNPDataSource::has_sample_ids() const {
+		return m_source->has_sample_ids() ;
+	}
+
 	void SNPFilteringSNPDataSource::get_sample_ids( GetSampleIds getter ) const {
 		return m_source->get_sample_ids( getter ) ;
 	}

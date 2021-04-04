@@ -2,11 +2,11 @@
 ##FORMAT=<ID=GP,Type=Float,Number=G,Description="Genotype call probabilities">
 ##FORMAT=<ID=GT,Type=String,Number=1,Description="Genotype call probabilities, threshholded at 0.90">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample_0	sample_1
-1	1	rs1,SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	./.:0,0,0
-X	1	rs1,SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	.:0,0
-1	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0/0:1,0,0
-X	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0:1,0
-1	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	0/1:0,1,0
-X	1	rs1,SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	1:0,1
-1	1	rs1,SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1/1:0,0,1
-X	1	rs1,SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1:0,1
+1	1	rs1;SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	./.:0,0,0
+X	1	rs1;SNP1	A	G	.	.	.	GT:GP	./.:0,0,0	.:0,0
+1	1	rs1;SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0/0:1,0,0
+X	1	rs1;SNP1	A	G	.	.	.	GT:GP	0/0:1,0,0	0:1,0
+1	1	rs1;SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	0/1:0,1,0
+X	1	rs1;SNP1	A	G	.	.	.	GT:GP	0/1:0,1,0	1:0,1
+1	1	rs1;SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1/1:0,0,1
+X	1	rs1;SNP1	A	G	.	.	.	GT:GP	1/1:0,0,1	1:0,1

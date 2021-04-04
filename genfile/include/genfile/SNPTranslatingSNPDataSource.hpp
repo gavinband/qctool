@@ -45,6 +45,14 @@ namespace genfile {
 			return m_source->number_of_samples() ;
 		}
 
+		bool has_sample_ids() const {
+			return m_source->has_sample_ids() ;
+		}
+
+		void get_sample_ids( GetSampleIds callback ) const {
+			return m_source->get_sample_ids( callback ) ;
+		}
+
 		OptionalSnpCount total_number_of_snps() const {
 			return m_source->total_number_of_snps() ;
 		}

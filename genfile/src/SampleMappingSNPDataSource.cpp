@@ -283,6 +283,10 @@ namespace genfile {
 		return m_sample_mapping->number_of_source_samples() ;
 	}
 
+	bool SampleMappingSNPDataSource::has_sample_ids() const {
+		return false ; // not implemented
+	}
+
 	void SampleMappingSNPDataSource::get_sample_ids( GetSampleIds ) const {
 		assert(0) ; // requires implementation
 		return ;	
