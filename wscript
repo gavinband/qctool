@@ -249,3 +249,19 @@ namespace globals {
 > ${TGT}"""
 	)
 
+def release( bld ):
+	import sys
+	from waflib.Options import options
+	sys.path.append( "release" )
+	import Release.TestHarness
+	import Release.ReleaseBuilder
+	
+	if options.all_targets:
+		apps = [ 'qctool', 'inthinnerator', 'ldbird', 'hptest' ]
+	else:
+		apps = [ 'qctool' ]
+	for app in apps:
+		executable = "build/release/apps/%s_v%s" % ( app, VERSION )
+		builder = Release.ReleaseBuilder.ReleaseBuilder( app, VERSION, executable )
+		release = builder.build()
+		print( "++ %s release tarball created in", release[ "release_tarball" ] )

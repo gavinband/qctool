@@ -21,7 +21,7 @@ class ReleaseBuilder:
 		shutil.copyfile( self.executable, target_executable )
 		shutil.copymode( self.executable, target_executable )
 		shutil.copyfile( "LICENSE_1_0.txt", "%s/LICENSE_1_0.txt" % release_dir )
-		shutil.copyfile( "CHANGELOG.txt", "%s/CHANGELOG.txt" % release_dir )
+		#shutil.copyfile( "CHANGELOG.txt", "%s/CHANGELOG.txt" % release_dir )
 		target_tarball =  '%s/%s.tgz' % ( tempdir, release_stub )
 		process = subprocess.Popen( [ 'tar', '-czf', target_tarball, release_stub ], cwd = tempdir )
 		process.wait()
