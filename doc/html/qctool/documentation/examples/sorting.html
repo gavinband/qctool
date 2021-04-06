@@ -2,10 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
+
 		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
 		<script type="text/javascript" src="../../js/local.js"></script>
- 		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -18,72 +19,71 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<h2>Sorting and reordering data</h2>
-				<div class="task">
-					<div class="task_name">
-						Sorting variants
-					</div>
-					<div class="task_notes">
-						The <code>-sort</code> option tells QCTOOL to sort variants in its output file:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og sorted.bgen -sort
-					</div>
-					<div class="task_notes">
-						<p>
-							The way this works is that QCTOOL first writes the data to a temporary file in the order that it is processed,
-							keeping a record of the file locations of each variant in memory.  It then copies each variant from the
-							temporary file to the destination in the desired order.
-						</p>
-						<p>
-							The sort operation currently works for BGEN, unzipped GEN, and unzipped VCF output formats.
-					</p>
+<section class="main_text">
+    <h2>Sorting and reordering data</h2>
+        <div class="task">
+            <div class="task_name">
+                Sorting variants
+            </div>
+            <div class="task_notes">
+                The <code>-sort</code> option tells QCTOOL to sort variants in its output file:
+            </div>
+            <div class="task_command_line">
+                $ qctool -g example.bgen -og sorted.bgen -sort
+            </div>
+            <div class="task_notes">
+                <p>
+                    The way this works is that QCTOOL first writes the data to a temporary file in the order that it is processed,
+                    keeping a record of the file locations of each variant in memory.  It then copies each variant from the
+                    temporary file to the destination in the desired order.
+                </p>
+                <p>
+                    The sort operation currently works for BGEN, unzipped GEN, and unzipped VCF output formats.
+            </p>
 
-						</p>
-						<p>
-						By default QCTOOL sorts based on on genomic position,
-						alleles, and ID fields.  You can change this by specifying the <code>-compare-variants-by</code> option, e.g.:
-					</p>
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og sorted.bgen -sort -compare-variants-by ids
-					</div>
-					<div class="task_notes">
-						<p>
-							Possible fields that can be sorted on are: <code>position</code>, <code>alleles</code>,
-						<code>ids</code>, <code>rsid</code> (which refers to the first or primary ID in the dataset),
-						or <code>snpid</code> (which refers all but the first ID in each dataset).
-					</p>
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Reordering samples
-					</div>
-					<div class="task_notes">
-						The <code>-reorder</code> option tells QCTOOL to reorder samples in its input.  The format is:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og reordered.bgen -reorder &lt;filename&gt;
-					</div>
-					<div class="task_notes">
-						<p>
-						where <code>&lt;filename&gt;</code> is the name of a readable file containing sample identifiers.
-						This file must contain exactly <em>N</em> identifiers (if there are <em>N</em> samples being processed)
-						and each identifer must be the primary identifier of a sample being processed.</p>
-						<p>Alternatively, <code>-reorder</code> can take one of following the two special values:
-							<code>-reorder backwards</code> will reverse the order of samples, and <code>-reorder randomly</code> will
-							randomly reorder samples.
-						</p>
-					</div>
-					
-					
-					
-					
-				</div>
-		</section>
-		
+                </p>
+                <p>
+                By default QCTOOL sorts based on on genomic position,
+                alleles, and ID fields.  You can change this by specifying the <code>-compare-variants-by</code> option, e.g.:
+            </p>
+            </div>
+            <div class="task_command_line">
+                $ qctool -g example.bgen -og sorted.bgen -sort -compare-variants-by ids
+            </div>
+            <div class="task_notes">
+                <p>
+                    Possible fields that can be sorted on are: <code>position</code>, <code>alleles</code>,
+                <code>ids</code>, <code>rsid</code> (which refers to the first or primary ID in the dataset),
+                or <code>snpid</code> (which refers all but the first ID in each dataset).
+            </p>
+            </div>
+        </div>
+        <div class="task">
+            <div class="task_name">
+                Reordering samples
+            </div>
+            <div class="task_notes">
+                The <code>-reorder</code> option tells QCTOOL to reorder samples in its input.  The format is:
+            </div>
+            <div class="task_command_line">
+                $ qctool -g example.bgen -og reordered.bgen -reorder &lt;filename&gt;
+            </div>
+            <div class="task_notes">
+                <p>
+                where <code>&lt;filename&gt;</code> is the name of a readable file containing sample identifiers.
+                This file must contain exactly <em>N</em> identifiers (if there are <em>N</em> samples being processed)
+                and each identifer must be the primary identifier of a sample being processed.</p>
+                <p>Alternatively, <code>-reorder</code> can take one of following the two special values:
+                    <code>-reorder backwards</code> will reverse the order of samples, and <code>-reorder randomly</code> will
+                    randomly reorder samples.
+                </p>
+            </div>
+
+
+
+
+        </div>
+</section>
 		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../../index.html">overview</a>
 			</div>
@@ -127,6 +127,6 @@
 			</div>
 </div>
 </nav>
-		
+
 	</body>
 </html>

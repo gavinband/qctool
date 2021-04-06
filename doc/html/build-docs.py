@@ -42,8 +42,8 @@ for directory, dnames, filenames in os.walk( contentPath ):
 	outputDirectory = os.sep.join( [ directoryParts[0] ] + directoryParts[2:] )
 	directoryLevel = (directory.count( os.sep ) - initialDepth)
 	for filename in filenames:
-		print( "++ Looking at %s..." % filename )
 		if filename.endswith( ".content.html" ):
+			print( "++ Processing %s..." % filename )
 			total = total + 1
 			print( "++ Reading content from %s..." % os.path.join( directory, filename ))
 			content = open( os.path.join( directory, filename ), 'r' ).read() ;

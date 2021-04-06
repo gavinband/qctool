@@ -19,97 +19,60 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<div id="overview">
-				<p>
-					QCTOOL is a command-line utility program for manipulation and quality control of gwas datasets and other genome-wide data. QCTOOL can be used
-				</p>
-				<ul>
-					<li>To compute per-variant and per-sample QC metrics.
-					</li>
-					<li>To filter out samples or variants.
-					</li>
-					<li>To merge datasets in various ways.
-					</li>
-					<li>To convert dataset between file formats. (In particular QCTOOL can
-						read and write <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files,
-						including full support for the BGEN v1.2 format that has been used for
-						the <a href="http://www.ukbiobank.ac.uk/scientists-3/genetic-data/">UK Biobank imputed data full release</a>).
-					</li>
-					<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence based on information in a strand file.
-					</li>
-					<li>To annotate variants with information from BED files, sequence from FASTA files, or with genetic map positions.
-					</li>
-					<li>To compute LD metrics between variants.
-					</li>
-					<li>To compare genotypes for individuals typed or imputed or phased in different datasets.
-					</li>
-					<li>To compute between-sample relatedness and principal components.
-					</li>
-					<li>To compute 'genetic risk predictor' scores.
-					</li>
-				</ul>
-				<p>
-					QCTOOL is designed to be as easy-to-use as possible and we hope you find it so. See the <a href='#documentation'>documentation page</a> for a description of how QCTOOL works.
-				</p>
-				<p>
-					<b>IMPORTANT</b>: this page documents QCTOOL version 2, which differs in several important ways from the 
-					original <a href="http://www.well.ox.ac.uk/~gav/qctool">QCTOOL v1</a>.
-					Version 1 is still available but is now unsupported.
-				</p>
-				
-				<p>
-					<strong>Change history.</strong> QCTOOL version 2 is currently in 'release candidate' state.  This means some features may not work, or not work well,
-					or work wrongly, or destroy your computer, or your sanity. The best place to receive support is on
-					the <a href="http://www.jiscmail.ac.uk/cgi-bin/webadmin?A0=OXSTATGEN">OXSTATGEN mailing list</a>.
-					QCTOOL also has a public <a href="">issue tracker</a>, but please 
-				</p>QCTOOL v2 also differs in several important ways from the v1 release series. Some important changes in QCTOOL v2 relative to v1 are:
-				<ul>
-					<li>
-						<b>Support for more file formats</b>: QCTOOL v2 supports a diverse array of common file formats - 
-						see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.
-					</li>
-					<li>
-						<b>Support for more features</b>: QCTOOL v2 has a bunch of features not found in v1 - for example it
-						can <a href="documentation/examples/computing_ld.html">compute LD metrics</a>,
-						<a href="documentation/examples/altering_id_data.html">apply strand alignments</a>,
-						<a href="documentation/examples/annotating.html">annotate variants</a> with information from external sources, and more.
-					</li>
-					<li>
-						<b>Removal of on-the-fly filtering options</b>: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options
-						to exclude them in a seperate QCTOOL run <a href="documentation/examples/filtering_samples.html">as described here</a> and <a href="documentation/examples/filtering_variants.html">here</a>. (That's often what you want anyway, since it's useful to have a record of what you've removed.)
-					</li>
-					<li>
-						<b>Treatment of chromosomes</b>: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to <a href="documentation/examples/altering_id_data.html">use the <code>-map-id-data</code> option</a> to replace chromosome identifiers on the fly during analysis.
-					</li>
-					<li>
-						<b>Changes to output of summary stats</b>: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code> and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, all per-sample summary computations are output the file specified by <code>-osample</code>.
-					</li>
-				</ul>
-				<p>
-					<strong>Acknowledgements.</strong> The following people contributed to the design and implementation of qctool:
-				</p>
-				<ul>
-					<li>
-						<a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
-					</li>
-					<li>
-						<a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a>
-					</li>
-				</ul>
-				<p>
-					In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a> code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium", Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
-					Further acknowledgements can be found on the <a href="https://code.enkre.net/qctool">QCTOOL repository main page</a>.
-				</p>
-				<p>
-					<strong>Contact.</strong> For more information or questions, please contact the oxstatgen mailing list at
-				</p>
-				<pre class="monospace">
-						oxstatgen (at) jiscmail.ac.uk
-				</pre>
-			</div>
-		</section>
-
+<section class="main_text">
+<h3>Introduction</h3>
+<p>QCTOOL is a command-line utility program for manipulation and quality control of gwas datasets and other genome-wide data. QCTOOL can be used</p>
+<ul>
+<li>To compute per-variant and per-sample QC metrics.</li>
+<li>To filter out samples or variants.</li>
+<li>To merge datasets in various ways.</li>
+<li>To convert dataset between file formats. (In particular QCTOOL can
+    read and write <a href="http://www.well.ox.ac.uk/~gav/bgen_format/bgen_format.html">BGEN</a> files,
+    including full support for the BGEN v1.2 format that has been used for
+    the <a href="http://www.ukbiobank.ac.uk/scientists-3/genetic-data/">UK Biobank imputed data full release</a>).</li>
+<li>To manipulate datasets in various ways - e.g. by updating data fields or aligning alleles to a reference sequence based on information in a strand file.</li>
+<li>To annotate variants with information from BED files, sequence from FASTA files, or with genetic map positions.</li>
+<li>To compute LD metrics between variants.</li>
+<li>To compare genotypes for individuals typed or imputed or phased in different datasets.</li>
+<li>To compute between-sample relatedness and principal components.</li>
+<li>To compute 'genetic risk predictor' scores.</li>
+</ul>
+<p>QCTOOL is designed to be as easy-to-use as possible and we hope you find it so. See the <a
+href="documentation/examples/basic.html">basic usage page</a> for a quick start on running QCTOOL, and the
+<a href='documentation/diagram_of_options.html'>diagram of options</a> for an overview of how QCTOOL works.</p>
+<p><strong>IMPORTANT</strong>: this page documents QCTOOL version 2, which differs in several important ways from the 
+original <a href="http://www.well.ox.ac.uk/~gav/qctool_v1">QCTOOL v1</a>.
+Version 1 is still available but is now unsupported.</p>
+<h3>Obtaining QCTOOL</h3>
+<p>The QCTOOL source code is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. You may also be able
+to obtain precompiled binaries from <a href="https://www.well.ox.ac.uk/~gav/resource/">this folder</a>. See the <a
+href="documentation/download.html">download page</a> for full details on obtaining and installing QCTOOL.</p>
+<h3>Change history</h3>
+<p><strong>Changes in v2.2.0</strong>:</p>
+<p><strong>Changes in v2.0.8</strong>:</p>
+<p><strong>Changes in v2.0 series</strong>: QCTOOL v2 differs in several important ways from the v1 release series. Some important
+changes in QCTOOL v2 relative to v1 are:</p>
+<ul>
+<li><em>Support for more file formats</em>: QCTOOL v2 supports a diverse array of common file formats - 
+    see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.</li>
+<li><em>Support for more features</em>: QCTOOL v2 has a bunch of features not found in v1 - for example it
+    can <a href="documentation/examples/computing_ld.html">compute LD metrics</a>,
+    <a href="documentation/examples/altering_id_data.html">apply strand alignments</a>,
+    <a href="documentation/examples/annotating.html">annotate variants</a> with information from external sources, and more.</li>
+<li><em>Removal of on-the-fly filtering options</em>: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options
+    to exclude them in a seperate QCTOOL run <a href="documentation/examples/filtering_samples.html">as described here</a> and <a href="documentation/examples/filtering_variants.html">here</a>. (That's often what you want anyway, since it's useful to have a record of what you've removed.)</li>
+<li><em>Treatment of chromosomes</em>: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to <a href="documentation/examples/altering_id_data.html">use the <code>-map-id-data</code> option</a> to replace chromosome identifiers on the fly during analysis.</li>
+<li><em>Changes to output of summary stats</em>: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code> and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, all per-sample summary computations are output the file specified by <code>-osample</code>.</li>
+</ul>
+<h3>Acknowledgements</h3>
+<p>The following people contributed to the design and implementation of qctool:
+* <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
+* <a href="http://www.stats.ox.ac.uk/~marchini/">Jonathan Marchini</a></p>
+<p>In addition, QCTOOL contains the <a href="http://www.sph.umich.edu/csg/abecasis/Exact/index.html">SNP-HWE</a> code by Jan Wigginton et al., described in "A Note on Exact Tests of Hardy-Weinberg Equilibrium", Wigginton et al, <i>Am. J. Hum. Genet</i> (2005) 76:887-93.
+Further acknowledgements can be found on the <a href="https://code.enkre.net/qctool">QCTOOL repository main page</a>.</p>
+<h3>Getting support</h3>
+<p>For more information or questions, please contact the OXSTATGEN mailing list at <code>oxstatgen (at) jiscmail.ac.uk</code></p>
+</section>
 		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="index.html">overview</a>
 			</div>

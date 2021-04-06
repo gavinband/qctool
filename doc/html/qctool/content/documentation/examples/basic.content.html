@@ -1,0 +1,56 @@
+<section class="main_text">
+	<h2>Basic examples</h2>
+		<div class="tutorial_header">
+
+		This and the other pages in the 'examples' menu show some basic command lines used to carry out common tasks
+		with QCTOOL. For more information see also the <a href="[ROOT]/documentation/alphabetical_options.html">list of
+		options</a> and the <a href="[ROOT]/documentation/diagram_of_options.html">diagram of options</a>."
+
+		</div>
+		<div class="tutorial_separator">
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Run qctool
+			</div>
+			<div class="task_command_line">
+				$ qctool
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				View the program usage page
+			</div>
+			<div class="task_command_line">
+				$ qctool -help | less
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Get a computer-readable list of options
+			</div>
+			<div class="task_command_line">
+				$ qctool -spec
+			</div>
+			<div class="task_notes">
+				<b>Note:</b> output is is JSON format.  This option is used to construct the <a href="../alphabetical_options.html">table of options</a>.
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Capture screen output in log file
+			</div>
+			<div class="task_command_line">
+				$ qctool [other options] -log log.txt
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Get some summary information about a genotypes file
+			</div>
+			<div class="task_command_line">
+				$ qctool -g &lt;genotypes file&gt;
+			</div>
+		</div>
+</section>

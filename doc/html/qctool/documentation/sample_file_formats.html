@@ -2,20 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
-		<script type="text/javascript" src="../js/jquery.ba-hashchange.min.js"></script>
-		<script type="text/javascript" src="../js/local.js"></script>
 
- 
-		<script type="text/javascript">
-			$(document).ready(
-				function() {
-					setFirstPage( "overview" ) ;
-				}
-			) ;
-		</script>
+		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
 		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -28,52 +19,52 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<h2>Sample file formats</h2>
-			<h3>SNPTEST sample file format</h3>
-			<p>QCTOOL uses the same sample file format as <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a>.
-				This is a space-separated file with two header lines followed by data, as follows.
-			</p>
-				<dl>
-					<dt>Header line</dt>
-					<dd>This line lists the name of each column.  Column names can be arbitrary printable characters, not including whitespace.</dd>
-					<dt>Column type line</dt>
-					<dd>This line lists the 'type' of each column and is used by QCTOOL to process data in an appropriate way.
-						There must be one type for each column.  Allowable column types are:
-						<ul>
-							<li>0 (for the first identifier column)</li>
-							<li>D (for a column containing discrete values, e.g. a set of strings)</li>
-							<li>P or C - for columns containing continuous value - each value must be numerical, or a missing value.</li>
-							<li>B - for a column containing a binary trait.  The values in this column must be '0', '1', 'control', or 'case'.</li>
-						</ul>
-						In addition to the first column, QCTOOL optionally allows
-						there to be a column called 'ID_2' and/or a column called 'missing' that have type '0'.
-						Internally these are treated like columns of type 'D'.
-					</dd>
-					<dt>
-						Data lines
-					</dt>
-					<dd>Data for each sample.  There should be one data line per sample in the genotypes file, and these must be in the same
-						order that they appear in the genotypes file.
-					</dd>
-				</dl>
-				<p>
-					By default 'NA' is used for missing values in the sample file. Any value in any column that is equal (as a string literal)
-					to "NA" will be treated as missing.  (The option <code>-missing-code</code> can be
-					used to alter what is treated as a missing value.)
-				</p>
-				<p>
-					The first column in a sample file must always be of type '0' and it is always treated as sample identifiers.
-					We strongly recommend that the identifiers used are chosen to be unique across a project.
-				</p>
-				<p>
-					Relative to the traditional format used in SNPTEST, QCTOOL allows some modifications:
-				</p>
-				<ul>
-					<li>The only mandatory column is the first column, which must of type '0' and contains sample identifiers.</li>
-				</ul>
-				<p>An example of a sample file is:</p>
-				<code>
+<section class="main_text">
+    <h2>Sample file formats</h2>
+    <h3>SNPTEST sample file format</h3>
+    <p>QCTOOL uses the same sample file format as <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a>.
+        This is a space-separated file with two header lines followed by data, as follows.
+    </p>
+        <dl>
+            <dt>Header line</dt>
+            <dd>This line lists the name of each column.  Column names can be arbitrary printable characters, not including whitespace.</dd>
+            <dt>Column type line</dt>
+            <dd>This line lists the 'type' of each column and is used by QCTOOL to process data in an appropriate way.
+                There must be one type for each column.  Allowable column types are:
+                <ul>
+                    <li>0 (for the first identifier column)</li>
+                    <li>D (for a column containing discrete values, e.g. a set of strings)</li>
+                    <li>P or C - for columns containing continuous value - each value must be numerical, or a missing value.</li>
+                    <li>B - for a column containing a binary trait.  The values in this column must be '0', '1', 'control', or 'case'.</li>
+                </ul>
+                In addition to the first column, QCTOOL optionally allows
+                there to be a column called 'ID_2' and/or a column called 'missing' that have type '0'.
+                Internally these are treated like columns of type 'D'.
+            </dd>
+            <dt>
+                Data lines
+            </dt>
+            <dd>Data for each sample.  There should be one data line per sample in the genotypes file, and these must be in the same
+                order that they appear in the genotypes file.
+            </dd>
+        </dl>
+        <p>
+            By default 'NA' is used for missing values in the sample file. Any value in any column that is equal (as a string literal)
+            to "NA" will be treated as missing.  (The option <code>-missing-code</code> can be
+            used to alter what is treated as a missing value.)
+        </p>
+        <p>
+            The first column in a sample file must always be of type '0' and it is always treated as sample identifiers.
+            We strongly recommend that the identifiers used are chosen to be unique across a project.
+        </p>
+        <p>
+            Relative to the traditional format used in SNPTEST, QCTOOL allows some modifications:
+        </p>
+        <ul>
+            <li>The only mandatory column is the first column, which must of type '0' and contains sample identifiers.</li>
+        </ul>
+        <p>An example of a sample file is:</p>
+        <code>
 ID sex case covariate<br/>
 0 D B C<br/>
 sample1 M control 0.1<br/>
@@ -82,11 +73,53 @@ sample3 F control -0.15<br/>
 sample4 F case -0.01<br/>
 sample4 NA NA 0.025<br/>
 (etc.)<br/>
-				</code>
-		</section>
+        </code>
+</section>
 
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
+<nav class="button_bar"><div>
+    <div class="nav_button" name="overview">
+        <a href="../index.html">overview</a>
+    </div>
+    <div class="nav_button" name="documentation">
+        documentation
+        <ul class="menu">
+            <li><a href="../documentation/diagram_of_options.html">Diagram of options</a></li>
+            <li><a href="../documentation/alphabetical_options.html">List of options</a></li>
+        </ul>
+    </div>
+    <div class="nav_button" name="tutorial">
+        examples
+        <ul class="menu">
+            <li><a href="../documentation/examples/basic.html">Basic usage</a></li>
+            <li><a href="../documentation/examples/converting.html">Converting file formats</a></li>
+            <li><a href="../documentation/examples/converting_genotypes.html">Thresholding genotypes</a></li>
+            <li><a href="../documentation/examples/sorting.html">Sorting and reordering data</a></li>
+            <li><a href="../documentation/examples/combining.html">Combining datasets</a></li>
+            <li><a href="../documentation/examples/merging.html">Merging in variants</a></li>
+            <li><a href="../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
+            <li><a href="../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
+            <li><a href="../documentation/examples/filtering_samples.html">Filtering samples</a></li>
+            <li><a href="../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+            <li><a href="../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
+            <li><a href="../documentation/examples/annotating.html">Computing annotations</a></li>
+            <li><a href="../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+            <li><a href="../documentation/examples/computing_ld.html">Computing LD</a></li>
+            <li><a href="../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+            <li><a href="../documentation/examples/inferring_ploidy.html">Working with sex chromosomes</a></li>
+        </ul>
+    </div>
+    <div class="nav_button" name="file_formats">
+        file formats
+        <ul class="menu">
+            <a href="../documentation/genotype_file_formats.html">Genotype file formats</a>
+            <a href="../documentation/sample_file_formats.html">Sample file formats</a>
+            <a href="../documentation/summary_file_formats.html">Summary statistic file formats</a>
+    </div>
+    <div class="nav_button" name="download">
+        <a href="../documentation/download.html">download</a>
+    </div>
+</div>
+		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -127,7 +160,7 @@ sample4 NA NA 0.025<br/>
 			<div class="nav_button" name="download">
 				<a href="../documentation/download.html">download</a>
 			</div>
-		</div>
+</div>
 </nav>
 
 	</body>

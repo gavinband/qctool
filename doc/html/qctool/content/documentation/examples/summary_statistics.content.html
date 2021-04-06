@@ -1,0 +1,122 @@
+<section class="main_text">
+	<h2>Computing summary statistics</h2>
+		<div class="task">
+			<div class="task_name">
+				Per-sample summary statistics
+			</div>
+			<div class="task_notes">
+				The <code>-sample-stats</code> option can be used to compute per-sample summary statistics.
+				The output goes to a file specified by the <code>-osample</code> option.  E.g:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -sample-stats -osample sample-stats.txt
+			</div>
+			<div class="task_notes">
+				<p>
+					This computes per-sample summary statistics (average missingness and heterozygosity) and places
+					them in the file <Code>sample-stats.txt</code>.  Additionally, if array intensity data
+					is available (see <a href="intensities.html">processing intensity data</a>), average X channel, Y
+					channel, total (X+Y) and difference (X-Y) of intensities will be computed.
+					These can be used useful for QC purposes - for example,
+					average intensity on the X and Y chromosomes can be used to directly determine sample gender.
+				</p>
+				<p>
+					<b>Note:</b> the output file can be formatted in various of ways, controlled by the file extension.
+					See the page on <a href="../summary_file_formats.html">summary statistic file formats</a> for
+					information on output file formatting.
+				</p>
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Per-variant summary statistics
+			</div>
+			<div class="task_notes">
+				The basic option to compute per-variant summary statistics is <code>-snp-stats</code>.  E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -snp-stats -osnp snp-stats.txt
+			</div>
+			<div class="task_notes">
+				<p>
+					This will compute genotype counts, allele counts and frequencies, missing data rates, info metrics, and a P-value
+					against the null that genotypes are in Hardy-Weinberg proportions in diploid samples.  Output is sent to the
+					file specified in the <code>-osnp</code> option.  See the page on <a href="../summary_file_formats.html">summary statistic file formats</a> for
+					information on output file formatting.
+				</p>
+				<p>
+					Analysis on the sex chromosomes is complicated by the fact that males and females have differing ploidy.
+					To process sex chromosomes correctly, QCTOOL relies on the ploidy being correct in the input genotype files.
+					However, some data sets (and some file formats) instead encode males as diploid homozygotes.
+					The <code>-infer-ploidy-from</code> can be used to deal with such data - see the
+					page on <a href="inferring_ploidy.html">inferring ploidy</a> .
+				</p>
+				<p>
+					For sex chromosomes, QCTOOL outputs both diploid and haploid
+					genotype counts, as well an appropriate allele frequency, a sex-chromosome specific info metric,
+					and a test for difference in frequency between males and females.  
+				</p>
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Differential missingness
+			</div>
+			<div class="task_notes">
+				It's often useful to compare levels of missingness between different samples.  The <code>-differential</code>
+				option can be used to compare levels of missingness between samples having different levels of a covariate
+				in the sample file.  E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -osnp snp-stats.txt -differential &lt;column&gt;
+			</div>
+			<div class="task_notes">
+				This computes: the count of missing and non-missing genotypes in each level of the covariate specified in
+				the specified column, and a likelihood ratio test P-value comparing missing data rates in the different levels.
+				Additionally, if the covariate has exactly two levels, a Fishers exact test P-value is also computed.
+			</div>
+		</div>
+		
+		<div class="task">
+			<div class="task_name">
+				Combining options
+			</div>
+			<div class="task_notes">
+				Summary statistic options can be combined; e.g:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -osnp snp-stats.txt -differential &lt;column&gt;
+			</div>
+			<div class="task_notes">
+				This computes both basic summary statistics and values for differential missingness, and places it in the same output file.
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Stratifying summary statistics
+			</div>
+			<div class="task_notes">
+				The <code>-stratify</code> option can be used to compute summary statistics stratified over
+				subsets of the data. E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -snp-stats -osnp snp-stats.txt -stratify &lt;column&gt;
+			</div>
+			<div class="task_notes">
+				<p>The argument must be the name of a column in the sample file containing discrete
+					values (i.e. it must be of type <code>B</code> or <code>D</code>).  Summary statistic calculations will
+				be computed for each subset of samples having the same value in that column.
+				The output will contain the same fields as for <code>-snp-stats</code>, but each column will
+				appear multiple times with a suffix of the form <code>[&lt;column&gt;=&lt;value&gt;]</code>
+				to denote which strata the values are computed for.
+			</p>
+				<p>
+					This feature has several possible use cases - for example, it can be used to compute allele counts across ethnic groups in a
+					sample of mixed ancestry, or to inspect deviation from Hardy-Weinberg equilibrium seperately in disease cases and controls.
+				</p>
+			</div>
+		</div>
+</section>

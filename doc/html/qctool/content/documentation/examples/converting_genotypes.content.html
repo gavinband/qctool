@@ -1,0 +1,30 @@
+<section class="main_text">
+			<h2>Converting genotypes</h2>
+		<div class="task">
+			<div class="task_name">
+				Computing genotype calls by thresholding
+			</div>
+			<div class="task_notes">
+				The <code>-threshold</code> option tells QCTOOL to compute thresholded genotype calls from genotype probabilities found in the input. For example:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g input.gen -threshold 0.9 -og thresholded.vcf
+			</div>
+			<div class="task_notes">
+				This will read genotype probabilities (e.g. from imputation) from the input file, and for each sample at each variant will
+				compute a genotype call (if one of the probabilities is above the threshold) or a missing call (if none are).
+			</div>
+			<div class="task_notes">
+				In the example above, the output VCF file will contain two FORMAT fields, namely GT (the threshholded call) and GP (the original
+				imputed probabilities).  More generally, <code>-threshold</code> makes the thresholded call the primary analysis genotype,
+				thus for example in the command:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g input.gen -threshold 0.9 -snp-stats -osnp &lt;output file&gt;
+			</div>
+			<div class="task_notes">
+				the output will reflect summary statistics computed on the thresholded calls.
+			</div>
+		</div>
+	</div>
+</section>

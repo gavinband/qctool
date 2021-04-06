@@ -1,0 +1,87 @@
+<section class="main_text">
+	<h2>Altering variant identifying data</h2>
+		<div class="task">
+			<div class="task_name">
+				Filling in missing chromosome information
+			</div>
+			<div class="task_notes">
+				The <code>-assume-chromosome</code> option fills in any missing chromosome information in input data
+				with the specified value.  E.g.:
+			</div>
+			
+			<div class="task_command_line">
+				$ qctool -g &lt;input file&gt; -og output.bgen -assume-chromosome &lt;chromosome&gt;
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Updating identifying data
+			</div>
+			<div class="task_notes">
+				The <code>-map-id-data</code> option can be used to update the identifying data for each variant
+				with a new set of data. E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g &lt;input file(s)&gt; -og output.bgen -map-id-data &lt;map file&gt; [+other options]
+			</div>
+			<div class="task_notes">
+				<p>Ffor example, this might be useful when updating files to match a new genome build.</p>
+				<p>The "map" file given to <code>-map-id-data</code> must be a text file
+				with twelve named columns, in the following order: the current SNPID, rsid, chromosome, position, first and second alleles,
+				followed by the desired updated SNPID, rsid, chromosome, position and alleles.  The first line is treated as column names
+				(currently it doesn't matter what these are called.)  Variants not in this file are not affected by the mapping, and will
+				be output unchanged.
+			</p>
+			<p>Matching of variants to the map file is controlled by the <code>-compare-variants-by</code>
+				option - see the <a href="sorting.html">page on sorting data</a> for more on this option.</p>
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Aligning alleles
+			</div>
+			<div class="task_notes">
+				<p>
+				The <code>-strand</code> option can be used to update alleles and flip genotype data according
+				to strand information supplied in an external file.  The general format is:
+			</p>
+			</div>
+			<div class="task_command_line">
+				$ qctool -g &lt;input file(s)&gt; -og output.bgen -strand &lt;strand file&gt; [-flip-to-match-allele &lt;column name&gt;]
+			</div>
+			<div class="task_notes">
+				<p>The most common use of this option is to align alleles to match the forward strand of a reference sequence,
+					and to flip genotypes so that the first allele is the reference allele.
+				</p>
+				<p>
+					Strand files should have six columns which must be named as follows:
+					<code>SNPID</code>,
+					<code>rsid</code>,
+					<code>chromosome</code>,
+					<code>position</code>,
+					<code>alleleA</code>,
+					<code>alleleB</code>,
+					<code>strand</code>, plus any additional columns.
+					Strand information is read from the <code>strand</code> column.
+					Alleles at variants where the strand is '+' will be processed unchanged; alleles
+					at variants where the strand is '-' will be complemented (i.e. A&lt;-&gt;T, G&lt;-&gt;C);
+					alleles at variants which have missing strand information - encoded as "?", or "NA", or for variants
+					that are missing from the file - will be omitted from the output.
+				</p>
+				<p>
+					The <code>-compare-variants-by</code> option controls how variants between the genotype data
+					and the strand file.
+					See <a href="sorting.html">the page on sorting</a> for more information.
+				</p>
+				<p>
+					If the <code>-flip-to-match-allele</code> option is given, the strand file must contain a column
+					with the specified name.  Each value in this column should be one of the two alleles of the variant.
+					Alleles and genotypes are then also recoded so that the allele in the specified
+					column is the first allele and the other allele the second allele.
+					Note that the strand alignment is applied first - e.g. if the variant alleles are 'A' and 'G' and the
+					strand is -, <code>-flip-to-match-allele</code> the column should contain 'T' or 'C'.
+				</p>
+			</div>
+		</div>
+	</div>
+</section>

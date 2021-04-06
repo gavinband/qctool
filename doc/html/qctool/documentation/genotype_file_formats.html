@@ -2,20 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
-		<script type="text/javascript" src="../js/jquery.ba-hashchange.min.js"></script>
-		<script type="text/javascript" src="../js/local.js"></script>
 
- 
-		<script type="text/javascript">
-			$(document).ready(
-				function() {
-					setFirstPage( "overview" ) ;
-				}
-			) ;
-		</script>
+		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
 		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -28,204 +19,202 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<h2>Genotype file formats</h2>
-				<p>
-					QCTOOL supports the following file formats for genotype data:
-				</p>
-					<table class="file_formats">
-						<colgroup>
-							<col class="acronym">
-							<col class="io">
-							<col class="filetype">
-							<col class="notes">
-						</colgroup>
-						<thead>
-							<tr>
-							<th>
-								<div>Format</div> <small>(recognised extensions)</small>
-							</th>
-							<th>
-								I/O
-							</th>
-							<th>
-								<div>Filetype</div>
-								<small>(For <span><nobr><code>-[o]filetype</code></nobr></span>)</small>
-							</th>
-							<th>
-								Notes
-							</th>
-						</tr>
-					</thead>
-						<tbody>
-						<tr>
-							<td>
-								<div><a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a></div>
-								<code>(.gen, .gen.gz)</code>
-							</td>
-							<td>both</td>
-							<td><code>gen</code></td>
-							<td>
-								Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this
-								in input files by counting the columns in the file.
-								To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://www.bgenformat.org">BGEN</a></div>
-								<code>(.bgen)</code>
-							</td>
-							<td>both</td>
-							<td><code>bgen</code></td>
-							<td>
-								<p>Output files are in BGEN v1.2 with 16 bits per probability and compressed
-								using <a href="http://www.zlib.net">zlib</a> by default. 
-								The <code>-bgen-bits</code> option can be used to adjust the number of bits used.
-								The <code>-bgen-compression</code> option can be used to choose the method of compression
-								(either zlib or <a href="http://www.zstd.net">zstd</a>).<p>
-								<p>Use <code>-ofiletype bgen_v1.1</code> to force writing files compatible with the BGEN v1.1 spec.</p>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a></div>
-								<code>(.vcf, .vcf.gz)</code>
-							</td>
-							<td>both</td>
-							<td><code>vcf</code></td>
-							<td>
-								<p>QCTOOL is strict about VCF metadata in input files for the fields it reads.  Since 
-								metadata is not always correct a <span class="monospace">-metadata</span> option is
-								provided to override the input file metadata. Currently, only genotypes are output
-								when outputting VCF files.</p>
-								<p>Note that QCTOOL does not apply PHRED scaling to probabilities
-								in the GP field.</p>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="">PLINK binary format</a></div>
-								<code>(.bed, .bim, .fam)</code>
-							</td>
-							<td>both</td>
-							<td><code>binary_ped</code></td>
-							<td>
-								Note that QCTOOL currently does only the most basic processing of
-								FAM files: when reading, it uses them to count the number of samples in the BED file, when writing it writes a FAM file
-								with missing data in all fields except the ID field.  You will therefore need to create fuller FAM files seperately for use with
-								other tools.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample">SHAPEIT</a> haplotype format</div>
-							</td>
-							<td>both</td>
-							<td><code>shapeit_haplotypes</code></td>
-							<td>
-								For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
-								are consecutive columns in the file. (This format is
-								described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> allele probabilities format</div>
-							</td>
-							<td>both</td>
-							<td><code>impute_allele_probs</code></td>
-							<td>
-								to specify reading or writing this filetype.  This file format is like the
-								shapeit haplotype format but contains a probability for
-								each haplotype (i.e. two probabilities per individual),
-								specifying the probability that the haplotype carries the second allele.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format</div>
-							</td>
-							<td>Input only</td>
-							<td><code>impute_haplotypes</code></td>
-							<td>
-								It is assumed the legend file name is the same as the haplotypes file name, minus extension,
-								with <span class="monospace">.legend</span> appended; QCTOOL will also remove/add the
-								<code>.gz</code> extension as appropriate.
-								For genotypic computations, genotypes are formed from pairs of haplotypes;
-								it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> probability format</div>
-							</td>
-							<td>Input only</td>
-							<td><code>hlaimp</code></td>
-							<td>
-								Currently, this input format implicitly splits each HLA locus as a series of bi-allelic variants.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div>QCTOOL 'long' format</div>
-							</td>
-							<td>Input only</td>
-							<td><code>long</code></td>
-							<td>
-								Input must be a file with columns <code>SNPID, rsid, chromosome, position, number_of_alleles,
-									allele1, other_alleles, sample_id, ploidy, genotype</code>.
-								Further columns may also be included (but QCTOOL ignores these).
-								Allelesin the other_alleles column must be comma-separated (as with <a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a> ALT alleles).
-								When outputting to vcf format, both genotype (GT) and a field 'typed' indicating whether a row for each
-								sample and variant was present will be output.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>
-								/ <a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format</div>
-							</td>
-							<td>Output only</td>
-							<td><code>penncnv</code></td>
-							<td>
-								PennCNV uses a single sample per input file, this can be acheived using the sample filtering options,
-								e.g. <code>-incl-samples-where ID_1=&lt;identifier&gt;</code>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div><a href="http://stephenslab.uchicago.edu/software.html#bimbam">BIMBAM</a> dosage format;</div>
-								<div>QCTOOL dosage format</div>
-								<code>(.dosage[.gz])</code>
-							</td>
-							<td>Output only</td>
-							<td><code>bimbam_dosage</code> or <code>dosage</code></td>
-							<td>
-								This file outputs a single column per sample (named by the sample identifier) containing the
-								expected second allele dosage for the sample at each variant.
-								The formats differ in that BIMBAM format has no chromosome/position information.
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<div>QCTOOL intensity text format</div>
-								<code>.intensity[.gz]</code>
-							</td>
-							<td>Output only</td>
-							<td><code>intensity</code></td>
-							<td>
-								The output file has two columns per sample, representing X and Y channel intensities for the
-								sample at each variant.  Currently data must be read from a VCF file; the field is specified
-								using the <code>-vcf-intensity-field</code> option.
-							</td>
-						</tr>
-						<tbody>
-					</table>
-		</section>
-
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
+<section class="main_text">
+    <h2>Genotype file formats</h2>
+    <p>
+        QCTOOL supports the following file formats for genotype data:
+    </p>
+    <table class="file_formats">
+        <colgroup>
+            <col class="acronym">
+            <col class="io">
+            <col class="filetype">
+            <col class="notes">
+        </colgroup>
+        <thead>
+            <tr>
+            <th>
+                <div>Format</div> <small>(recognised extensions)</small>
+            </th>
+            <th>
+                I/O
+            </th>
+            <th>
+                <div>Filetype</div>
+                <small>(For <span><nobr><code>-[o]filetype</code></nobr></span>)</small>
+            </th>
+            <th>
+                Notes
+            </th>
+        </tr>
+    </thead>
+        <tbody>
+        <tr>
+            <td>
+                <div><a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a></div>
+                <code>(.gen, .gen.gz)</code>
+            </td>
+            <td>both</td>
+            <td><code>gen</code></td>
+            <td>
+                Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this
+                in input files by counting the columns in the file.
+                To suppress this column in output files, use the <span class="monospace">-omit-chromosome</span> option.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://www.bgenformat.org">BGEN</a></div>
+                <code>(.bgen)</code>
+            </td>
+            <td>both</td>
+            <td><code>bgen</code></td>
+            <td>
+                <p>Output files are in BGEN v1.2 with 16 bits per probability and compressed
+                using <a href="http://www.zlib.net">zlib</a> by default. 
+                The <code>-bgen-bits</code> option can be used to adjust the number of bits used.
+                The <code>-bgen-compression</code> option can be used to choose the method of compression
+                (either zlib or <a href="http://www.zstd.net">zstd</a>).<p>
+                <p>Use <code>-ofiletype bgen_v1.1</code> to force writing files compatible with the BGEN v1.1 spec.</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a></div>
+                <code>(.vcf, .vcf.gz)</code>
+            </td>
+            <td>both</td>
+            <td><code>vcf</code></td>
+            <td>
+                <p>QCTOOL is strict about VCF metadata in input files for the fields it reads.  Since 
+                metadata is not always correct a <span class="monospace">-metadata</span> option is
+                provided to override the input file metadata. Currently, only genotypes are output
+                when outputting VCF files.</p>
+                <p>Note that QCTOOL does not apply PHRED scaling to probabilities
+                in the GP field.</p>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="">PLINK binary format</a></div>
+                <code>(.bed, .bim, .fam)</code>
+            </td>
+            <td>both</td>
+            <td><code>binary_ped</code></td>
+            <td>
+                Note that QCTOOL currently does only the most basic processing of
+                FAM files: when reading, it uses them to count the number of samples in the BED file, when writing it writes a FAM file
+                with missing data in all fields except the ID field.  You will therefore need to create fuller FAM files seperately for use with
+                other tools.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample">SHAPEIT</a> haplotype format</div>
+            </td>
+            <td>both</td>
+            <td><code>shapeit_haplotypes</code></td>
+            <td>
+                For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
+                are consecutive columns in the file. (This format is
+                described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> allele probabilities format</div>
+            </td>
+            <td>both</td>
+            <td><code>impute_allele_probs</code></td>
+            <td>
+                to specify reading or writing this filetype.  This file format is like the
+                shapeit haplotype format but contains a probability for
+                each haplotype (i.e. two probabilities per individual),
+                specifying the probability that the haplotype carries the second allele.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format</div>
+            </td>
+            <td>Input only</td>
+            <td><code>impute_haplotypes</code></td>
+            <td>
+                It is assumed the legend file name is the same as the haplotypes file name, minus extension,
+                with <span class="monospace">.legend</span> appended; QCTOOL will also remove/add the
+                <code>.gz</code> extension as appropriate.
+                For genotypic computations, genotypes are formed from pairs of haplotypes;
+                it is assumed that the two haplotypes for each individual are consecutive columns in the haplotypes file.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> probability format</div>
+            </td>
+            <td>Input only</td>
+            <td><code>hlaimp</code></td>
+            <td>
+                Currently, this input format implicitly splits each HLA locus as a series of bi-allelic variants.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div>QCTOOL 'long' format</div>
+            </td>
+            <td>Input only</td>
+            <td><code>long</code></td>
+            <td>
+                Input must be a file with columns <code>SNPID, rsid, chromosome, position, number_of_alleles,
+                    allele1, other_alleles, sample_id, ploidy, genotype</code>.
+                Further columns may also be included (but QCTOOL ignores these).
+                Allelesin the other_alleles column must be comma-separated (as with <a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a> ALT alleles).
+                When outputting to vcf format, both genotype (GT) and a field 'typed' indicating whether a row for each
+                sample and variant was present will be output.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>
+                / <a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format</div>
+            </td>
+            <td>Output only</td>
+            <td><code>penncnv</code></td>
+            <td>
+                PennCNV uses a single sample per input file, this can be acheived using the sample filtering options,
+                e.g. <code>-incl-samples-where ID_1=&lt;identifier&gt;</code>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div><a href="http://stephenslab.uchicago.edu/software.html#bimbam">BIMBAM</a> dosage format;</div>
+                <div>QCTOOL dosage format</div>
+                <code>(.dosage[.gz])</code>
+            </td>
+            <td>Output only</td>
+            <td><code>bimbam_dosage</code> or <code>dosage</code></td>
+            <td>
+                This file outputs a single column per sample (named by the sample identifier) containing the
+                expected second allele dosage for the sample at each variant.
+                The formats differ in that BIMBAM format has no chromosome/position information.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div>QCTOOL intensity text format</div>
+                <code>.intensity[.gz]</code>
+            </td>
+            <td>Output only</td>
+            <td><code>intensity</code></td>
+            <td>
+                The output file has two columns per sample, representing X and Y channel intensities for the
+                sample at each variant.  Currently data must be read from a VCF file; the field is specified
+                using the <code>-vcf-intensity-field</code> option.
+            </td>
+        </tr>
+        <tbody>
+    </table>
+</section>
+		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -266,7 +255,7 @@
 			<div class="nav_button" name="download">
 				<a href="../documentation/download.html">download</a>
 			</div>
-		</div>
+</div>
 </nav>
 
 	</body>

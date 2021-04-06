@@ -1,0 +1,129 @@
+<section class="main_text">
+	<h2>Assessing linkage disequilibrium</h2>
+		<div class="task">
+			<div class="task_name">
+				Computing LD metrics
+			</div>
+			<div class="task_notes">
+				The <code>-compute-ld-with</code> option can be used to compute LD metrics between
+				the genotype data and a seperate set of genotype contained in a second file.  E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD
+			</div>
+			<div class="task_notes">
+				<p>
+					For each biallelic variant in <code>example.bgen</code>, and each biallelic variant in <code>second.bgen</code>,
+					QCTOOL constructs the pairwise table of non-missing genotypes, uses an EM algorithm to resolve phase
+					of the double heterozygotes, and then outputs the frequency of each haplotype and the <em>D'</em>
+					and <em>r<sup>2</sup></em> statistics.  (Multiallelic variants are currently not handled.)
+			</p>
+			<p>
+				<b>Note</b>: to compute LD, samples are matched between datasets using the primary ID (the first column
+				in the sample files) by default.  To alter this, use the <code>-match-sample-ids</code> option.
+				This is described further on the <a href="merging.html">page on merging datasets</a>.
+			</p>
+			<p>
+				<b>Note</b>:
+				Currently LD output is always to a sqlite database file.  In the above command,
+				results are placed in the file <code>ld.sqlite</code> and in a table called
+				<code>LD</code>; a convenience view, called <code>LDView</code> is also constructed.  The simplest way
+				to view that data is to use the <a href="https://sqlite.org/cli.html">sqlite3 command-line client<a>
+					(which is already installed on most linux systems by default).  E.g. the command:
+				</p>
+			</div>
+				<div class="task_command_line">
+					$ sqlite3 -csv -header ld.sqlite "SELECT * FROM LDView LIMIT 10"
+				</div>
+				<div class="task_notes">
+						Will list the first ten LD records in CSV format.  The file can equally be accessed programmatically,
+						for example using the <a href="https://docs.python.org/2/library/sqlite3.html">sqlite3 module</a> in python, or the <a href="https://cran.r-project.org/web/packages/RSQLite/index.html">RSQLite</a> package in R.
+						We may add flat file support in future.
+				</div>
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Controlling what is output
+			</div>
+			<div class="task_notes">
+				Pairwise LD computation can generate a massive amount of data.  To reduce this the <code>-min-r2</code> and <code>-max-ld-distance</code>
+				options can be used, e.g.
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD -min-r2 0.05 -max-ld-distance 1Mb
+			</div>
+			<div class="task_notes">
+				will output results only for variants estimated to have <em>r<sup>2</sup> > 0.05</em>, and within a megabase of each other.
+				For the latter option, you can also specify distances in base pairs (e.g. <code>-max-ld-distance 1000</code>), in kilobases (e.g. <code>-max-ld-distance 1kb</code>),
+				or in megabases as in the example above.
+			</div>
+		
+		<div class="task">
+			<div class="task_name">
+				Adjusting the degree of shrinkage
+			</div>
+			<div class="task_notes">
+					QCTOOL outputs shrinkage estimates of LD by default.
+					Specifically, haplotype frequencies are estimated under a <em>Dirichlet(x,x,x,x)</em> prior,
+					with x=1.25 by default; roughly speaking this is equivalent to adding a quarter of an observation of each of the four haplotypes to the data.
+					Intuitively this corresponds to weak prior assumptions that 1: both variants are polymorphic
+					and 2: there is at least some recombination between them.
+			</div>
+			<div class="task_notes">
+					The <code>-prior-ld-weight</code> option can be used to adjust the strength of this prior, e.g. the command
+			</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD -ld-prior-weight &lt;w&gt;
+		</div>
+		<div class="task_notes">
+			estimates LD under a <em>Dirichlet(1+w/4,1+w/4,1+w/4,1+w/4)</em> prior; setting <em>w=0</em> removes the prior altogether.
+		</div>
+	</div>
+
+		<div class="task">
+			<div class="task_name">
+				Stratifying LD computations across subsets
+			</div>
+			<div class="task_notes">
+				As for <code>-snp-stats</code>, the <code>-stratify</code> option tells QCTOOL to compute LD statistics stratified over
+				subsets of the data. E.g. suppose the sample file contains a column called <code>POP</code>
+				which reflects the population group of each sample.  Then the command:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -compute-ld-with second.bgen second.sample -old sqlite://ld.sqlite:LD -stratify POP
+			</div>
+			<div class="task_notes">
+				<p>
+					will compute LD statistics for all pairs of variants in each population.  Output columns will be named
+					in the form <code>POP=&lt;level&gt;:&lt;variable&gt;</code>.
+				</p>
+				<p>
+					For example, suppose we've extracted data for the <a href="">O blood group mutation</a> rs8176719 from the
+					<a href="">1000 Genomes Project</a> data into a file named <code>rs8176719.vcf</code>.  This command will
+						find all tagging SNPs in the flanking region:
+				</p>
+			</div>
+				<div class="task_command_line">
+					$ qctool -g ALL.chr9.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz
+					-s 1000G.sample
+					-compute-ld-with rs8176719.vcf 1000G.sample
+					-old sqlite://ld.sqlite:LD
+					-stratify POP
+					-min-r2 0.75
+					-max-distance 1Mb
+				</div>
+				<div class="task_notes">
+				<p>
+					Note that currently it's first necessary to make a sample file in the
+					format <a href="../sample_file_formats.html">described here</a> for this to work.
+				</p>
+				<p>
+					<b>Note:</b> This will also take a while to run, since at present it scans the whole of chromosome 9.
+					A quicker way would be to use <a href="https://bitbucket.org/gavinband/bgen">bgenix</a> together with QCTOOL in 
+					 <a href="pipelining.html">in a pipeline</a>.
+				</p>
+			</div>
+		</div>
+
+</section>

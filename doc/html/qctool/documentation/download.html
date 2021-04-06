@@ -2,20 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
-		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
-		<script type="text/javascript" src="../js/jquery.ba-hashchange.min.js"></script>
-		<script type="text/javascript" src="../js/local.js"></script>
 
- 
-		<script type="text/javascript">
-			$(document).ready(
-				function() {
-					setFirstPage( "overview" ) ;
-				}
-			) ;
-		</script>
+		<script type="text/javascript" src="../js/jquery-1.4.2.min.js"></script>
+		<script type="text/javascript" src="../js/local.js"></script>
 		<link href="../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -28,77 +19,75 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<h2>Obtaining QCTOOL</h2>
-				<p>
-					QCTOOL is available either as binaries or as source code.  The recommended approach is to download and compile
-					the QCTOOL source code on the machine(s) you will be working on.  However, for convenience a small number of
-					precompiled binary packages are provided below.   These provided as-is and will not work on all platforms; if a suitable version is not available please
-					download the QCTOOL source code and compile instead.
-				</p>
-				<table class="file_formats">
-					<tr><th>Version</th><th>Platform</th><th>file</th>
-					<tr><td>v2.0.8<sup>*</sup></th><th>Mac OS X</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.8-osx.tgz">qctool_v2.0.8-osx.tgz</a></th>
-					<tr><td>v2.0.8<sup>*</sup></th><th>CentOS Linux 7.6</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.8-CentOS_Linux7.6.1810-x86_64.tgz">qctool_v2.0.8-CentOS_Linux7.6.1810-x86_64.tgz</a></th>
-					<tr><td>v2.0.6</th><th>Mac OS X</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-osx.tgz">qctool_v2.0.6-osx.tgz</a></th>
-					<tr><td>v2.0.6</th><th>Ubuntu Linux 16.04</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-Ubuntu16.04-x86_64.tgz">qctool_v2.0.6-Ubuntu16.04-x86_64.tgz</a></th>
-					<tr><td>v2.0.6</th><th>CentOS Linux 7.3</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz">qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz</a></th>
-				</table>
-				<small><sup>*</sup> This is the recommended version; older versions are unsupported but may still appear here for posterity.</small>
-				<h3>
-					Downloading source
-				</h3>
-				<p>
-					The source code to qctool is available as a <a href="https://fossil-scm.org">fossil</a> repository
-					at <a href="https://code.enkre.net/qctool">https://code.enkre.net/qctool</a>.
-					To obtain source code, use the fossil command-line client, or alternatively download a
-					tarball from this table.  (Note that this currently generates a tarball on the fly, which may take a while).
-				</p>
-				<table class="file_formats">
-					<tr><th>Version</th><th>file</th>
-					<tr><td>release</th><th><a href="https://code.enkre.net/qctool/zip/v2.0.7/qctool.tgz">https://code.enkre.net/qctool/zip/release/qctool.tgz</a></th>
-					<tr><td>trunk</th><th><a href="https://code.enkre.net/qctool/zip/trunk/qctool.tgz">https://code.enkre.net/qctool/zip/trunk/qctool.tgz</a></th>
-				</table>
-				<h3>
-					Versioning scheme
-				</h3>
-				<p>
-					As of version 2.1, QCTOOL will follow a versioning scheme whereby odd minor numbers (2.1.x etc.) represent
-					development work while even numbers (2.0.x) represent release versions.
-					The current latest release versions are 2.0 version.
-				</p>
-				<h3>
-					Compiling
-				</h3>
-				<p>
-					Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
-				</p>
+<section class="main_text">
+    <h2>Obtaining QCTOOL</h2>
+        <p>
+            QCTOOL is available either as binaries or as source code.  The recommended approach is to download and compile
+            the QCTOOL source code on the machine(s) you will be working on.  However, for convenience a small number of
+            precompiled binary packages are provided below.   These provided as-is and will not work on all platforms; if a suitable version is not available please
+            download the QCTOOL source code and compile instead.
+        </p>
+        <table class="file_formats">
+            <tr><th>Version</th><th>Platform</th><th>file</th>
+            <tr><td>v2.0.8<sup>*</sup></th><th>Mac OS X</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.8-osx.tgz">qctool_v2.0.8-osx.tgz</a></th>
+            <tr><td>v2.0.8<sup>*</sup></th><th>CentOS Linux 7.6</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.8-CentOS_Linux7.6.1810-x86_64.tgz">qctool_v2.0.8-CentOS_Linux7.6.1810-x86_64.tgz</a></th>
+            <tr><td>v2.0.6</th><th>Mac OS X</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-osx.tgz">qctool_v2.0.6-osx.tgz</a></th>
+            <tr><td>v2.0.6</th><th>Ubuntu Linux 16.04</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-Ubuntu16.04-x86_64.tgz">qctool_v2.0.6-Ubuntu16.04-x86_64.tgz</a></th>
+            <tr><td>v2.0.6</th><th>CentOS Linux 7.3</th><th><a href="https://www.well.ox.ac.uk/~gav/resources/qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz">qctool_v2.0.6-CentOS_Linux7.3.1611-x86_64.tgz</a></th>
+        </table>
+        <small><sup>*</sup> This is the recommended version; older versions are unsupported but may still appear here for posterity.</small>
+        <h3>
+            Downloading source
+        </h3>
+        <p>
+            The source code to qctool is available as a <a href="https://fossil-scm.org">fossil</a> repository
+            at <a href="https://code.enkre.net/qctool">https://code.enkre.net/qctool</a>.
+            To obtain source code, use the fossil command-line client, or alternatively download a
+            tarball from this table.  (Note that this currently generates a tarball on the fly, which may take a while).
+        </p>
+        <table class="file_formats">
+            <tr><th>Version</th><th>file</th>
+            <tr><td>release</th><th><a href="https://code.enkre.net/qctool/zip/v2.0.7/qctool.tgz">https://code.enkre.net/qctool/zip/release/qctool.tgz</a></th>
+            <tr><td>trunk</th><th><a href="https://code.enkre.net/qctool/zip/trunk/qctool.tgz">https://code.enkre.net/qctool/zip/trunk/qctool.tgz</a></th>
+        </table>
+        <h3>
+            Versioning scheme
+        </h3>
+        <p>
+            As of version 2.1, QCTOOL will follow a versioning scheme whereby odd minor numbers (2.1.x etc.) represent
+            development work while even numbers (2.0.x) represent release versions.
+            The current latest release versions are 2.0 version.
+        </p>
+        <h3>
+            Compiling
+        </h3>
+        <p>
+            Having downloaded the source code (and extracted it if necessary), a basic compilation sequence would then be:
+        </p>
 <pre>
 $ cd qctool
 $ ./waf-1.5.18 configure
 $ ./waf-1.5.18
 </pre>
-				<p>
-					If all is successful, this produces an executable
-					<code>./build/release/qctool_v2.0-&lt;version&gt;</code>
-				</p>
-				</div>
-			<p>
-				You can check qctool is working by running it:
-			</p>
-			<pre>
+        <p>
+            If all is successful, this produces an executable
+            <code>./build/release/qctool_v2.0-&lt;version&gt;</code>
+        </p>
+        </div>
+    <p>
+        You can check qctool is working by running it:
+    </p>
+    <pre>
 $ ./build/release/qctool_v2.0-&lt;version&gt; -help
 </pre>
-			<p>which should print out a list of options.</p>
-			<h3>Further information</h3>
-			<p>
-				The <a href="https://code.enkre.net/qctool/wiki?name=Home">QCTOOL wiki</a> contains further information
-				which may be useful if you are unable to compile QCTOOL or need to tweak compilation for specific platforms.
-			</p>
-		</section>
-
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
+    <p>which should print out a list of options.</p>
+    <h3>Further information</h3>
+    <p>
+        The <a href="https://code.enkre.net/qctool/wiki?name=Home">QCTOOL wiki</a> contains further information
+        which may be useful if you are unable to compile QCTOOL or need to tweak compilation for specific platforms.
+    </p>
+</section>
+		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -139,8 +128,8 @@ $ ./build/release/qctool_v2.0-&lt;version&gt; -help
 			<div class="nav_button" name="download">
 				<a href="../documentation/download.html">download</a>
 			</div>
-		</div>
+</div>
 </nav>
-		
+
 	</body>
 </html>

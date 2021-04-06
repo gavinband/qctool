@@ -1,0 +1,142 @@
+<section class="main_text">
+	<h2>Computing principal components</h2>
+		<div class="task">
+			<div class="task_name">
+				Computing PCs
+			</div>
+			<div class="task_notes">
+				QCTOOL computes PCs by first estimating a relatedness or 'kinship' matrix, and then forming the eigendecomposition. 
+				In short you use the <code>-kinship</code> option to compute a
+				relatedness matrix, the <code>-UDUT</code> option to eigendecompose it, and the <code>-PCs</code> option
+				to output PCs.  A complete example would look like this:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv -PCs 20 -osample PCs.csv
+			</div>
+			<div class="task_notes">
+				<p>
+					This outputs the first 20 PCs to the file <code>PCs.csv</code>, in addition to the estimated kinship
+					matrix and its eigendecomposition.  The following sections show the use of these options in more detail.
+			</p>
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Computing a kinship matrix
+			</div>
+			<div class="task_notes">
+				The <code>-kinship</code> option can be used to estimate a kinship matrix, as in:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -kinship kinship.csv
+			</div>
+			<div class="task_notes">
+				<p>
+					This outputs pairwise kinship values to the file <code>kinship.csv</code>, which is stored in a 'long' format
+					with columns holding the first sample id, second sample id, the number of pairwise non-missing genotypes,
+					and the estimated kinship value.  (Only the upper triangle of this matrix is output).
+				</p>
+				<p>
+					More precisely,  Suppose <em>X</em> is the <em>L&times;N</em> matrix of
+					genotypes, with variants indexed by row.
+					Let <em>f<sub>i</sub></em> be an estimate of the frequency of the <em>i</em>th variant.
+					We write <em>Z</em> for the matrix <em>X</em> after centring and rescaling each row based on the allele frequency,
+				</p>
+				<p>
+					<em>Z<sub>i&middot;</sub> = (X<sub>i&middot;</sub> - mean(X<sub>i&middot;</sub>)) / &Sqrt; (2 f<sub>i</sub> (1-f<sub>i</sub>))</em>
+				</p>
+				<p>
+					QCTOOL estimates the kinship matrix as <em>1/L Z^t Z</em>.
+					In forming <em>Z</em>, QCTOOL uses a posterior estimate of allele
+					frequency <em>f<sub>i</sub></em> under a <em>Beta(2,2)</em>
+					distribution, i.e. <em>f<sub>i</sub> = (1+N<sub>b</sub>)/(2+2N))</em> where <em>N<sub>b</sub></em> is
+					the count number of 'b' alleles in the data.  This can be understood as implicitly adding
+					a single haplotype of each allelic type to the data before
+					computing the frequency, which in turn ensures that the frequency estimate is not zero or 1.  
+				</p>
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Eigendecomposing a kinship matrix and computing PCs
+			</div>
+			<div class="task_notes">
+				The <code>-UDUT</code> option can be used to compute a UDUT decomposition (i.e. an eigendecomposition)
+				of the computed kinship matrix.
+					E.g.
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv
+			</div>
+			<div class="task_notes">
+				The output is an <em>N&times;(N+1)</em> matrix in which the first column represents the diagonal elements
+				of <em>D</em>, i.e. the eigenvalues, and the following <em>N</em> columns are the right eigenvectors
+				(i.e. the columns of <em>U</em>).  To additionally output principal components (PCs),
+				additionally add the <code>-PCs</code> option:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -kinship kinship.csv -UDUT udut.csv -PCs 20 -osample PCs.csv
+			</div>
+			<div class="task_notes">
+			<p>
+				The argument is the number of PCs to output.
+			</p>
+			<p>
+				<b>Note</b>: the PCs computed are simply rescaled entries of the right eigenvectors;
+				they are computed as <em>PC<sub>i</sub></em> = &Sqrt;(1/L) &times; U<sub>&middot;i</sub> D<sup>-1/2</sup></em>.
+				This scaling ensures the PCs do not grow with the number of variants.
+			</p>
+			<p>
+				<b>Note:</b> PCs are output to the file specified by <code>-osample</code>.
+				Depending on the command line, other values might also be output to this file.  For example, 
+				if you specify both <code>-sample-stats</code> and <code>-PCs</code>, the output file will contain both
+				per-sample summary statistics and PCs.
+				See the <a href="../../documentation/summary_file_formats.html">page
+					on summary statistic file formats</a> for more information on the format of the output.
+			</p>
+			<p>
+				In some contexts it may be preferable to load a previously
+				computed kinship matrix, rather than to recompute a new one. This can be acheived with the
+				<code>-load-kinship</code> option:
+			</p>
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -load-kinship kinship.csv -UDUT udut.csv -PCs 20 -osample PCs.csv
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Computing PC loadings
+			</div>
+			<div class="task_notes">
+				Having computed the UDUT decomposition, per-variant loadings can be
+				computed using the <code>-loadings</code> option, e.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -load-udut udut.csv -loadings loadings.csv
+			</div>
+			<div class="task_notes">
+				The <code>-PCs</code> option can again be used to adjust how many loadings are computed.
+				<b>Note</b>: you should ensure the same set of variants is used to compute
+				loadings as were used in constructing the kinship matrix.
+			</div>
+		</div>
+
+		<div class="task">
+			<div class="task_name">
+				Projecting additional samples onto a principal components decomposition
+			</div>
+			<div class="task_notes">
+				Given a set of loadings, additional samples can be projected onto the loadings using
+				the <code>-project-onto</code> option:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -project-onto loadings.csv projection.sample
+			</div>
+			<div class="task_notes">
+				The first argument is a set of loadings to load, while the second argument is the output file to compute.
+				Again, we advise using the same set of variants that were used to compute the PCs.
+			</div>
+		</div>
+</section>

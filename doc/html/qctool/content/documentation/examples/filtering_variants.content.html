@@ -1,0 +1,121 @@
+<section class="main_text">
+	<h2>Filtering variants</h2>
+	<div class="task">
+		<div class="task_name">
+			Filtering variants based on an external file
+		</div>
+		<div class="task_notes">
+			QCTOOL has a set of options to filter variants, each namely:
+			<code>-[in|ex]cl-rsids</code>,
+			<code>-[in|ex]cl-snpids</code>,
+			<code>-[in|ex]cl-positions</code>,
+			<code>-[in|ex]cl-variants</code>,
+			<code>-[in|ex]cl-variants-matching</code>.
+			Here are examples of these options:
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -excl-rsids &lt;filename&gt;
+		</div>
+		<div class="task_notes">
+			Here the specified file should contain a whitespace-separated list of rsids that will be excluded from processing.
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -excl-snpids &lt;filename&gt;
+		</div>
+		<div class="task_notes">
+			Ditto, but for alternate IDs.
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -excl-positions &lt;filename&gt;
+		</div>
+		<div class="task_notes">
+			The specified file should contain a list of genomic positions in the format <code>[chromosome:]position</code>.
+			The chromosome should be omitted if you want to specify variants that have missing chromosome information.
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -excl-variants &lt;filename&gt;
+		</div>
+		<div class="task_notes">
+			The specified file should contain a list of variants.  Currently this must be a text file with six named
+		 	 columns; the first four must be <code>SNPID</code>, <code>rsid</code>, <code>chromosome</code>, <code>position</code>,
+			 followed by columns containing the first and second alleles.  The <code>-compare-variants-by</code> option control
+			 how variants are matched to this file - see the page on <a href="sorting.html">sorting data</a> for more information
+			 on this option.
+		</div>
+	</div>
+
+	<div class="task">
+		<div class="task_name">
+			Range filtering
+		</div>
+		<div class="task_notes">
+			The <code>-[in|ex]cl-range</code> option filters variants by range.  E.g.:
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -[in|ex]cl-range [chromosome]:[start]-[end]
+		</div>
+		<div class="task_notes">
+			This includes / excludes any variant in the given range.  Ranges are treated as closed ranges,
+			i.e. the range includes both start and end positions.
+			Optionally you can omit the chromosome; this will additionally capture variants that
+			have missing chromosome information. Also, either the start or end positions can be omitted, in which case the range is treated as containing
+			all positions up to the end coordinate, or all variants from the start coordinate onwards respectively.
+			Examples of valid ranges are:
+			<code>1:100-200</code>, <code>1:-200</code>, or <code>X:1000000-</code>.
+		</div>
+	</div>
+
+	<div class="task">
+		<div class="task_name">
+			Wildcard variant filtering
+		</div>
+		<div class="task_notes">
+			You can filter variants based on a wildcard match of ID fields.  E.g.:
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -incl-variants-matching rsid~rs1%
+		</div>
+		<div class="task_notes">
+			This command will retain all variants that have rsid starting with 'rs1'.  The general format of this command is:
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -incl-variants-matching [field~][value]
+		</div>
+		<div class="task_notes">
+			Here <code>field</code> can be 'snpid' (matching all alternate IDs) or 'rsid' (matching the first, or rs id),
+			or it can be omitted to match any id.  The value can optionally contain a single '%' character, which will
+			expand to match any string value.  A complete match is required, hence the value 'a%b'
+			will match the ID 'ab', 'a1b', etc., but not 'zab' or 'ab2'.
+		</div>
+	</div>
+	<div class="task">
+		<div class="task_name">
+			Combining multiple filters in the same command
+		</div>
+		<div class="task_notes">
+			<p>
+			The logic for processing multiple inclusion/exclusion options is as follows.
+			First, if any inclusion option is specified multiple times, the results are logically ORd together.
+			(Thus, for example specifying <code>-incl-range</code> twice results in including variants in either range).
+			Second, the resulting conditions are ANDed together.  This means that a variant will then be
+			included if it is included by each of the inclusion options and is not
+			excluded by any exclusion option.
+		</p>
+		<p>
+			For example, the following command includes any variant that is in either range and that is not in the given file:
+		</p>
+	</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -incl-range 1:-1000 -incl-range 2:-1000 -excl-rsids rsids.txt
+		</div>
+		<div class="task_notes">
+			<p>
+				while the following command includes only
+				variants that are in the given range and have rsid staring with "rs1":
+			</p>
+		</div>
+		<div class="task_command_line">
+			$ qctool -g example.bgen -og subsetted.bgen -incl-range 1:-1000 -incl-variants-matching rsid~rs1%
+		</div>
+	</div>
+</section>

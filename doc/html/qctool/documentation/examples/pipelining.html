@@ -2,10 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
+
 		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
 		<script type="text/javascript" src="../../js/local.js"></script>
- 		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -18,69 +19,67 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-			<h2>Using qctool in a pipeline</h2>
-				<div class="task">
-					<div class="task_name">
-						Outputting data to stdout
-					</div>
-					<div class="task_notes">
-						Using "-" as an output file specifier will output data to standard output, that can then be redirected
-						or piped into other commands.  For example:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -og -
-					</div>
-					<div class="task_notes">
-						This outputs genotype data to stdout.
-						(By default output is in VCF format; use the <code>-ofiletype</code> option to alter this).
-					</div>
-					<div class="task_command_line">
-						$ qctool -g example.bgen -snp-stats -osnp -
-					</div>
-					<div class="task_notes">
-						This outputs SNP summary statistics to standard output.
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Inputting data from stdin
-					</div>
-					<div class="task_notes">
-						QCTOOL has limited support for reading data from stdin.
-						To do this, specify "-" as the argument to <code>-g</code>, and specify the format of the input data
-						using the <code>-filetype</code> option, e.g.:
-					</div>
-					<div class="task_command_line">
-						$ cat file.bgen | qctool -g - -filetype bgen [other options]
-					</div>
-					<div class="task_notes">
-					  <p>
-							This functionality is currently limited to input data in BGEN format (<code>-filetype bgen</code>)
-							or in VCF format (<code>-filetype vcf</code>).  VCF format data should be streamed uncompressed, e.g.:
-						</p>
-					<div class="task_command_line">
-						$ cat file.vcf.gz | gunzip -c | qctool -g - -filetype vcf [other options]
-					</div>
-					</div>
-				</div>
-				<div class="task">
-					<div class="task_name">
-						Pipelining QCTOOL with other tools
-					</div>
-					<div class="task_notes">
-						As an example, the following command uses <a href="http://bitbucket.org/gavinband/bgen">bgenix</a> with QCTOOL to
-						compute snp summary statistics from a subset of a BGEN file, and view the result on the fly using
-						<a href="https://en.wikipedia.org/wiki/Less_(Unix)"><code>less</code></a>.
-					</div>
-					<div class="task_command_line">
-						$ bgenix -g file.bgen -range 11:3500000-6500000 | qctool -g - -filetype bgen -snp-stats -osnp - | less -S
-					</div>
-				</div>
-		</section>
-
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
+<section class="main_text">
+    <h2>Using qctool in a pipeline</h2>
+        <div class="task">
+            <div class="task_name">
+                Outputting data to stdout
+            </div>
+            <div class="task_notes">
+                Using "-" as an output file specifier will output data to standard output, that can then be redirected
+                or piped into other commands.  For example:
+            </div>
+            <div class="task_command_line">
+                $ qctool -g example.bgen -og -
+            </div>
+            <div class="task_notes">
+                This outputs genotype data to stdout.
+                (By default output is in VCF format; use the <code>-ofiletype</code> option to alter this).
+            </div>
+            <div class="task_command_line">
+                $ qctool -g example.bgen -snp-stats -osnp -
+            </div>
+            <div class="task_notes">
+                This outputs SNP summary statistics to standard output.
+            </div>
+        </div>
+        <div class="task">
+            <div class="task_name">
+                Inputting data from stdin
+            </div>
+            <div class="task_notes">
+                QCTOOL has limited support for reading data from stdin.
+                To do this, specify "-" as the argument to <code>-g</code>, and specify the format of the input data
+                using the <code>-filetype</code> option, e.g.:
+            </div>
+            <div class="task_command_line">
+                $ cat file.bgen | qctool -g - -filetype bgen [other options]
+            </div>
+            <div class="task_notes">
+              <p>
+                    This functionality is currently limited to input data in BGEN format (<code>-filetype bgen</code>)
+                    or in VCF format (<code>-filetype vcf</code>).  VCF format data should be streamed uncompressed, e.g.:
+                </p>
+            <div class="task_command_line">
+                $ cat file.vcf.gz | gunzip -c | qctool -g - -filetype vcf [other options]
+            </div>
+            </div>
+        </div>
+        <div class="task">
+            <div class="task_name">
+                Pipelining QCTOOL with other tools
+            </div>
+            <div class="task_notes">
+                As an example, the following command uses <a href="http://bitbucket.org/gavinband/bgen">bgenix</a> with QCTOOL to
+                compute snp summary statistics from a subset of a BGEN file, and view the result on the fly using
+                <a href="https://en.wikipedia.org/wiki/Less_(Unix)"><code>less</code></a>.
+            </div>
+            <div class="task_command_line">
+                $ bgenix -g file.bgen -range 11:3500000-6500000 | qctool -g - -filetype bgen -snp-stats -osnp - | less -S
+            </div>
+        </div>
+</section>
+		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -121,8 +120,8 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</div>
+</div>
 </nav>
-		
+
 	</body>
 </html>

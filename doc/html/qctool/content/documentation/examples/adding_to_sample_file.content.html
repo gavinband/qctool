@@ -1,0 +1,96 @@
+<section class="main_text">
+	<h2>Manipulating the sample file</h2>
+		<div class="task">
+			<div class="task_name">
+				Add genotype dosages for given variants to the sample file
+			</div>
+			<div class="task_notes">
+				The <code>-condition-on</code> option can be used to extract genotype dosages for specific given variants
+				and place them as columns in the sample file.  E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on rs1234
+			</div>
+			<div class="task_notes">
+				This adds a column with name <span class="monospace">rs1234:additive_dosage</span>, containing the
+				additive dosage from the SNP.  You can also select SNPs by position:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example_#.gen -s example.sample -os example.sample -condition-on pos~03:10001
+			</div>
+			<div class="task_notes">
+				It is also possible to select dominant, recessive, or heterozygote dosages from the SNP.  For example,
+				to select additive and heterozygote dosages:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example_#.gen 
+				-s example.sample 
+				-os example.sample 
+				-condition-on "rs1234(add|het)"
+			</div>
+			<div class="task_notes">
+				<p>
+				<b>Note:</b> as shown above, it is sometimes necessary to place the argument in quotation marks
+				to avoid problems with the system shell.
+			</p>
+				<p>
+					The full syntax for this option is: <code>-condition-on [selector~]value[(dosage1[|dosage2...])]</code>
+					where <code>selector</code> is either "rsid", "snpid", or "position" or "pos", <code>value</code>
+					is a string specifying the ID or position of the required variant, and dosage can be
+					<code>add</code>, <code>dom</code>, <code>rec</code>, <code>het</code>.
+					The value <code>gen</code> adds both additive and heterozygote dosages.
+				</p>
+				<p>
+					Note: these options behave in a similar way to the <code>-condition_on</code> option
+					found in <a href="https://mathgen.stats.ox.ac.uk/genetics_software/snptest/snptest.html">SNPTEST</a>,
+					but may be preferable because they can write the data into the sample file directly where it can be
+					later inspected.
+				</p>
+			</div>
+		</div>
+		<div class="task">
+			<div class="task_name">
+				Quantile-normalise columns of the sample file
+			</div>
+			<div class="task_notes">
+				The <code>-quantile-normalise</code> option takes a numerical column in the sample file,
+				and adds a new column reflecting the same data after mapping empirical quantiles to those of a 
+				standard gaussian distribution.  E.g.:
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1
+			</div>
+			<div class="task_notes">
+				<p>
+					This adds a column with name <code>column1:quantile-normalised</code> to the sample file.
+					The specified columns must be continuous, i.e. of type 'P' or 'C'.
+					(Note that even though the SNPs are not used here, currently you must still specify the -g option.)
+				</p>
+				<p>
+					The screen output (and log file) will contain details of the column values before and after normalisation.
+				</p>
+				<p>
+					<b>Technical note</b>: specifically, suppose there are <em>N</em> samples.  This option
+					first computes the quantiles <em>q<sub>j</sub> = &Phi;<sup>-1</sup>(j/N+1)</em> for each <em>j=1,...,N</em>,
+					where <em>&Phi;</em> is the cumulative distribution function of a standard Gaussian.
+					The normalised value for sample <em>i</em> is then obtained as <em>n<sub>i</sub> = q<sub>r(i)</sub></em>
+						where <em>r(i)</em> is the rank of the sample among the values of the given column.
+						If several samples are tied, we instead set <em>n<sub>i</sub></em> to the average of q<sub>r(i)</sub>
+						across all samples with the same column value.  This makes the normalised value well-defined
+						(i.e. independent of the ranking of these samples), and means that samples with
+						identical values of the input column will also have identical values
+						in the computed quantile-normalised column.
+				</p>
+				<p>
+					Note that <code>-quantile-normalise</code> can be given a list of columns:
+				</p>
+			</div>
+			<div class="task_command_line">
+				$ qctool -g example.bgen -s example.sample -os example.sample -quantile-normalise column1 column2...
+			</div>
+			<div class="task_notes">
+				This produces a set of quantile-normalised columns, one for each specified input column.
+			</div>
+		</div>
+	</div>
+</section>

@@ -2,10 +2,11 @@
 "http://www.w3.org/TR/html4/strict.dtd">
 <html>
 	<head>
+
 		<script type="text/javascript" src="../../js/jquery-1.4.2.min.js"></script>
 		<script type="text/javascript" src="../../js/local.js"></script>
- 		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
-		<title></title>
+		<link href="../../style/css/default.css" rel="stylesheet" type="text/css">
+		<title>QCTOOL v2</title>
 	</head>
 	<body>
 		<div class="header" id="header1">
@@ -18,39 +19,37 @@
 			</div>
 		</div>
 
-		<section class="main_text">
-					<h2>Converting genotypes</h2>
-				<div class="task">
-					<div class="task_name">
-						Computing genotype calls by thresholding
-					</div>
-					<div class="task_notes">
-						The <code>-threshold</code> option tells QCTOOL to compute thresholded genotype calls from genotype probabilities found in the input. For example:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g input.gen -threshold 0.9 -og thresholded.vcf
-					</div>
-					<div class="task_notes">
-						This will read genotype probabilities (e.g. from imputation) from the input file, and for each sample at each variant will
-						compute a genotype call (if one of the probabilities is above the threshold) or a missing call (if none are).
-					</div>
-					<div class="task_notes">
-						In the example above, the output VCF file will contain two FORMAT fields, namely GT (the threshholded call) and GP (the original
-						imputed probabilities).  More generally, <code>-threshold</code> makes the thresholded call the primary analysis genotype,
-						thus for example in the command:
-					</div>
-					<div class="task_command_line">
-						$ qctool -g input.gen -threshold 0.9 -snp-stats -osnp &lt;output file&gt;
-					</div>
-					<div class="task_notes">
-						the output will reflect summary statistics computed on the thresholded calls.
-					</div>
-				</div>
-			</div>
-		</section>
-
-		<nav class="button_bar"><div>
-			<div class="nav_button" name="overview">
+<section class="main_text">
+            <h2>Converting genotypes</h2>
+        <div class="task">
+            <div class="task_name">
+                Computing genotype calls by thresholding
+            </div>
+            <div class="task_notes">
+                The <code>-threshold</code> option tells QCTOOL to compute thresholded genotype calls from genotype probabilities found in the input. For example:
+            </div>
+            <div class="task_command_line">
+                $ qctool -g input.gen -threshold 0.9 -og thresholded.vcf
+            </div>
+            <div class="task_notes">
+                This will read genotype probabilities (e.g. from imputation) from the input file, and for each sample at each variant will
+                compute a genotype call (if one of the probabilities is above the threshold) or a missing call (if none are).
+            </div>
+            <div class="task_notes">
+                In the example above, the output VCF file will contain two FORMAT fields, namely GT (the threshholded call) and GP (the original
+                imputed probabilities).  More generally, <code>-threshold</code> makes the thresholded call the primary analysis genotype,
+                thus for example in the command:
+            </div>
+            <div class="task_command_line">
+                $ qctool -g input.gen -threshold 0.9 -snp-stats -osnp &lt;output file&gt;
+            </div>
+            <div class="task_notes">
+                the output will reflect summary statistics computed on the thresholded calls.
+            </div>
+        </div>
+    </div>
+</section>
+		<nav class="button_bar"><div>			<div class="nav_button" name="overview">
 				<a href="../../index.html">overview</a>
 			</div>
 			<div class="nav_button" name="documentation">
@@ -66,17 +65,18 @@
 					<li><a href="../../documentation/examples/basic.html">Basic usage</a></li>
 					<li><a href="../../documentation/examples/converting.html">Converting file formats</a></li>
 					<li><a href="../../documentation/examples/converting_genotypes.html">Thresholding genotypes</a></li>
-<li><a href="([a-zA-Z/.]*)sorting.html">Sorting and reordering data</a></li>
-				<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
-<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
+					<li><a href="../../documentation/examples/sorting.html">Sorting and reordering data</a></li>
+					<li><a href="../../documentation/examples/combining.html">Combining datasets</a></li>
+					<li><a href="../../documentation/examples/merging.html">Merging in variants</a></li>
 					<li><a href="../../documentation/examples/altering_id_data.html">Altering variant identifying data</a></li>
 					<li><a href="../../documentation/examples/pipelining.html">Using qctool in a pipeline</a></li>
 					<li><a href="../../documentation/examples/filtering_samples.html">Filtering samples</a></li>
-<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
+					<li><a href="../../documentation/examples/filtering_variants.html">Filtering variants</a></li>
 					<li><a href="../../documentation/examples/summary_statistics.html">Computing summary statistics</a></li>
 					<li><a href="../../documentation/examples/annotating.html">Computing annotations</a></li>
-					<li><a href="../../documentation/examples/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
-<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
+					<li><a href="../../documentation/examples/adding_to_sample_file.html">Adding data to a sample file</a></li>
+					<li><a href="../../documentation/examples/computing_ld.html">Computing LD</a></li>
+					<li><a href="../../documentation/examples/computing_pcs.html">Computing principal components</a></li>
 					<li><a href="../../documentation/examples/inferring_ploidy.html">Working with sex chromosomes</a></li>
 				</ul>
 			</div>
@@ -90,7 +90,8 @@
 			<div class="nav_button" name="download">
 				<a href="../../documentation/download.html">download</a>
 			</div>
-		</div>
-		
+</div>
+</nav>
+
 	</body>
 </html>
