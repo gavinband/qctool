@@ -45,25 +45,10 @@ original <a href="http://www.well.ox.ac.uk/~gav/qctool_v1">QCTOOL v1</a>.
 Version 1 is still available but is now unsupported.</p>
 <h3>Obtaining QCTOOL</h3>
 <p>The QCTOOL source code is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. You may also be able
-to obtain precompiled binaries from <a href="https://www.well.ox.ac.uk/~gav/resource/">this folder</a>. See the <a
+to obtain precompiled binaries from <a href="https://www.well.ox.ac.uk/~gav/resources/">this folder</a>. See the <a
 href="documentation/download.html">download page</a> for full details on obtaining and installing QCTOOL.</p>
 <h3>Change history</h3>
-<p><strong>Changes in v2.2.0</strong>:</p>
-<p><strong>Changes in v2.0.8</strong>:</p>
-<p><strong>Changes in v2.0 series</strong>: QCTOOL v2 differs in several important ways from the v1 release series. Some important
-changes in QCTOOL v2 relative to v1 are:</p>
-<ul>
-<li><em>Support for more file formats</em>: QCTOOL v2 supports a diverse array of common file formats - 
-    see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.</li>
-<li><em>Support for more features</em>: QCTOOL v2 has a bunch of features not found in v1 - for example it
-    can <a href="documentation/examples/computing_ld.html">compute LD metrics</a>,
-    <a href="documentation/examples/altering_id_data.html">apply strand alignments</a>,
-    <a href="documentation/examples/annotating.html">annotate variants</a> with information from external sources, and more.</li>
-<li><em>Removal of on-the-fly filtering options</em>: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options
-    to exclude them in a seperate QCTOOL run <a href="documentation/examples/filtering_samples.html">as described here</a> and <a href="documentation/examples/filtering_variants.html">here</a>. (That's often what you want anyway, since it's useful to have a record of what you've removed.)</li>
-<li><em>Treatment of chromosomes</em>: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to <a href="documentation/examples/altering_id_data.html">use the <code>-map-id-data</code> option</a> to replace chromosome identifiers on the fly during analysis.</li>
-<li><em>Changes to output of summary stats</em>: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code> and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, all per-sample summary computations are output the file specified by <code>-osample</code>.</li>
-</ul>
+<p>See the <a href="documentation/changes.html">change history page</a>.</p>
 <h3>Acknowledgements</h3>
 <p>The following people contributed to the design and implementation of qctool:
 * <a href="http://www.well.ox.ac.uk/~gav/">Gavin Band</a>
@@ -81,6 +66,7 @@ Further acknowledgements can be found on the <a href="https://code.enkre.net/qct
 				<ul class="menu">
 					<li><a href="documentation/diagram_of_options.html">Diagram of options</a></li>
 					<li><a href="documentation/alphabetical_options.html">List of options</a></li>
+					<li><a href="documentation/changes.html">Change history</a></li>
 				</ul>
 			</div>
 			<div class="nav_button" name="tutorial">

@@ -28,28 +28,12 @@ Version 1 is still available but is now unsupported.
 ### Obtaining QCTOOL ###
 
 The QCTOOL source code is currently hosted at <a href="https://code.enkre.net">code.enkre.net</a>. You may also be able
-to obtain precompiled binaries from <a href="https://www.well.ox.ac.uk/~gav/resource/">this folder</a>. See the <a
+to obtain precompiled binaries from <a href="https://www.well.ox.ac.uk/~gav/resources/">this folder</a>. See the <a
 href="[ROOT]/documentation/download.html">download page</a> for full details on obtaining and installing QCTOOL.
 
 ### Change history ###
 
-**Changes in v2.2.0**:
-
-**Changes in v2.0.8**:
-
-**Changes in v2.0 series**: QCTOOL v2 differs in several important ways from the v1 release series. Some important
-changes in QCTOOL v2 relative to v1 are:
-
-* *Support for more file formats*: QCTOOL v2 supports a diverse array of common file formats - 
-	see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.
-* *Support for more features*: QCTOOL v2 has a bunch of features not found in v1 - for example it
-	can <a href="documentation/examples/computing_ld.html">compute LD metrics</a>,
-	<a href="documentation/examples/altering_id_data.html">apply strand alignments</a>,
-	<a href="documentation/examples/annotating.html">annotate variants</a> with information from external sources, and more.
-* *Removal of on-the-fly filtering options*: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options
-	to exclude them in a seperate QCTOOL run <a href="documentation/examples/filtering_samples.html">as described here</a> and <a href="documentation/examples/filtering_variants.html">here</a>. (That's often what you want anyway, since it's useful to have a record of what you've removed.)
-* *Treatment of chromosomes*: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to <a href="documentation/examples/altering_id_data.html">use the <code>-map-id-data</code> option</a> to replace chromosome identifiers on the fly during analysis.
-* *Changes to output of summary stats*: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code> and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, all per-sample summary computations are output the file specified by <code>-osample</code>.
+See the <a href="[ROOT]/documentation/changes.html">change history page</a>.
 
 ### Acknowledgements ###
 

@@ -1,0 +1,55 @@
+<section class="main_text" markdown="1">
+### Change history ###
+
+**Changes in v2.2.0**:
+
+* Documentation improvements
+* <a href="https://www.well.ox.ac.uk/~gav/hptest">HPTEST</a> and <a href="https://www.well.ox.ac.uk/~gav/ldbird">LDBIRD</a> have been added to the ``QCTOOL`` repository.
+
+**Changes in v2.0.8**:
+
+* ``VCF format support``: permit GP field without GT field, fixing ticket <a href="https://code.enkre.net/qctool/tktview?name=4d88dff8cc">4d88dff8cc</a>.
+
+* ``qctool``: always get sample identifiers from input file when they are available and no ``-s`` option is supplied.
+  In BGEN format, default is now to write sample identifiers whenever possible unless
+  ``-bgen-omit-sample-identifier-block`` is specified. Fixes ticket <a
+  href="https://code.enkre.net/qctool/info/b952a6be">b952a6be</a>.
+
+**Changes in v2.0.7**: 
+
+* Use (and expect) semicolons not commas to separate VCF variant IDs.
+* Solve compilation failure issue on some versions of gcc.
+
+**Changes in v2.0.6**:
+
+* ``qctool``: Fix bug in ``info`` metric computation when there is missing data.
+
+* Rationalise ``inthinnerator`` arguments.
+
+**Changes in v2.0.5**
+
+* ``qctool``: fix bug when using ``-flip-to-match-cohort1`` and/or strand alignment with multiple sources.
+* ``inthinnerator``: use ``-o`` not ``-odb`` and add ``-compare-variants-by``.
+* ``inthinnerator``: (re-)implement nearest gene-finding algorithm.
+
+**Changes in v2.0.1**:
+
+* fix bug when reading IMPUTE haplotypes format data.
+
+**Changes in v2.0 series**:
+
+QCTOOL v2 differs in several important ways from the v1 release series. Some important changes in QCTOOL v2 relative to
+v1 are:
+
+* *Support for more file formats*: QCTOOL v2 supports a diverse array of common file formats - 
+	see the <a href="documentation/genotype_file_formats.html">file formats page</a> for more information.
+* *Support for more features*: QCTOOL v2 has a bunch of features not found in v1 - for example it
+	can <a href="documentation/examples/computing_ld.html">compute LD metrics</a>,
+	<a href="documentation/examples/altering_id_data.html">apply strand alignments</a>,
+	<a href="documentation/examples/annotating.html">annotate variants</a> with information from external sources, and more.
+* *Removal of on-the-fly filtering options*: The options for direct filtering based on summary statistics (<code>-maf</code>, <code>-hwe</code>, <code>-snp-missing-rate</code>, etc.) have been removed. Instead, it's expected you will inspect summary statistics and manually create lists of variants and/or samples for removal, using the <code>-incl-</code> and <code>-excl-</code> options
+	to exclude them in a seperate QCTOOL run <a href="documentation/examples/filtering_samples.html">as described here</a> and <a href="documentation/examples/filtering_variants.html">here</a>. (That's often what you want anyway, since it's useful to have a record of what you've removed.)
+* *Treatment of chromosomes*: QCTOOL v1 always converted chromosomes to a two-digit form (<code>01</code>,<code>02</code>, ...) and would treat chromosomes as missing if they were not of specific forms pertinent to human datasets. QCTOOL v2 instead allows arbitrary strings to be used as chromosomes. This change brings QCTOOL into line with other tools, e.g. those that use contig identifiers from a reference genome build. However, this also breaks some workflows that would previously have worked, namely when matching between datasets that have differently encoded chromosome names. A possible workaround is to <a href="documentation/examples/altering_id_data.html">use the <code>-map-id-data</code> option</a> to replace chromosome identifiers on the fly during analysis.
+* *Changes to output of summary stats*: QCTOOL performs several types of per-variant summary computation, that are specified using options like <code>-snp-stats</code> and the <code>-annotate-</code> options. When outputting results, all output is sent to a single output file that is specified using the <code>-osnp</code> option. This file will automatically inherit columns from each requested computation. Similarly, all per-sample summary computations are output the file specified by <code>-osample</code>.
+
+</section>
