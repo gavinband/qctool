@@ -173,7 +173,7 @@
       "max": 1
     },
     "values_per_use": 1,
-    "default": [ "position,alleles,ids" ]
+    "default": [ "position, alleles, ids" ]
   },
   "-compute-ld-with": {
     "group": "",
@@ -298,7 +298,7 @@
   },
   "-filetype": {
     "group": "",
-    "description": "Specify the filetype of the genotype files specified by -g. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\",\"bgen\",\"vcf\",\"hapmap_haplotypes\",\"impute_haplotypes\",\"impute_allele_probs\",\"shapeit_haplotypes\",\"binary_ped\",\"long\",\"hlaimp\".",
+    "description": "Specify the filetype of the genotype files specified by -g. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\", \"bgen\", \"vcf\", \"hapmap_haplotypes\", \"impute_haplotypes\", \"impute_allele_probs\", \"shapeit_haplotypes\", \"binary_ped\", \"long\", \"hlaimp\".",
     "is_required": 0,
     "multiplicity": {
       "min": 0,
@@ -705,7 +705,7 @@
   },
   "-ofiletype": {
     "group": "",
-    "description": "Specify the filetype of the output genotype files specified by -og. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\",\"bgen\",\"bgen_v1.2\",\"bgen_v1.1\",\"vcf\",\"binary_ped\",\"shapeit_haplotypes\",\"shapeit\",\"impute_allele_probs\",\"dosage\",\"bimbam_dosage\",\"intensity\",\"penncnv\",\"cnvhap\".",
+    "description": "Specify the filetype of the output genotype files specified by -og. By default, qctool will guess the file type.  Use this option to override that guess. Possible types are: \"gen\", \"bgen\", \"bgen_v1.2\", \"bgen_v1.1\", \"vcf\", \"binary_ped\", \"shapeit_haplotypes\", \"shapeit\", \"impute_allele_probs\", \"dosage\", \"bimbam_dosage\", \"intensity\", \"penncnv\", \"cnvhap\".",
     "is_required": 112,
     "multiplicity": {
       "min": 0,
@@ -943,7 +943,7 @@
       "max": 1
     },
     "values_per_use": 1,
-    "default": [ "allele-frequencies,HWE,missingness,info" ]
+    "default": [ "allele-frequencies, HWE, missingness, info" ]
   },
   "-sort": {
     "group": "",

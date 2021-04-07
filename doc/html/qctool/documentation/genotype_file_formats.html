@@ -17,6 +17,7 @@
 			<div class="header_subtext">
 				A tool for quality control and analysis of gwas datasets.
 			</div>
+			<img src="../style/images/qctool.png" class="logo">
 		</div>
 
 <section class="main_text">
@@ -26,18 +27,14 @@
     </p>
     <table class="file_formats">
         <colgroup>
-            <col class="acronym">
-            <col class="io">
-            <col class="filetype">
-            <col class="notes">
+            <col class="acronym" style="width:20%">
+            <col class="filetype" style="width:20%">
+            <col class="notes" style="width:65%">
         </colgroup>
         <thead>
             <tr>
             <th>
                 <div>Format</div> <small>(recognised extensions)</small>
-            </th>
-            <th>
-                I/O
             </th>
             <th>
                 <div>Filetype</div>
@@ -51,10 +48,10 @@
         <tbody>
         <tr>
             <td>
-                <div><a href="http://www.stats.ox.ac.uk/%7Emarchini/software/gwas/file_format.html">GEN</a></div>
+                <div><a href="https://www.well.ox.ac.uk/~gav/snptest/#input_file_formats">GEN</a></div>
                 <code>(.gen, .gen.gz)</code>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>gen</code></td>
             <td>
                 Optionally, an extra initial column containing chromosomes can be included in the input.  QCTOOL auto-detects this
@@ -66,8 +63,8 @@
             <td>
                 <div><a href="http://www.bgenformat.org">BGEN</a></div>
                 <code>(.bgen)</code>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>bgen</code></td>
             <td>
                 <p>Output files are in BGEN v1.2 with 16 bits per probability and compressed
@@ -82,8 +79,8 @@
             <td>
                 <div><a href="http://samtools.github.io/hts-specs/VCFv4.2.pdf">VCF</a></div>
                 <code>(.vcf, .vcf.gz)</code>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>vcf</code></td>
             <td>
                 <p>QCTOOL is strict about VCF metadata in input files for the fields it reads.  Since 
@@ -96,10 +93,10 @@
         </tr>
         <tr>
             <td>
-                <div><a href="">PLINK binary format</a></div>
+                <div><a href="https://www.cog-genomics.org/plink/2.0/formats">PLINK binary format</a></div>
                 <code>(.bed, .bim, .fam)</code>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>binary_ped</code></td>
             <td>
                 Note that QCTOOL currently does only the most basic processing of
@@ -110,9 +107,9 @@
         </tr>
         <tr>
             <td>
-                <div><a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample">SHAPEIT</a> haplotype format</div>
+                <div><a href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample">SHAPEIT</a> <small>haplotype format</small></div>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>shapeit_haplotypes</code></td>
             <td>
                 For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
@@ -122,9 +119,9 @@
         </tr>
         <tr>
             <td>
-                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> allele probabilities format</div>
+                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> <small>allele probabilities format</small></div>
+                <br><small>(Input / output)</small>
             </td>
-            <td>both</td>
             <td><code>impute_allele_probs</code></td>
             <td>
                 to specify reading or writing this filetype.  This file format is like the
@@ -135,9 +132,9 @@
         </tr>
         <tr>
             <td>
-                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> haplotype format</div>
+                <div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> <small>haplotype format</small></div>
+                <br><small>(Input only)</small>
             </td>
-            <td>Input only</td>
             <td><code>impute_haplotypes</code></td>
             <td>
                 It is assumed the legend file name is the same as the haplotypes file name, minus extension,
@@ -149,9 +146,9 @@
         </tr>
         <tr>
             <td>
-                <div><a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> probability format</div>
+                <div><a href="https://oxfordhla.well.ox.ac.uk/hla/">HLAIMP</a> <small>probability format</small></div>
+                <br><small>(Input only)</small>
             </td>
-            <td>Input only</td>
             <td><code>hlaimp</code></td>
             <td>
                 Currently, this input format implicitly splits each HLA locus as a series of bi-allelic variants.
@@ -159,9 +156,9 @@
         </tr>
         <tr>
             <td>
-                <div>QCTOOL 'long' format</div>
+                QCTOOL <small>'long' format</small>
+                <br><small>(Input only)</small>
             </td>
-            <td>Input only</td>
             <td><code>long</code></td>
             <td>
                 Input must be a file with columns <code>SNPID, rsid, chromosome, position, number_of_alleles,
@@ -174,10 +171,10 @@
         </tr>
         <tr>
             <td>
-                <div><a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>
-                / <a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format</div>
+                <a href="http://penncnv.openbioinformatics.org/en/latest/">PennCNV</a>
+                / <a href="https://sites.google.com/site/quantisnp/">QuantiSNP</a> format
+                <br><small>(Output only)</small>
             </td>
-            <td>Output only</td>
             <td><code>penncnv</code></td>
             <td>
                 PennCNV uses a single sample per input file, this can be acheived using the sample filtering options,
@@ -186,11 +183,11 @@
         </tr>
         <tr>
             <td>
-                <div><a href="http://stephenslab.uchicago.edu/software.html#bimbam">BIMBAM</a> dosage format;</div>
-                <div>QCTOOL dosage format</div>
+                <div><a href="http://stephenslab.uchicago.edu/software.html#bimbam">BIMBAM</a> <small>dosage format</small>;</div>
+                <div>QCTOOL <small>dosage format</small></div>
                 <code>(.dosage[.gz])</code>
+                <br><small>(Output only)</small>
             </td>
-            <td>Output only</td>
             <td><code>bimbam_dosage</code> or <code>dosage</code></td>
             <td>
                 This file outputs a single column per sample (named by the sample identifier) containing the
@@ -200,10 +197,10 @@
         </tr>
         <tr>
             <td>
-                <div>QCTOOL intensity text format</div>
+                <div>QCTOOL <small>intensity text format</small></div>
                 <code>.intensity[.gz]</code>
+                <br><small>(Output only)</small>
             </td>
-            <td>Output only</td>
             <td><code>intensity</code></td>
             <td>
                 The output file has two columns per sample, representing X and Y channel intensities for the

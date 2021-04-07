@@ -4,58 +4,58 @@
 	border: 1px solid black ;
 	background-color: #CCCCCC ;
 	padding: 10px ;
+	font-size: 16pt ;
 }
 
-.file_formats, .option_table {
+.file_formats, .option_table, .download {
 	table-layout: fixed ;
 	width: 800px ;
 	margin-left: auto ;
 	margin-right: auto ;
-	font-family: helvetica, sans-serif ;
-	border-collapse: collapse ;
+	font-family: monospace, helvetica, sans-serif ;
+	border-collapse: separate ;
+	text-align: left ;
+	border-spacing: 0px ;
 }
 
-.file_formats thead, .option_table thead {
-	font-size: 14px ;
+table thead {
+	font-size: 16px ;
 	text-align: left ;
 	margin-bottom: 2px ;
 	vertical-align: bottom ;
+	border-bottom: 1px solid black ;
 }
 
-.file_formats tbody, .option_table tbody {
+table tbody {
 	font-size: 12px ;
 }
 
-.file_formats tr, .option_table tr {
-	margin-top: 10px ;
-	margin-bottom: 10px ;
+table code {
+	font-size: 10px ;
 }
 
-tr:nth-child(even) {
-	background: "grey" ;
-}
-
-tr:nth-child(odd) {
-	background: "red" ;
+table tbody tr:nth-child(odd) {
+	background: #eeeeee ;
 }
 
 table.dataTable tr.odd { background-color: #eeeeee; }
 
-.file_formats th, .option_table th {
+table thead th {
 	padding-top: 3px ;
 	padding-bottom: 3px ;
+	padding-left: 5px ;
 	border-bottom: 1px solid black ;
+	//text-align: left ;
 }
 
-.file_formats td, .option_table td {
-	height: 100% ;
+table tbody td {
 	vertical-align: top ;
-	padding-top: 20px ;
-	padding-bottom: 20px ;
+	padding-top: 5px ;
+	padding-bottom: 5px ;
 }
-
+/*
 .file_formats .acronym {
-	width: 150px ;
+	width: 100px ;
 }
 
 .file_formats .notes {
@@ -69,6 +69,7 @@ table.dataTable tr.odd { background-color: #eeeeee; }
 .file_formats .filetype {
 	width: 150px ;
 }
+*/
 
 .option_table .option {
 	width: 200px ;
