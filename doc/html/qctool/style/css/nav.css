@@ -21,8 +21,8 @@ nav {
 nav > div {
 	width: 1000px ;
 	box-sizing: border-box ;
-	padding-left: 150px;
-	padding-right: 150px;
+	padding-left: 140px;
+	padding-right: 140px;
 	margin-left: auto ;
 	margin-right: auto ;
 	//background-color: rgba( 220, 220, 220, 0.95 ) ;
@@ -34,7 +34,7 @@ nav > div {
 	display: inline-block;
 	position: relative;
 	box-sizing: border-box ;
-	//margin-top: 10px ;
+	box-sizing: border-box ;
 	padding-left: 15px ;
 	padding-right: 15px ;
 	padding-top: 3px ;
