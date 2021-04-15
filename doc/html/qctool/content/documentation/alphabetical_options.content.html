@@ -45,7 +45,7 @@
 						'<tr>'
 						+ '<td>' + options[i] + '</td>'
 						+ '<td>' + data[options[i]]['description'] + '</td>'
-						+ '<td>' + ( data[options[i]].length == 0 ? "N/A" : data[options[i]].default.join( ", " )) + '</td>'
+						+ '<td>' + ( data[options[i]].length == 0 ? "N/A" : ( "(" + data[options[i]].default.join( ", " ) + ")" ) + '</td>' )
 						+ '</tr>'
 					)
 				}
