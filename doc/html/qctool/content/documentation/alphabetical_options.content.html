@@ -3,8 +3,9 @@
 	<p>Below is a list of all options supported by QCTOOL. (See also the <a href="../documentation/diagram_of_options.html">diagram of options</a>).</p>
 	<table class="option_table">
 		<colgroup>
-			<col class="option"></col>
-			<col class="description"></col>
+			<col class="option">
+			<col class="description">
+			<col class="default">
 		</colgroup>
 		<thead>
 			<tr>
@@ -13,6 +14,9 @@
 				</th>
 				<th>
 					Description
+				</th>
+				<th>
+					Default value?
 				</th>
 			</tr>
 		</thead>
@@ -42,7 +46,7 @@
 						+ '<td>' + options[i] + '</td>'
 						+ '<td>' + data[options[i]]['description'] + '</td>'
 						+ '<td>' + ( data[options[i]].length == 0 ? "N/A" : data[options[i]].default.join( ", " )) + '</td>'
-						+ '/tr>'
+						+ '</tr>'
 					)
 				}
 				
@@ -54,7 +58,6 @@
 						}
 					}
 				) ;
-				
 				$('.dataTables_filter').css('float', 'left') ;
 			}) ;
 		}

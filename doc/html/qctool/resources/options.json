@@ -78,7 +78,7 @@
   },
   "-annotate-sequence": {
     "group": "",
-    "description": "Specify a FASTA-formatted file containing reference alleles to annotate variants with. This will appear as <name>_allele where <name> is the second argument.",
+    "description": "Specify a FASTA-formatted file containing reference alleles to annotate variants with. This will appear as &lt;name&gt;_allele where &lt;name&gt; is the second argument.",
     "is_required": 0,
     "multiplicity": {
       "min": 0,
