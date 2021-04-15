@@ -90,22 +90,29 @@
 			</td>
 			<td><code>shapeit_haplotypes</code></td>
 			<td>
-				For genotypic computations, genotypes are formed from pairs of haplotypes; it is assumed that the two haplotypes for each individual
-				are consecutive columns in the file. (This format is
-				described <a href="http://www.shapeit.fr/pages/hapssample.html">here</a>.)
+
+				This format has five initial columns (`SNPID`, `rsid`, `position`, first and seconda alleles) followed
+				by two columns for each sample representing the two haplotypes. These columns contain 0 (representing the first
+				allele) or 1 (representing the second allele). The first column is sometimes used to record the chromosome instead
+				of a seperate ID, but to my knowledge this is a convention. QCTOOL does not interpret the first column as
+				chromosome information, but the `-assume-chromosome` option can be used to work around this.
+				To convert haplotypes to genotypes, QCTOOL assumes that the two haplotypes for each individual are
+				consecutive columns in the file. (This format is described <a
+				href="https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample">here</a>.)
+
 			</td>
 		</tr>
 		<tr>
 			<td>
-				<div><a href="http://mathgen.stats.ox.ac.uk/impute/impute_v2.html">IMPUTE</a> <small>allele probabilities format</small></div>
+				IMPUTE <small>allele probabilities format</small></div>
 				<br><small>(Input / output)</small>
 			</td>
 			<td><code>impute_allele_probs</code></td>
 			<td>
-				to specify reading or writing this filetype.  This file format is like the
-				shapeit haplotype format but contains a probability for
-				each haplotype (i.e. two probabilities per individual),
-				specifying the probability that the haplotype carries the second allele.
+
+				This file format is like the shapeit haplotype format but contains a probability for each haplotype
+				(i.e. two probabilities per individual), specifying the probability that the haplotype carries the second allele.
+
 			</td>
 		</tr>
 		<tr>
