@@ -980,7 +980,7 @@
   },
   "-threads": {
     "group": "",
-    "description": "Specify the number of worker threads to use in computationally intensive tasks.",
+    "description": "Specify the number of worker threads to use in computationally intensive tasks.  This currently only applies to principal components computation (-PCs).",
     "is_required": 0,
     "multiplicity": {
       "min": 0,
