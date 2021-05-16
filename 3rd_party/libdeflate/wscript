@@ -1,0 +1,14 @@
+import os.path
+
+def build( bld ):
+	commonHeaders = bld.path.ant_glob( 'common/*.h' ) + [ 'libdeflate.h' ]
+	libHeaders = bld.path.ant_glob( 'lib/*.h' ) + bld.path.ant_glob( 'lib/*/*.h' )
+	sources = [ 'lib/deflate_decompress.c', 'lib/utils.c' ] + bld.path.ant_glob( 'lib/*/cpu_features.c' )
+	bld.stlib(
+		target = 'deflate',
+		source = sources,
+		features = [ 'c' ],
+		includes = [ './' ],
+		cflags = '-O2 -fomit-frame-pointer -std=c99 -I. -Wall -Wundef',
+		export_includes = '../'
+	)

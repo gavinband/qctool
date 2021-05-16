@@ -1,0 +1,13 @@
+import os.path
+
+def build( bld ):
+	sources = bld.path.ant_glob( '*.c' )
+	headers = bld.path.ant_glob( '*.h' )
+	bld.stlib(
+		target = 'zlib',
+		source = sources,
+		features = [ 'c' ],
+		includes = './',
+		cflags = '-O3 -fPIC',
+		export_includes = './'
+	)
