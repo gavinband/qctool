@@ -55,6 +55,10 @@ namespace qcdb {
 		) ;
 		~DBOutputter() ;
 
+		// Specify that varaints should not be linked (i.e. all variants will be newly created,
+		// regardless of what is in the Variants table).
+		void set_dont_link_variants() { m_link_variants = false ; }
+
 		// Create a new variable associated with the current analysis
 		void create_variable( std::string const& table, std::string const& name ) const ;
 #if 0
@@ -85,7 +89,7 @@ namespace qcdb {
 		Metadata const m_metadata ;
 		bool const m_create_indices ;
 		bool const m_match_rsid ;
-
+		bool m_link_variants ;
 
 		genfile::db::Connection::StatementPtr m_insert_variable_statement ;
 

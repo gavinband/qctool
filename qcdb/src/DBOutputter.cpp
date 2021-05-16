@@ -98,6 +98,7 @@ namespace qcdb {
 		m_metadata( metadata ),
 		m_create_indices( true ),
 		m_match_rsid( impl::get_match_rsid( snp_match_fields )),
+		m_link_variants( true ),
 		m_analysis_id( analysis_id )
 	{
 		try {
@@ -377,22 +378,26 @@ namespace qcdb {
 
 	genfile::db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
 		genfile::db::Connection::RowId result ;
-		if( snp.get_position().chromosome().is_missing() ) {
-			m_find_variant_statement->bind_NULL( 1 ) ;
-		} else {
+		
+		bool createNewVariant = !m_link_variants ;
+		if( !createNewVariant ) {
+			if( snp.get_position().chromosome().is_missing() ) {
+				m_find_variant_statement->bind_NULL( 1 ) ;
+			} else {
+				m_find_variant_statement
+					->bind( 1, std::string( snp.get_position().chromosome() ) ) ;
+			}
 			m_find_variant_statement
-				->bind( 1, std::string( snp.get_position().chromosome() ) ) ;
+				->bind( 2, snp.get_position().position() )
+				.bind( 3, snp.get_allele(0) )
+				.bind( 4, snp.get_allele(1) ) ;
+			if( m_match_rsid ) {
+				m_find_variant_statement->bind( 5, snp.get_primary_id() ) ;
+			}
+			m_find_variant_statement->step() ;
+			createNewVariant = m_find_variant_statement->empty() ;
 		}
-		m_find_variant_statement
-			->bind( 2, snp.get_position().position() )
-			.bind( 3, snp.get_allele(0) )
-			.bind( 4, snp.get_allele(1) ) ;
-		if( m_match_rsid ) {
-			m_find_variant_statement->bind( 5, snp.get_primary_id() ) ;
-		}
-		m_find_variant_statement->step() ;
-
-		if( m_find_variant_statement->empty() ) {
+		if( createNewVariant ) {
 			if( snp.get_position().chromosome().is_missing() ) {
 				m_insert_variant_statement
 					->bind_NULL( 2 ) ;

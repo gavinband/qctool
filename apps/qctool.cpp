@@ -462,6 +462,11 @@ public:
 			.set_description( "For use when outputting BGEN files only.  Tell QCTOOL to omit the sample identifier block.  By default"
 				" this is written whenever -s is specified." )
 		;
+		
+		options.declare_group( "sqlite-specific options" ) ;
+		options[ "-sqlite-dont-link-variants" ]
+			.set_description( "Do not attempt to link to existing variants when outputting to a sqlite file. "
+				"This can lead to duplicated variants, but may be faster for large jobs." ) ;
 
 		options.option_implies_option( "-sort", "-og" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
@@ -2742,6 +2747,9 @@ private:
 				) ;
 				if( file_spec.size() == 3 ) {
 					table_storage->set_table_name( file_spec[2] ) ;
+				}
+				if( options().check( "-sqlite-dont-link-variants" )) {
+					table_storage->set_dont_link_variants() ;
 				}
 				per_snp_storage = table_storage ;
 			} else {
