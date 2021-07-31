@@ -49,7 +49,7 @@ namespace genfile {
 		// We write a dummy FAM file with missing info in most fields
 		std::auto_ptr< std::ostream > fam_file = open_text_file_for_output( m_output_filename_stub + ".fam", "no_compression" ) ;
 		for( std::size_t i = 0; i < number_of_samples; ++i ) {
-			(*fam_file) << (i+1) << " " << m_sample_ids[i] << " 0 0 0 0\n" ;
+			(*fam_file) << (i+1) << "\t" << m_sample_ids[i] << "\t0\t0\t0\t0\n" ;
 		}
 	}
 
@@ -91,12 +91,12 @@ namespace genfile {
 		/* Write BIM file line. */
 		if( chromosome.is_missing() ) {
 			// Missing chromosome encoded as 0
-			(*m_bim_file ) << "0 " ;
+			(*m_bim_file ) << "0\t" ;
 		} else {
-			(*m_bim_file ) << chromosome << " " ;
+			(*m_bim_file ) << chromosome << "\t" ;
 		}
 		
-		(*m_bim_file ) << RSID << " 0 " << SNP_position << " " << first_allele << " " << second_allele << "\n" ;
+		(*m_bim_file ) << RSID << "\t0\t" << SNP_position << "\t" << first_allele << "\t" << second_allele << "\n" ;
 
 		/* Write BED file line */
 		m_buffer.resize( (m_sample_ids.size()+3) / 4, 0 ) ;
