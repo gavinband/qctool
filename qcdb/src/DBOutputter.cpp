@@ -98,7 +98,7 @@ namespace qcdb {
 		m_metadata( metadata ),
 		m_create_indices( true ),
 		m_match_rsid( impl::get_match_rsid( snp_match_fields )),
-		m_link_variants( true ),
+		m_flags( eLinkVariants | eAltIdentifiers ),
 		m_analysis_id( analysis_id )
 	{
 		try {
@@ -117,6 +117,7 @@ namespace qcdb {
 		m_connection->run_statement(
 			"CREATE INDEX IF NOT EXISTS Variant_position_index ON Variant( chromosome, position )"
 		) ;
+
 		m_connection->run_statement(
 			"CREATE TABLE IF NOT EXISTS VariantIdentifier ( variant_id INTEGER NOT NULL, identifier TEXT, FOREIGN KEY( variant_id ) REFERENCES Variant( id ) ) "
 		) ;
@@ -379,7 +380,7 @@ namespace qcdb {
 	genfile::db::Connection::RowId DBOutputter::get_or_create_variant( genfile::VariantIdentifyingData const& snp ) const {
 		genfile::db::Connection::RowId result ;
 		
-		bool createNewVariant = !m_link_variants ;
+		bool createNewVariant = !(m_flags & eLinkVariants) ;
 		if( !createNewVariant ) {
 			if( snp.get_position().chromosome().is_missing() ) {
 				m_find_variant_statement->bind_NULL( 1 ) ;
@@ -416,16 +417,18 @@ namespace qcdb {
 
 			result = connection().get_last_insert_row_id() ;
 			m_insert_variant_statement->reset() ;
-			snp.get_identifiers(
-				boost::bind(
-					&DBOutputter::add_alternative_variant_identifier,
-					this,
-					result,
-					_1,
-					snp.get_primary_id()
-				),
-				1
-			) ;
+			if( m_flags & eAltIdentifiers ) {
+				snp.get_identifiers(
+					boost::bind(
+						&DBOutputter::add_alternative_variant_identifier,
+						this,
+						result,
+						_1,
+						snp.get_primary_id()
+					),
+					1
+				) ;
+			}
 		} else {
 			result = m_find_variant_statement->get< genfile::db::Connection::RowId >( 0 ) ;
 			std::string const rsid = m_find_variant_statement->get< std::string >( 1 ) ;

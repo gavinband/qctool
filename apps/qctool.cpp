@@ -465,8 +465,11 @@ public:
 		
 		options.declare_group( "sqlite-specific options" ) ;
 		options[ "-sqlite-dont-link-variants" ]
-			.set_description( "Do not attempt to link to existing variants when outputting to a sqlite file. "
-				"This can lead to duplicated variants, but may be faster for large jobs." ) ;
+			.set_description( "Do not attempt to link to existing variants when outputting to a sqlite file. " )
+		;
+		options[ "-sqlite-store-alt-identifiers" ]
+			.set_description( "Store variant alternate identifiers. This adds information but can be slower." )
+		;
 
 		options.option_implies_option( "-sort", "-og" ) ;
 		options.option_implies_option( "-omit-chromosome", "-og" ) ;
@@ -2750,6 +2753,9 @@ private:
 				}
 				if( options().check( "-sqlite-dont-link-variants" )) {
 					table_storage->set_dont_link_variants() ;
+				}
+				if( !options().check( "-sqlite-store-alt-identifiers" )) {
+					table_storage->set_no_alt_identifiers() ;
 				}
 				per_snp_storage = table_storage ;
 			} else {

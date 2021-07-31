@@ -24,6 +24,11 @@
 
 namespace qcdb {
 	struct DBOutputter {
+
+	private:
+		enum Flags { eLinkVariants = 1, eAltIdentifiers = 2 } ;
+
+	public:
 		typedef std::auto_ptr< DBOutputter > UniquePtr ;
 		typedef boost::shared_ptr< DBOutputter > SharedPtr ;
 		typedef std::map< std::string, std::pair< std::vector< std::string >, std::string > > Metadata ;
@@ -57,7 +62,9 @@ namespace qcdb {
 
 		// Specify that varaints should not be linked (i.e. all variants will be newly created,
 		// regardless of what is in the Variants table).
-		void set_dont_link_variants() { m_link_variants = false ; }
+		void set_dont_link_variants() { m_flags &= ~eLinkVariants ; }
+		// Specify that alt identifiers should not be stored
+		void set_no_alt_identifiers() { m_flags &= ~eAltIdentifiers ; }
 
 		// Create a new variable associated with the current analysis
 		void create_variable( std::string const& table, std::string const& name ) const ;
@@ -89,7 +96,7 @@ namespace qcdb {
 		Metadata const m_metadata ;
 		bool const m_create_indices ;
 		bool const m_match_rsid ;
-		bool m_link_variants ;
+		uint32_t m_flags ;
 
 		genfile::db::Connection::StatementPtr m_insert_variable_statement ;
 

@@ -55,6 +55,7 @@ namespace qcdb {
 
 		void set_table_name( std::string const& table_name ) ;
 		void set_dont_link_variants() { m_outputter.set_dont_link_variants() ; }
+		void set_no_alt_identifiers() { m_outputter.set_no_alt_identifiers() ; }
 		
 		void add_variable(
 			std::string const& 
