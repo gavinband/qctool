@@ -272,7 +272,7 @@ namespace genfile {
 				}
 				
 				// parse alternate alleles
-				std::vector< slice > alternate_alleles = elts[6].split( "/" ) ;
+				std::vector< slice > alternate_alleles = elts[6].split( "," ) ;
 				if( alternate_alleles.size() + 1 != to_repr< int >( elts[4] )) {
 					throw genfile::MalformedInputError(
 						m_filename,
