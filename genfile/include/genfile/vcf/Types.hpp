@@ -28,7 +28,7 @@ namespace genfile {
 		struct EntrySetter {
 			typedef int64_t Integer ;
 			typedef ::genfile::MissingValue MissingValue ;
-			virtual ~EntrySetter() throw() {}
+			virtual ~EntrySetter() {}
 			virtual void set_value( std::size_t, MissingValue const value ) = 0 ;
 			virtual void set_value( std::size_t, std::string& value ) ;
 			virtual void set_value( std::size_t, Integer const value ) ;
@@ -51,13 +51,13 @@ namespace genfile {
 		struct EntriesSetter: public EntrySetter {
 			typedef genfile::OrderType OrderType ;
 			typedef genfile::ValueType ValueType ;
-			virtual ~EntriesSetter() throw() {}
+			virtual ~EntriesSetter() {}
 			virtual void set_number_of_entries( uint32_t ploidy, std::size_t n, OrderType const order_type, ValueType const value_type ) = 0 ;
 		} ;
 
 		struct PerSampleEntriesSetter: public vcf::EntriesSetter, public boost::noncopyable {
 			typedef std::auto_ptr< PerSampleEntriesSetter > UniquePtr ;
-			virtual ~PerSampleEntriesSetter() throw() {}
+			virtual ~PerSampleEntriesSetter() {}
 			// Prepare to receive values for a variant.
 			virtual void initialise( std::size_t nSamples, std::size_t nAlleles ) = 0 ;
 			// Return true if we want values for this variant, otherwise false.
