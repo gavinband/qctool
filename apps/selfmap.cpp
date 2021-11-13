@@ -266,7 +266,7 @@ private:
 									KmerPositions( 1, kmer_position )
 								)
 							)
-						).first ;
+						) ;
 					} else {
 						where->second.second.push_back( kmer_position ) ;
 					}
