@@ -15,6 +15,10 @@ Basic instructions for obtaining and/or compiling this package can be found on t
 [QCTOOL download page](http://www.well.ox.ac.uk/~gav/qctool/documentation/download.html).
 For further information, see the wiki page on [compiling QCTOOL](/wiki/Compiling%20QCTOOL).
 
+## Reporting issues ##
+
+Issues should be reported on the [issue tracker](https://enkre.net/cgi-bin/code/qctool/rptview?rn=2).
+
 ## License ##
 
 The QCTOOL package is copyright Gavin Band released under the [Boost software license](LICENSE_1_0.txt). QCTOOL uses
