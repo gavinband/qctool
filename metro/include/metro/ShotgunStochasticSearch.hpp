@@ -7,6 +7,7 @@
 #ifndef METRO_SHOTGUNSTOCHASTICSEARCH_HPP
 #define METRO_SHOTGUNSTOCHASTICSEARCH_HPP
 
+#include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <boost/function.hpp>
